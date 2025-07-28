@@ -1,0 +1,64 @@
+[package]
+name = "rat_memcache"
+version = "0.1.0"
+edition = "2024"
+authors = ["0ldm0s <oldmos@gmail.com>"]
+description = "高性能双层缓存系统，基于 rat_quick_threshold 智能传输和 RocksDB 持久化存储"
+repository = "https://git.sukiyaki.su/0ldm0s/rat_memcache"
+keywords = ["cache", "memcache", "rocksdb", "performance", "rust"]
+categories = ["caching", "database", "memory-management"]
+
+[dependencies]
+# 核心智能传输和缓冲池
+rat_quick_threshold = { path = "../rat_quick_threshold" }
+
+# 日志系统
+zerg_creep = { path = "../zerg_creep" }
+
+# 持久化存储
+rocksdb = "0.21"
+
+# 压缩算法
+lz4 = "1.24"
+
+# 异步运行时
+tokio = { version = "1.0", features = ["full"] }
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+bincode = "2.0"
+
+# 时间处理
+chrono = { version = "0.4", features = ["serde"] }
+
+# 并发数据结构
+dashmap = "5.5"
+parking_lot = "0.12"
+
+# 错误处理
+thiserror = "1.0"
+anyhow = "1.0"
+
+# 原子操作和同步
+crossbeam = "0.8"
+
+# 哈希算法
+fxhash = "0.2"
+
+# 字节操作
+bytes = "1.5"
+
+# 配置管理
+toml = "0.8"
+
+[features]
+default = ["lz4-compression", "ttl-support", "metrics"]
+lz4-compression = []
+ttl-support = []
+metrics = []
+memcache-protocol = []
+
+[dev-dependencies]
+tokio-test = "0.4"
+criterion = "0.5"
+tempfile = "3.8"
