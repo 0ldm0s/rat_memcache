@@ -196,16 +196,41 @@ impl RatMemCache {
             ).await?
         );
         
-        // 初始化 L2 缓存
-        let l2_cache = Arc::new(
-            L2Cache::new(
-                config.l2.clone(),
-                config.logging.clone(),
-                compressor.as_ref().clone(),
-                Arc::clone(&ttl_manager),
-                Arc::clone(&metrics),
-            ).await?
-        );
+        // 初始化 L2 缓存（如果启用）
+        let l2_cache = if config.l2.enable_l2_cache {
+            Arc::new(
+                L2Cache::new(
+                    config.l2.clone(),
+                    config.logging.clone(),
+                    compressor.as_ref().clone(),
+                    Arc::clone(&ttl_manager),
+                    Arc::clone(&metrics),
+                ).await?
+            )
+        } else {
+            // 当 L2 缓存禁用时，创建一个临时目录的空实例
+            // 这个实例不会被实际使用，但需要满足类型要求
+            let temp_config = crate::config::L2Config {
+                enable_l2_cache: true,
+                data_dir: Some(tempfile::tempdir()?.into_path()),
+                max_disk_size: 1024,
+                write_buffer_size: 1024,
+                max_write_buffer_number: 1,
+                block_cache_size: 1024,
+                enable_compression: false,
+                compression_level: 1,
+                background_threads: 1,
+            };
+            Arc::new(
+                L2Cache::new(
+                    temp_config,
+                    config.logging.clone(),
+                    compressor.as_ref().clone(),
+                    Arc::clone(&ttl_manager),
+                    Arc::clone(&metrics),
+                ).await?
+            )
+        };
         
         let cache = Self {
             config: Arc::new(config.clone()),
@@ -253,20 +278,22 @@ impl RatMemCache {
             }
         }
         
-        // 尝试从 L2 获取
-        if let Some(value) = self.l2_cache.get(key).await? {
-            transfer_log!(debug, "L2 缓存命中: {}", key);
-            
-            // 将数据提升到 L1（除非跳过）
-            if !options.skip_l1 && !options.force_l2 {
-                let ttl = self.ttl_manager.get_ttl(key).await;
-                if let Err(e) = self.l1_cache.set(key.to_string(), value.clone(), ttl).await {
-                    cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
+        // 尝试从 L2 获取（如果启用）
+        if self.config.l2.enable_l2_cache {
+            if let Some(value) = self.l2_cache.get(key).await? {
+                transfer_log!(debug, "L2 缓存命中: {}", key);
+                
+                // 将数据提升到 L1（除非跳过）
+                if !options.skip_l1 && !options.force_l2 {
+                    let ttl = self.ttl_manager.get_ttl(key).await;
+                    if let Err(e) = self.l1_cache.set(key.to_string(), value.clone(), ttl).await {
+                        cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
+                    }
                 }
+                
+                self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
+                return Ok(Some(value));
             }
-            
-            self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-            return Ok(Some(value));
         }
         
         // 缓存未命中
@@ -312,9 +339,11 @@ impl RatMemCache {
             }
         }
         
-        // 根据策略决定是否写入 L2
-        let should_write_l2 = options.force_l2 || 
-            self.should_write_to_l2(&key, &processed_value, options).await;
+        // 根据策略决定是否写入 L2（仅在启用时）
+        let should_write_l2 = self.config.l2.enable_l2_cache && (
+            options.force_l2 || 
+            self.should_write_to_l2(&key, &processed_value, options).await
+        );
         
         if should_write_l2 {
             self.l2_cache.set(key.clone(), processed_value, options.ttl_seconds).await?;
@@ -339,9 +368,11 @@ impl RatMemCache {
     pub async fn clear(&self) -> CacheResult<()> {
         let start_time = Instant::now();
         
-        // 清空 L1 和 L2
+        // 清空 L1 和 L2（如果启用）
         self.l1_cache.clear().await?;
-        self.l2_cache.clear().await?;
+        if self.config.l2.enable_l2_cache {
+            self.l2_cache.clear().await?;
+        }
         
         // TTL 管理器会自动清理
         
@@ -364,8 +395,12 @@ impl RatMemCache {
             return Ok(true);
         }
         
-        // 检查 L2
-        self.l2_cache.contains_key(key).await
+        // 检查 L2（如果启用）
+        if self.config.l2.enable_l2_cache {
+            self.l2_cache.contains_key(key).await
+        } else {
+            Ok(false)
+        }
     }
 
     /// 获取所有键
@@ -379,10 +414,12 @@ impl RatMemCache {
             }
         }
         
-        // 收集 L2 键
-        for key in self.l2_cache.keys().await? {
-            if !self.ttl_manager.is_expired(&key).await {
-                keys.insert(key);
+        // 收集 L2 键（如果启用）
+        if self.config.l2.enable_l2_cache {
+            for key in self.l2_cache.keys().await? {
+                if !self.ttl_manager.is_expired(&key).await {
+                    keys.insert(key);
+                }
             }
         }
         
@@ -415,7 +452,11 @@ impl RatMemCache {
 
     /// 压缩 L2 缓存
     pub async fn compact(&self) -> CacheResult<()> {
-        self.l2_cache.compact().await
+        if self.config.l2.enable_l2_cache {
+            self.l2_cache.compact().await
+        } else {
+            Ok(())
+        }
     }
 
     /// 手动触发过期清理
@@ -474,9 +515,11 @@ impl RatMemCache {
             deleted = true;
         }
         
-        // 从 L2 删除
-        if self.l2_cache.delete(key).await? {
-            deleted = true;
+        // 从 L2 删除（如果启用）
+        if self.config.l2.enable_l2_cache {
+            if self.l2_cache.delete(key).await? {
+                deleted = true;
+            }
         }
         
         // 移除 TTL
