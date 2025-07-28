@@ -90,6 +90,10 @@ impl TtlManager {
             if ttl > self.config.max_ttl {
                 return Err(CacheError::invalid_ttl(ttl as i64));
             }
+            if ttl == 0 {
+                // TTL 为 0 表示永不过期
+                return Ok(0);
+            }
             current_timestamp() + ttl
         } else if let Some(default_ttl) = self.config.default_ttl {
             current_timestamp() + default_ttl

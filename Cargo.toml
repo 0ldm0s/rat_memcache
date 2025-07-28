@@ -8,6 +8,11 @@ repository = "https://git.sukiyaki.su/0ldm0s/rat_memcache"
 keywords = ["cache", "memcache", "rocksdb", "performance", "rust"]
 categories = ["caching", "database", "memory-management"]
 
+[[bin]]
+name = "rat_memcached"
+path = "src/bin/rat_memcached.rs"
+required-features = ["memcache-protocol", "mammoth-transport"]
+
 [dependencies]
 # 核心智能传输和缓冲池
 rat_quick_threshold = { path = "../rat_quick_threshold" }
@@ -15,8 +20,8 @@ rat_quick_threshold = { path = "../rat_quick_threshold" }
 # 日志系统
 zerg_creep = { path = "../zerg_creep" }
 
-# 持久化存储
-rocksdb = "0.21"
+# 持久化存储（可选）
+rocksdb = { version = "0.21", optional = true }
 
 # 压缩算法
 lz4 = "1.24"
@@ -27,6 +32,7 @@ tokio = { version = "1.0", features = ["full"] }
 # 序列化
 serde = { version = "1.0", features = ["derive"] }
 bincode = "2.0"
+tempfile = "3.8"
 
 # 时间处理
 chrono = { version = "0.4", features = ["serde"] }
@@ -51,12 +57,26 @@ bytes = "1.5"
 # 配置管理
 toml = "0.8"
 
+# 命令行参数解析
+clap = "4.4"
+
+# 系统信息获取
+sysinfo = "0.30"
+
 [features]
-default = ["lz4-compression", "ttl-support", "metrics"]
+default = ["lz4-compression", "ttl-support", "metrics", "rocksdb-storage"]
 lz4-compression = []
 ttl-support = []
 metrics = []
 memcache-protocol = []
+rocksdb-storage = ["rocksdb"]
+mammoth-transport = ["mammoth_transport"]
+
+# 可选依赖
+[dependencies.mammoth_transport]
+path = "../mammoth_transport"
+optional = true
+features = ["tcp"]
 
 [dev-dependencies]
 tokio-test = "0.4"

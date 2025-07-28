@@ -7,6 +7,8 @@ use crate::types::EvictionStrategy;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
+use sysinfo::System;
+use tempfile::TempDir;
 
 /// 缓存系统主配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,8 +45,10 @@ pub struct L1Config {
 /// L2 持久化缓存配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct L2Config {
-    /// RocksDB 数据目录
-    pub data_dir: PathBuf,
+    /// 启用 L2 缓存（RocksDB）
+    pub enable_l2_cache: bool,
+    /// RocksDB 数据目录（可选，None 时使用临时目录）
+    pub data_dir: Option<PathBuf>,
     /// 最大磁盘使用量（字节）
     pub max_disk_size: u64,
     /// 写缓冲区大小
@@ -195,7 +199,7 @@ impl CacheConfigBuilder {
         self
     }
 
-    /// 构建配置，所有配置项必须显式设置
+    /// 构建配置，所有配置项必须显式设置，并强制执行验证
     pub fn build(self) -> CacheResult<CacheConfig> {
         let l1_config = self.l1_config.ok_or_else(|| {
             CacheError::config_error("L1 配置未设置")
@@ -221,17 +225,22 @@ impl CacheConfigBuilder {
             CacheError::config_error("日志配置未设置")
         })?;
 
-        // 验证配置的合法性
-        Self::validate_config(&l1_config, &l2_config, &compression_config, &ttl_config)?;
+        // 强制验证配置的合法性
+        Self::validate_config(&l1_config, &l2_config, &compression_config, &ttl_config, &performance_config)?;
 
-        Ok(CacheConfig {
+        let config = CacheConfig {
             l1: l1_config,
             l2: l2_config,
             compression: compression_config,
             ttl: ttl_config,
             performance: performance_config,
             logging: logging_config,
-        })
+        };
+        
+        // 最终验证整体配置的一致性
+        Self::validate_overall_config(&config)?;
+        
+        Ok(config)
     }
 
     /// 验证配置的合法性
@@ -240,6 +249,7 @@ impl CacheConfigBuilder {
         l2_config: &L2Config,
         compression_config: &CompressionConfig,
         ttl_config: &TtlConfig,
+        performance_config: &PerformanceConfig,
     ) -> CacheResult<()> {
         // 验证 L1 配置
         if l1_config.max_memory == 0 {
@@ -252,18 +262,25 @@ impl CacheConfigBuilder {
             return Err(CacheError::config_error("内存池大小不能为 0"));
         }
 
-        // 验证 L2 配置
-        if l2_config.max_disk_size == 0 {
-            return Err(CacheError::config_error("L2 最大磁盘大小不能为 0"));
-        }
-        if l2_config.write_buffer_size == 0 {
-            return Err(CacheError::config_error("写缓冲区大小不能为 0"));
-        }
-        if l2_config.max_write_buffer_number <= 0 {
-            return Err(CacheError::config_error("最大写缓冲区数量必须大于 0"));
-        }
-        if l2_config.background_threads <= 0 {
-            return Err(CacheError::config_error("后台线程数必须大于 0"));
+        // 验证 L2 配置（仅在启用时验证）
+        if l2_config.enable_l2_cache {
+            if l2_config.max_disk_size == 0 {
+                return Err(CacheError::config_error("L2 最大磁盘大小不能为 0"));
+            }
+            if l2_config.write_buffer_size == 0 {
+                return Err(CacheError::config_error("写缓冲区大小不能为 0"));
+            }
+            if l2_config.max_write_buffer_number <= 0 {
+                return Err(CacheError::config_error("最大写缓冲区数量必须大于 0"));
+            }
+            if l2_config.background_threads <= 0 {
+                return Err(CacheError::config_error("后台线程数必须大于 0"));
+            }
+            
+            // 验证 L2 路径（如果指定了路径）
+            if let Some(ref data_dir) = l2_config.data_dir {
+                PathUtils::validate_writable_path(data_dir)?;
+            }
         }
 
         // 验证压缩配置
@@ -289,7 +306,52 @@ impl CacheConfigBuilder {
                 return Err(CacheError::config_error("默认 TTL 不能大于最大 TTL"));
             }
         }
+        
+        // 验证性能配置
+        if performance_config.worker_threads == 0 {
+            return Err(CacheError::config_error("工作线程数不能为 0"));
+        }
+        if performance_config.batch_size == 0 {
+            return Err(CacheError::config_error("批处理大小不能为 0"));
+        }
+        if performance_config.stats_interval == 0 {
+            return Err(CacheError::config_error("统计间隔不能为 0"));
+        }
 
+        Ok(())
+    }
+    
+    /// 验证整体配置的一致性
+    fn validate_overall_config(config: &CacheConfig) -> CacheResult<()> {
+        // 检查内存使用是否合理
+        let system_info = SystemInfo::get();
+        let l1_memory_mb = config.l1.max_memory / (1024 * 1024);
+        let available_memory_mb = system_info.available_memory / (1024 * 1024);
+        
+        if config.l1.max_memory > (system_info.available_memory as usize / 2) {
+            return Err(CacheError::config_error(&format!(
+                "L1 缓存内存 ({} MB) 超过可用内存的一半 ({} MB)，可能导致系统不稳定",
+                l1_memory_mb, available_memory_mb / 2
+            )));
+        }
+        
+        // 检查工作线程数是否合理
+        if config.performance.worker_threads > system_info.cpu_count * 4 {
+            return Err(CacheError::config_error(&format!(
+                "工作线程数 ({}) 超过 CPU 核心数的 4 倍 ({}×4={})",
+                config.performance.worker_threads,
+                system_info.cpu_count,
+                system_info.cpu_count * 4
+            )));
+        }
+        
+        // 检查 L2 和压缩配置的一致性
+        if config.l2.enable_l2_cache && config.l2.enable_compression && !config.compression.enable_lz4 {
+            return Err(CacheError::config_error(
+                "L2 缓存启用了压缩，但全局压缩配置未启用 LZ4"
+            ));
+        }
+        
         Ok(())
     }
 }
@@ -300,27 +362,110 @@ impl Default for CacheConfigBuilder {
     }
 }
 
+/// 系统信息获取工具
+struct SystemInfo {
+    total_memory: u64,
+    available_memory: u64,
+    cpu_count: usize,
+}
+
+impl SystemInfo {
+    /// 获取当前系统信息
+    fn get() -> Self {
+        let mut sys = System::new_all();
+        sys.refresh_all();
+        
+        Self {
+            total_memory: sys.total_memory(),
+            available_memory: sys.available_memory(),
+            cpu_count: sys.cpus().len(),
+        }
+    }
+    
+    /// 计算推荐的 L1 缓存大小（可用内存的 25%，但不超过 2GB）
+    fn recommended_l1_memory(&self) -> usize {
+        let quarter_memory = (self.available_memory / 4) as usize;
+        let max_l1_memory = 2 * 1024 * 1024 * 1024; // 2GB
+        quarter_memory.min(max_l1_memory)
+    }
+    
+    /// 计算推荐的工作线程数（CPU 核心数的 2 倍，但不超过 32）
+    fn recommended_worker_threads(&self) -> usize {
+        (self.cpu_count * 2).min(32).max(4)
+    }
+    
+    /// 计算推荐的内存池大小
+    fn recommended_pool_size(&self) -> usize {
+        let base_pool_size = 1024;
+        let memory_factor = (self.available_memory / (1024 * 1024 * 1024)).max(1) as usize; // GB
+        (base_pool_size * memory_factor).min(16384)
+    }
+}
+
+/// 跨平台路径工具
+struct PathUtils;
+
+impl PathUtils {
+    /// 获取跨平台的默认缓存目录
+    fn default_cache_dir() -> CacheResult<PathBuf> {
+        // 使用 tempfile 创建临时目录，确保跨平台兼容性
+        let temp_dir = TempDir::new()
+            .map_err(|e| CacheError::config_error(&format!("创建临时目录失败: {}", e)))?;
+        
+        let cache_dir = temp_dir.path().join("rat_memcache");
+        std::fs::create_dir_all(&cache_dir)
+            .map_err(|e| CacheError::config_error(&format!("创建缓存目录失败: {}", e)))?;
+        
+        // 返回路径，但不持有 TempDir（这样目录会在程序结束时自动清理）
+        Ok(cache_dir)
+    }
+    
+    /// 验证路径是否可写
+    fn validate_writable_path(path: &PathBuf) -> CacheResult<()> {
+        if let Some(parent) = path.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| CacheError::config_error(&format!("创建父目录失败: {}", e)))?;
+            }
+        }
+        
+        // 尝试创建测试文件
+        let test_file = path.join(".write_test");
+        std::fs::write(&test_file, b"test")
+            .map_err(|e| CacheError::config_error(&format!("路径不可写: {}", e)))?;
+        
+        // 清理测试文件
+        let _ = std::fs::remove_file(test_file);
+        
+        Ok(())
+    }
+}
+
 /// 预设配置模板
 impl CacheConfig {
     /// 开发环境配置
     pub fn development() -> CacheResult<Self> {
+        let system_info = SystemInfo::get();
+        let cache_dir = PathUtils::default_cache_dir()?;
+        
         CacheConfigBuilder::new()
             .with_l1_config(L1Config {
                 max_memory: 64 * 1024 * 1024, // 64MB
                 max_entries: 10_000,
                 eviction_strategy: EvictionStrategy::Lru,
                 enable_smart_transfer: true,
-                pool_size: 1024,
+                pool_size: system_info.recommended_pool_size() / 4,
             })
             .with_l2_config(L2Config {
-                data_dir: PathBuf::from("./cache_data"),
+                enable_l2_cache: true,
+                data_dir: Some(PathBuf::from("./cache_data")),
                 max_disk_size: 1024 * 1024 * 1024, // 1GB
                 write_buffer_size: 64 * 1024 * 1024, // 64MB
                 max_write_buffer_number: 3,
                 block_cache_size: 32 * 1024 * 1024, // 32MB
                 enable_compression: true,
                 compression_level: 6,
-                background_threads: 2,
+                background_threads: ((system_info.cpu_count / 2).max(2) as i32),
             })
             .with_compression_config(CompressionConfig {
                 enable_lz4: true,
@@ -338,7 +483,7 @@ impl CacheConfig {
                 active_expiration: true,
             })
             .with_performance_config(PerformanceConfig {
-                worker_threads: 4,
+                worker_threads: (system_info.recommended_worker_threads() / 2).max(4),
                 enable_concurrency: true,
                 read_write_separation: true,
                 batch_size: 100,
@@ -362,23 +507,27 @@ impl CacheConfig {
 
     /// 生产环境配置
     pub fn production() -> CacheResult<Self> {
+        let system_info = SystemInfo::get();
+        let cache_dir = PathUtils::default_cache_dir()?;
+        
         CacheConfigBuilder::new()
             .with_l1_config(L1Config {
-                max_memory: 512 * 1024 * 1024, // 512MB
+                max_memory: (system_info.recommended_l1_memory() / 2), // 最少 512MB
                 max_entries: 100_000,
                 eviction_strategy: EvictionStrategy::LruLfu,
                 enable_smart_transfer: true,
-                pool_size: 4096,
+                pool_size: system_info.recommended_pool_size(),
             })
             .with_l2_config(L2Config {
-                data_dir: PathBuf::from("/var/lib/rat_memcache"),
+                enable_l2_cache: true,
+                data_dir: Some(cache_dir),
                 max_disk_size: 10 * 1024 * 1024 * 1024, // 10GB
                 write_buffer_size: 128 * 1024 * 1024, // 128MB
                 max_write_buffer_number: 6,
                 block_cache_size: 256 * 1024 * 1024, // 256MB
                 enable_compression: true,
                 compression_level: 9,
-                background_threads: 8,
+                background_threads: (system_info.cpu_count.max(8) as i32),
             })
             .with_compression_config(CompressionConfig {
                 enable_lz4: true,
@@ -396,7 +545,7 @@ impl CacheConfig {
                 active_expiration: true,
             })
             .with_performance_config(PerformanceConfig {
-                worker_threads: 16,
+                worker_threads: system_info.recommended_worker_threads(),
                 enable_concurrency: true,
                 read_write_separation: true,
                 batch_size: 500,
@@ -414,6 +563,67 @@ impl CacheConfig {
                 enable_performance_logs: true,
                 enable_audit_logs: true,
                 enable_cache_logs: true,
+            })
+            .build()
+    }
+
+    /// 高速通讯配置（禁用 L2 缓存和压缩）
+    pub fn high_speed_communication() -> CacheResult<Self> {
+        let system_info = SystemInfo::get();
+        
+        CacheConfigBuilder::new()
+            .with_l1_config(L1Config {
+                max_memory: system_info.recommended_l1_memory(),
+                max_entries: 500_000,
+                eviction_strategy: EvictionStrategy::Lru,
+                enable_smart_transfer: true,
+                pool_size: system_info.recommended_pool_size() * 2, // 高速模式使用更大的池
+            })
+            .with_l2_config(L2Config {
+                enable_l2_cache: false, // 禁用 L2 缓存
+                data_dir: None,
+                max_disk_size: 0,
+                write_buffer_size: 0,
+                max_write_buffer_number: 0,
+                block_cache_size: 0,
+                enable_compression: false,
+                compression_level: 0,
+                background_threads: 0,
+            })
+            .with_compression_config(CompressionConfig {
+                enable_lz4: false, // 禁用压缩
+                compression_threshold: 0,
+                compression_level: 1, // 最低有效级别，但不会使用
+                auto_compression: false,
+                min_compression_ratio: 1.0,
+            })
+            .with_ttl_config(TtlConfig {
+                default_ttl: Some(300), // 5分钟
+                max_ttl: 3600, // 1小时
+                cleanup_interval: 30, // 30秒
+                max_cleanup_entries: 10000,
+                lazy_expiration: true,
+                active_expiration: true,
+            })
+            .with_performance_config(PerformanceConfig {
+                worker_threads: system_info.recommended_worker_threads() * 2, // 高速模式使用更多线程
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 1000,
+                enable_warmup: false,
+                stats_interval: 10,
+                enable_background_stats: true,
+                l2_write_strategy: "disabled".to_string(),
+                l2_write_threshold: 0,
+                l2_write_ttl_threshold: 0,
+            })
+            .with_logging_config(LoggingConfig {
+                level: "info".to_string(),
+                enable_colors: false,
+                show_timestamp: true,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: false,
             })
             .build()
     }

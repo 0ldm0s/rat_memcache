@@ -1,0 +1,13 @@
+# RatMemcached 服务器配置文件
+# 高性能 Memcached 协议兼容服务器
+
+# 服务器绑定地址
+bind_addr = "127.0.0.1:11211"
+
+# 缓存配置文件路径（可选）
+# 如果指定，将从文件加载缓存配置
+cache_config_path = "cache_config.toml"
+
+# 预设配置类型（当未指定 cache_config_path 时使用）
+# 可选值: "development", "production", "high_speed_communication"
+preset = "high_speed_communication"

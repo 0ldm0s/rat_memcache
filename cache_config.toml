@@ -1,0 +1,61 @@
+# RatMemcache 缓存配置文件
+# 用于测试配置文件加载机制
+
+[l1]
+# L1 缓存配置（内存缓存）
+max_memory = 134217728  # 128MB
+max_entries = 10000
+eviction_strategy = "Lru"
+enable_smart_transfer = true
+pool_size = 4
+
+[l2]
+# L2 缓存配置（磁盘持久化）
+enable_l2_cache = true
+data_dir = "/tmp/rat_memcache_test"
+max_disk_size = 1073741824  # 1GB
+write_buffer_size = 67108864  # 64MB
+max_write_buffer_number = 3
+block_cache_size = 33554432  # 32MB
+enable_compression = true
+compression_level = 6
+background_threads = 4
+
+[compression]
+# 压缩配置
+enable_lz4 = true
+compression_threshold = 1024  # 1KB
+compression_level = 6
+auto_compression = true
+min_compression_ratio = 0.8
+
+[ttl]
+# TTL 配置
+default_ttl = 3600  # 1小时
+max_ttl = 86400     # 24小时
+cleanup_interval = 300  # 5分钟
+max_cleanup_entries = 1000
+lazy_expiration = true
+active_expiration = true
+
+[performance]
+# 性能配置
+worker_threads = 4
+enable_concurrency = true
+read_write_separation = true
+batch_size = 100
+enable_warmup = true
+stats_interval = 60
+enable_background_stats = true
+l2_write_strategy = "WriteThrough"
+l2_write_threshold = 1024
+l2_write_ttl_threshold = 3600
+
+[logging]
+# 日志配置
+level = "INFO"
+enable_colors = true
+show_timestamp = true
+enable_performance_logs = true
+enable_audit_logs = true
+enable_cache_logs = true

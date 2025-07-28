@@ -100,9 +100,22 @@ impl L2Cache {
         ttl_manager: Arc<TtlManager>,
         metrics: Arc<MetricsCollector>,
     ) -> CacheResult<Self> {
+        // 检查是否启用 L2 缓存
+        if !config.enable_l2_cache {
+            return Err(CacheError::config_error("L2 缓存已禁用"));
+        }
+        
+        // 获取数据目录
+        let data_dir = config.data_dir.clone().unwrap_or_else(|| {
+            let temp_dir = tempfile::tempdir().expect("无法创建临时目录");
+            let path = temp_dir.path().to_path_buf();
+            std::mem::forget(temp_dir); // 防止临时目录被删除
+            path
+        });
+        
         // 创建数据目录
-        if !config.data_dir.exists() {
-            std::fs::create_dir_all(&config.data_dir)
+        if !data_dir.exists() {
+            std::fs::create_dir_all(&data_dir)
                 .map_err(|e| CacheError::io_error(&format!("创建数据目录失败: {}", e)))?;
         }
 
@@ -134,7 +147,7 @@ impl L2Cache {
         }
         
         // 打开数据库
-        let db = DB::open(&opts, &config.data_dir)
+        let db = DB::open(&opts, &data_dir)
             .map_err(|e| CacheError::rocksdb_error(&format!("打开 RocksDB 失败: {}", e)))?;
 
         let cache = Self {
@@ -151,7 +164,7 @@ impl L2Cache {
         // 初始化磁盘使用量统计
         cache.update_disk_usage_estimate().await;
 
-        cache_log!(cache.logging_config, info, "L2 缓存已初始化，数据目录: {:?}", cache.config.data_dir);
+        cache_log!(cache.logging_config, info, "L2 缓存已初始化，数据目录: {:?}", &data_dir);
         
         Ok(cache)
     }

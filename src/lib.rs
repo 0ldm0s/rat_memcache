@@ -137,11 +137,13 @@ pub mod config;
 pub mod error;
 pub mod types;
 
+// 公开模块
+pub mod logging;
+
 // 内部模块
 mod compression;
 mod l1_cache;
 mod l2_cache;
-mod logging;
 mod metrics;
 mod ttl;
 
