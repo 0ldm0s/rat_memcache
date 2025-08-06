@@ -326,13 +326,19 @@ impl CacheConfigBuilder {
         // 检查内存使用是否合理
         let system_info = SystemInfo::get();
         let l1_memory_mb = config.l1.max_memory / (1024 * 1024);
-        let available_memory_mb = system_info.available_memory / (1024 * 1024);
         
-        if config.l1.max_memory > (system_info.available_memory as usize / 2) {
-            return Err(CacheError::config_error(&format!(
-                "L1 缓存内存 ({} MB) 超过可用内存的一半 ({} MB)，可能导致系统不稳定",
-                l1_memory_mb, available_memory_mb / 2
-            )));
+        // 只有当可用内存大于 0 时才进行检查
+        if system_info.available_memory > 0 {
+            let available_memory_mb = system_info.available_memory / (1024 * 1024);
+            
+            if config.l1.max_memory > (system_info.available_memory as usize / 2) {
+                return Err(CacheError::config_error(&format!(
+                    "L1 缓存内存 ({} MB) 超过可用内存的一半 ({} MB)，可能导致系统不稳定",
+                    l1_memory_mb, available_memory_mb / 2
+                )));
+            }
+        } else {
+            println!("[DEBUG] 无法获取可用内存信息，跳过内存检查");
         }
         
         // 检查工作线程数是否合理
@@ -408,35 +414,68 @@ struct PathUtils;
 impl PathUtils {
     /// 获取跨平台的默认缓存目录
     fn default_cache_dir() -> CacheResult<PathBuf> {
-        // 使用 tempfile 创建临时目录，确保跨平台兼容性
-        let temp_dir = TempDir::new()
-            .map_err(|e| CacheError::config_error(&format!("创建临时目录失败: {}", e)))?;
+        println!("[DEBUG] 获取默认缓存目录");
+        // 使用系统临时目录，确保跨平台兼容性
+        let temp_dir = std::env::temp_dir();
+        println!("[DEBUG] 系统临时目录: {:?}", temp_dir);
         
-        let cache_dir = temp_dir.path().join("rat_memcache");
-        std::fs::create_dir_all(&cache_dir)
-            .map_err(|e| CacheError::config_error(&format!("创建缓存目录失败: {}", e)))?;
+        let cache_dir = temp_dir.join("rat_memcache");
+        println!("[DEBUG] 缓存目录路径: {:?}", cache_dir);
         
-        // 返回路径，但不持有 TempDir（这样目录会在程序结束时自动清理）
+        println!("[DEBUG] 尝试创建缓存目录...");
+        match std::fs::create_dir_all(&cache_dir) {
+            Ok(_) => println!("[DEBUG] 缓存目录创建成功"),
+            Err(e) => {
+                println!("[DEBUG] 创建缓存目录失败: {}", e);
+                return Err(CacheError::config_error(&format!("创建缓存目录失败: {}", e)));
+            }
+        }
+        
+        // 返回系统临时目录中的缓存目录路径
+        println!("[DEBUG] 返回缓存目录: {:?}", cache_dir);
         Ok(cache_dir)
     }
     
     /// 验证路径是否可写
     fn validate_writable_path(path: &PathBuf) -> CacheResult<()> {
+        println!("[DEBUG] 验证路径是否可写: {:?}", path);
+        println!("[DEBUG] 路径是否存在: {}", path.exists());
+        
         if let Some(parent) = path.parent() {
+            println!("[DEBUG] 父目录: {:?}", parent);
+            println!("[DEBUG] 父目录是否存在: {}", parent.exists());
+            
             if !parent.exists() {
-                std::fs::create_dir_all(parent)
-                    .map_err(|e| CacheError::config_error(&format!("创建父目录失败: {}", e)))?;
+                println!("[DEBUG] 尝试创建父目录...");
+                match std::fs::create_dir_all(parent) {
+                    Ok(_) => println!("[DEBUG] 父目录创建成功"),
+                    Err(e) => {
+                        println!("[DEBUG] 创建父目录失败: {}", e);
+                        return Err(CacheError::config_error(&format!("创建父目录失败: {}", e)));
+                    }
+                }
             }
         }
         
         // 尝试创建测试文件
         let test_file = path.join(".write_test");
-        std::fs::write(&test_file, b"test")
-            .map_err(|e| CacheError::config_error(&format!("路径不可写: {}", e)))?;
+        println!("[DEBUG] 尝试创建测试文件: {:?}", test_file);
+        match std::fs::write(&test_file, b"test") {
+            Ok(_) => println!("[DEBUG] 测试文件创建成功"),
+            Err(e) => {
+                println!("[DEBUG] 创建测试文件失败: {}", e);
+                return Err(CacheError::config_error(&format!("路径不可写: {}", e)));
+            }
+        }
         
         // 清理测试文件
-        let _ = std::fs::remove_file(test_file);
+        println!("[DEBUG] 尝试删除测试文件...");
+        match std::fs::remove_file(&test_file) {
+            Ok(_) => println!("[DEBUG] 测试文件删除成功"),
+            Err(e) => println!("[DEBUG] 删除测试文件失败: {}", e)
+        }
         
+        println!("[DEBUG] 路径验证成功");
         Ok(())
     }
 }
@@ -446,11 +485,23 @@ impl CacheConfig {
     /// 开发环境配置
     pub fn development() -> CacheResult<Self> {
         let system_info = SystemInfo::get();
+        println!("[DEBUG] 开始创建默认缓存目录...");
         let cache_dir = PathUtils::default_cache_dir()?;
+        println!("[DEBUG] 默认缓存目录创建成功: {:?}", cache_dir);
+        
+        // 确保 L1 缓存内存不超过可用内存的一半
+        let l1_memory = if system_info.available_memory > 0 {
+            // 使用推荐的 L1 缓存大小，但至少为 16MB
+            system_info.recommended_l1_memory().max(16 * 1024 * 1024)
+        } else {
+            // 如果无法获取可用内存，使用固定值 16MB
+            16 * 1024 * 1024
+        };
+        println!("[DEBUG] 设置 L1 缓存内存大小: {} MB", l1_memory / (1024 * 1024));
         
         CacheConfigBuilder::new()
             .with_l1_config(L1Config {
-                max_memory: 64 * 1024 * 1024, // 64MB
+                max_memory: l1_memory,
                 max_entries: 10_000,
                 eviction_strategy: EvictionStrategy::Lru,
                 enable_smart_transfer: true,
@@ -458,7 +509,7 @@ impl CacheConfig {
             })
             .with_l2_config(L2Config {
                 enable_l2_cache: true,
-                data_dir: Some(PathBuf::from("./cache_data")),
+                data_dir: Some(cache_dir.clone()),
                 max_disk_size: 1024 * 1024 * 1024, // 1GB
                 write_buffer_size: 64 * 1024 * 1024, // 64MB
                 max_write_buffer_number: 3,

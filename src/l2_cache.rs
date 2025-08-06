@@ -100,55 +100,117 @@ impl L2Cache {
         ttl_manager: Arc<TtlManager>,
         metrics: Arc<MetricsCollector>,
     ) -> CacheResult<Self> {
+        println!("[DEBUG] L2Cache::new 开始初始化");
+        println!("[DEBUG] L2 缓存配置: {:?}", config);
+        
         // 检查是否启用 L2 缓存
         if !config.enable_l2_cache {
+            println!("[DEBUG] L2 缓存已禁用");
             return Err(CacheError::config_error("L2 缓存已禁用"));
         }
         
         // 获取数据目录
+        println!("[DEBUG] 获取数据目录");
+        println!("[DEBUG] 配置中的数据目录: {:?}", config.data_dir);
         let data_dir = config.data_dir.clone().unwrap_or_else(|| {
+            println!("[DEBUG] 使用临时目录作为数据目录");
             let temp_dir = tempfile::tempdir().expect("无法创建临时目录");
             let path = temp_dir.path().to_path_buf();
+            println!("[DEBUG] 临时目录路径: {:?}", path);
             std::mem::forget(temp_dir); // 防止临时目录被删除
             path
         });
+        println!("[DEBUG] 最终数据目录: {:?}", data_dir);
         
         // 创建数据目录
+        println!("[DEBUG] 检查数据目录是否存在: {}", data_dir.exists());
         if !data_dir.exists() {
-            std::fs::create_dir_all(&data_dir)
-                .map_err(|e| CacheError::io_error(&format!("创建数据目录失败: {}", e)))?;
+            println!("[DEBUG] 尝试创建数据目录...");
+            match std::fs::create_dir_all(&data_dir) {
+                Ok(_) => println!("[DEBUG] 数据目录创建成功"),
+                Err(e) => {
+                    println!("[DEBUG] 创建数据目录失败: {}", e);
+                    return Err(CacheError::io_error(&format!("创建数据目录失败: {}", e)));
+                }
+            }
         }
 
         // 配置 RocksDB 选项
+        println!("[DEBUG] 配置 RocksDB 选项");
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.set_write_buffer_size(config.write_buffer_size);
         opts.set_max_write_buffer_number(config.max_write_buffer_number);
         opts.set_max_background_jobs(config.background_threads);
+        println!("[DEBUG] 写缓冲区大小: {}", config.write_buffer_size);
+        println!("[DEBUG] 最大写缓冲区数量: {}", config.max_write_buffer_number);
+        println!("[DEBUG] 后台线程数: {}", config.background_threads);
         
         // 设置块缓存
         if config.block_cache_size > 0 {
+            println!("[DEBUG] 设置块缓存，大小: {}", config.block_cache_size);
             let cache = rocksdb::Cache::new_lru_cache(config.block_cache_size);
             let mut block_opts = rocksdb::BlockBasedOptions::default();
             block_opts.set_block_cache(&cache);
             opts.set_block_based_table_factory(&block_opts);
+        } else {
+            println!("[DEBUG] 未设置块缓存");
         }
         
         // 设置压缩
         if config.enable_compression {
+            println!("[DEBUG] 启用压缩，级别: {}", config.compression_level);
             match config.compression_level {
-                1..=3 => opts.set_compression_type(rocksdb::DBCompressionType::Snappy),
-                4..=6 => opts.set_compression_type(rocksdb::DBCompressionType::Lz4),
-                7..=9 => opts.set_compression_type(rocksdb::DBCompressionType::Zstd),
-                _ => opts.set_compression_type(rocksdb::DBCompressionType::Lz4),
+                1..=3 => {
+                    println!("[DEBUG] 使用 Snappy 压缩");
+                    opts.set_compression_type(rocksdb::DBCompressionType::Snappy);
+                },
+                4..=6 => {
+                    println!("[DEBUG] 使用 Lz4 压缩");
+                    opts.set_compression_type(rocksdb::DBCompressionType::Lz4);
+                },
+                7..=9 => {
+                    println!("[DEBUG] 使用 Zstd 压缩");
+                    opts.set_compression_type(rocksdb::DBCompressionType::Zstd);
+                },
+                _ => {
+                    println!("[DEBUG] 使用默认 Lz4 压缩");
+                    opts.set_compression_type(rocksdb::DBCompressionType::Lz4);
+                },
             }
         } else {
+            println!("[DEBUG] 禁用压缩");
             opts.set_compression_type(rocksdb::DBCompressionType::None);
         }
         
         // 打开数据库
-        let db = DB::open(&opts, &data_dir)
-            .map_err(|e| CacheError::rocksdb_error(&format!("打开 RocksDB 失败: {}", e)))?;
+        println!("[DEBUG] 尝试打开 RocksDB 数据库，路径: {:?}", data_dir);
+        
+        // 手动验证路径是否可写
+        println!("[DEBUG] 手动验证数据目录是否可写");
+        let test_file = data_dir.join(".write_test");
+        println!("[DEBUG] 测试文件路径: {:?}", test_file);
+        match std::fs::write(&test_file, b"test") {
+            Ok(_) => {
+                println!("[DEBUG] 测试文件写入成功");
+                match std::fs::remove_file(&test_file) {
+                    Ok(_) => println!("[DEBUG] 测试文件删除成功"),
+                    Err(e) => println!("[DEBUG] 测试文件删除失败: {}", e)
+                }
+            },
+            Err(e) => println!("[DEBUG] 测试文件写入失败: {}", e)
+        }
+        
+        let db = match DB::open(&opts, &data_dir) {
+            Ok(db) => {
+                println!("[DEBUG] RocksDB 数据库打开成功");
+                db
+            },
+            Err(e) => {
+                println!("[DEBUG] 打开 RocksDB 失败: {}", e);
+                return Err(CacheError::rocksdb_error(&format!("打开 RocksDB 失败: {}", e)));
+            }
+        };
 
         let cache = Self {
             config: Arc::new(config),
