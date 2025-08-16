@@ -122,8 +122,10 @@ impl L2Cache {
         });
         println!("[DEBUG] 最终数据目录: {:?}", data_dir);
         
-        // 创建数据目录
+        // 创建数据目录和所有必要的子目录
         println!("[DEBUG] 检查数据目录是否存在: {}", data_dir.exists());
+        
+        // 确保数据目录存在
         if !data_dir.exists() {
             println!("[DEBUG] 尝试创建数据目录...");
             match std::fs::create_dir_all(&data_dir) {
@@ -132,6 +134,44 @@ impl L2Cache {
                     println!("[DEBUG] 创建数据目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("创建数据目录失败: {}", e)));
                 }
+            }
+        }
+        
+        // 确保数据目录可写
+        println!("[DEBUG] 验证数据目录写权限");
+        let test_file = data_dir.join(".write_test");
+        println!("[DEBUG] 尝试创建测试文件: {:?}", test_file);
+        
+        // 确保测试文件的父目录存在
+        if let Some(parent) = test_file.parent() {
+            if !parent.exists() {
+                println!("[DEBUG] 测试文件父目录不存在，创建: {:?}", parent);
+                if let Err(e) = std::fs::create_dir_all(parent) {
+                    println!("[DEBUG] 创建测试文件父目录失败: {}", e);
+                    return Err(CacheError::io_error(&format!("创建测试文件父目录失败: {}", e)));
+                }
+            }
+        }
+        
+        match std::fs::write(&test_file, b"test") {
+            Ok(_) => {
+                println!("[DEBUG] 数据目录写权限验证成功");
+                // 清理测试文件
+                let _ = std::fs::remove_file(&test_file);
+            },
+            Err(e) => {
+                println!("[DEBUG] 数据目录写权限验证失败: {}", e);
+                return Err(CacheError::io_error(&format!("数据目录不可写: {}", e)));
+            }
+        }
+        
+        // 创建 RocksDB 可能需要的子目录
+        let wal_dir = data_dir.join("wal");
+        if !wal_dir.exists() {
+            println!("[DEBUG] 创建 WAL 目录: {:?}", wal_dir);
+            if let Err(e) = std::fs::create_dir_all(&wal_dir) {
+                println!("[DEBUG] 创建 WAL 目录失败: {}", e);
+                // WAL 目录创建失败不是致命错误，RocksDB 会自己处理
             }
         }
 
