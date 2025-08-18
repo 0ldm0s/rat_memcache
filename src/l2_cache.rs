@@ -770,7 +770,8 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         
         let l2_config = L2Config {
-            data_dir: temp_dir.path().to_path_buf(),
+            enable_l2_cache: true,
+            data_dir: Some(temp_dir.path().to_path_buf()),
             max_disk_size: 10 * 1024 * 1024, // 10MB
             write_buffer_size: 1024 * 1024,  // 1MB
             max_write_buffer_number: 3,
