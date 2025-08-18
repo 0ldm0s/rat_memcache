@@ -194,7 +194,8 @@ mod tests {
         let cache = RatMemCacheBuilder::new()
             .development_preset().unwrap()
             .l2_config(L2Config {
-                data_dir: temp_dir.path().to_path_buf(),
+                enable_l2_cache: true,
+                data_dir: Some(temp_dir.path().to_path_buf()),
                 max_disk_size: 10 * 1024 * 1024,
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
@@ -235,7 +236,8 @@ mod tests {
         let cache = RatMemCacheBuilder::new()
             .development_preset().unwrap()
             .l2_config(L2Config {
-                data_dir: temp_dir.path().to_path_buf(),
+                enable_l2_cache: true,
+                data_dir: Some(temp_dir.path().to_path_buf()),
                 max_disk_size: 10 * 1024 * 1024,
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
@@ -284,7 +286,8 @@ mod tests {
         let cache = RatMemCacheBuilder::new()
             .development_preset().unwrap()
             .l2_config(L2Config {
-                data_dir: temp_dir.path().to_path_buf(),
+                enable_l2_cache: true,
+                data_dir: Some(temp_dir.path().to_path_buf()),
                 max_disk_size: 10 * 1024 * 1024,
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,

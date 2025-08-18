@@ -26,8 +26,8 @@ pub struct RatMemCache {
     config: Arc<CacheConfig>,
     /// L1 内存缓存
     l1_cache: Arc<L1Cache>,
-    /// L2 持久化缓存
-    l2_cache: Arc<L2Cache>,
+    /// L2 持久化缓存（可选，仅在启用时存在）
+    l2_cache: Option<Arc<L2Cache>>,
     /// 智能传输路由器
     transfer_router: Arc<SmartTransferRouter>,
     /// TTL 管理器
@@ -257,42 +257,11 @@ impl RatMemCache {
                 Err(e) => println!("[DEBUG] L2Cache::new 调用失败: {}", e)
             }
             
-            Arc::new(l2_cache_result?)
+            Some(Arc::new(l2_cache_result?))
         } else {
-            println!("[DEBUG] L2 缓存已禁用，创建临时实例");
-            // 当 L2 缓存禁用时，创建一个临时目录的空实例
-            // 这个实例不会被实际使用，但需要满足类型要求
-            let temp_dir = tempfile::tempdir()?;
-            println!("[DEBUG] 临时目录: {:?}", temp_dir.path());
-            
-            let temp_config = crate::config::L2Config {
-                enable_l2_cache: true,
-                data_dir: Some(temp_dir.into_path()),
-                max_disk_size: 1024,
-                write_buffer_size: 1024,
-                max_write_buffer_number: 1,
-                block_cache_size: 1024,
-                enable_compression: false,
-                compression_level: 1,
-                background_threads: 1,
-            };
-            println!("[DEBUG] 临时 L2 配置: {:?}", temp_config);
-            
-            println!("[DEBUG] 调用 L2Cache::new (临时实例)");
-            let l2_cache_result = L2Cache::new(
-                temp_config,
-                config.logging.clone(),
-                compressor.as_ref().clone(),
-                Arc::clone(&ttl_manager),
-                Arc::clone(&metrics),
-            ).await;
-            
-            match &l2_cache_result {
-                Ok(_) => println!("[DEBUG] 临时 L2Cache::new 调用成功"),
-                Err(e) => println!("[DEBUG] 临时 L2Cache::new 调用失败: {}", e)
-            }
-            
-            Arc::new(l2_cache_result?)
+            println!("[DEBUG] L2 缓存已禁用，不创建任何实例");
+            cache_log!(config.logging, info, "L2 缓存已禁用，跳过初始化");
+            None
         };
         
         println!("[DEBUG] 创建 RatMemCache 实例");
@@ -345,9 +314,9 @@ impl RatMemCache {
             }
         }
         
-        // 尝试从 L2 获取（如果启用）
-        if self.config.l2.enable_l2_cache {
-            if let Some(value) = self.l2_cache.get(key).await? {
+        // 尝试从 L2 获取（如果启用且存在）
+        if let Some(l2_cache) = &self.l2_cache {
+            if let Some(value) = l2_cache.get(key).await? {
                 transfer_log!(debug, "L2 缓存命中: {}", key);
                 
                 // 将数据提升到 L1（除非跳过）
@@ -406,14 +375,17 @@ impl RatMemCache {
             }
         }
         
-        // 根据策略决定是否写入 L2（仅在启用时）
-        let should_write_l2 = self.config.l2.enable_l2_cache && (
-            options.force_l2 || 
-            self.should_write_to_l2(&key, &processed_value, options).await
-        );
+        // 根据策略决定是否写入 L2（仅在存在时）
+        let should_write_l2 = if let Some(l2_cache) = &self.l2_cache {
+            options.force_l2 || self.should_write_to_l2(&key, &processed_value, options).await
+        } else {
+            false
+        };
         
         if should_write_l2 {
-            self.l2_cache.set(key.clone(), processed_value, options.ttl_seconds).await?;
+            if let Some(l2_cache) = &self.l2_cache {
+                l2_cache.set(key.clone(), processed_value, options.ttl_seconds).await?;
+            }
         }
         
         cache_log!(self.config.logging, debug, "缓存设置完成: {} (L1: {}, L2: {})", 
@@ -435,10 +407,10 @@ impl RatMemCache {
     pub async fn clear(&self) -> CacheResult<()> {
         let start_time = Instant::now();
         
-        // 清空 L1 和 L2（如果启用）
+        // 清空 L1 和 L2（如果存在）
         self.l1_cache.clear().await?;
-        if self.config.l2.enable_l2_cache {
-            self.l2_cache.clear().await?;
+        if let Some(l2_cache) = &self.l2_cache {
+            l2_cache.clear().await?;
         }
         
         // TTL 管理器会自动清理
@@ -462,9 +434,9 @@ impl RatMemCache {
             return Ok(true);
         }
         
-        // 检查 L2（如果启用）
-        if self.config.l2.enable_l2_cache {
-            self.l2_cache.contains_key(key).await
+        // 检查 L2（如果存在）
+        if let Some(l2_cache) = &self.l2_cache {
+            l2_cache.contains_key(key).await
         } else {
             Ok(false)
         }
@@ -481,9 +453,9 @@ impl RatMemCache {
             }
         }
         
-        // 收集 L2 键（如果启用）
-        if self.config.l2.enable_l2_cache {
-            for key in self.l2_cache.keys().await? {
+        // 收集 L2 键（如果存在）
+        if let Some(l2_cache) = &self.l2_cache {
+            for key in l2_cache.keys().await? {
                 if !self.ttl_manager.is_expired(&key).await {
                     keys.insert(key);
                 }
@@ -514,13 +486,17 @@ impl RatMemCache {
 
     /// 获取 L2 缓存统计
     pub async fn get_l2_stats(&self) -> L2CacheStats {
-        self.l2_cache.get_stats().await
+        if let Some(l2_cache) = &self.l2_cache {
+            l2_cache.get_stats().await
+        } else {
+            L2CacheStats::default()
+        }
     }
 
     /// 压缩 L2 缓存
     pub async fn compact(&self) -> CacheResult<()> {
-        if self.config.l2.enable_l2_cache {
-            self.l2_cache.compact().await
+        if let Some(l2_cache) = &self.l2_cache {
+            l2_cache.compact().await
         } else {
             Ok(())
         }
@@ -582,9 +558,9 @@ impl RatMemCache {
             deleted = true;
         }
         
-        // 从 L2 删除（如果启用）
-        if self.config.l2.enable_l2_cache {
-            if self.l2_cache.delete(key).await? {
+        // 从 L2 删除（如果存在）
+        if let Some(l2_cache) = &self.l2_cache {
+            if l2_cache.delete(key).await? {
                 deleted = true;
             }
         }
@@ -697,7 +673,11 @@ impl RatMemCache {
     async fn update_background_stats(&self) -> CacheResult<()> {
         // 更新内存使用统计
         let l1_stats = self.l1_cache.get_stats().await;
-        let l2_stats = self.l2_cache.get_stats().await;
+        let l2_stats = if let Some(l2_cache) = &self.l2_cache {
+            l2_cache.get_stats().await
+        } else {
+            L2CacheStats::default()
+        };
         
         self.metrics.record_memory_usage(CacheLayer::Memory, l1_stats.memory_usage as u64).await;
         self.metrics.record_memory_usage(CacheLayer::Persistent, l2_stats.estimated_disk_usage as u64).await;
@@ -712,7 +692,7 @@ impl Clone for RatMemCache {
         Self {
             config: Arc::clone(&self.config),
             l1_cache: Arc::clone(&self.l1_cache),
-            l2_cache: Arc::clone(&self.l2_cache),
+            l2_cache: self.l2_cache.as_ref().map(|cache| Arc::clone(cache)),
             transfer_router: Arc::clone(&self.transfer_router),
             ttl_manager: Arc::clone(&self.ttl_manager),
             metrics: Arc::clone(&self.metrics),
@@ -736,7 +716,8 @@ mod tests {
         let cache = RatMemCacheBuilder::new()
             .development_preset().unwrap()
             .l2_config(crate::config::L2Config {
-                data_dir: temp_dir.path().to_path_buf(),
+                enable_l2_cache: true,
+                data_dir: Some(temp_dir.path().to_path_buf()),
                 max_disk_size: 10 * 1024 * 1024, // 10MB
                 write_buffer_size: 1024 * 1024,  // 1MB
                 max_write_buffer_number: 3,

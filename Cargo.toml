@@ -1,6 +1,6 @@
 [package]
 name = "rat_memcache"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["0ldm0s <oldmos@gmail.com>"]
 description = "高性能双层缓存系统，基于 rat_quick_threshold 智能传输和 RocksDB 持久化存储"
