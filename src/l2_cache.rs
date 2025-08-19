@@ -125,6 +125,18 @@ impl L2Cache {
         // 创建数据目录和所有必要的子目录
         println!("[DEBUG] 检查数据目录是否存在: {}", data_dir.exists());
         
+        // 处理启动时清空缓存目录的逻辑
+        if config.clear_on_startup && data_dir.exists() {
+            println!("[DEBUG] 配置要求启动时清空缓存目录，正在删除: {:?}", data_dir);
+            match std::fs::remove_dir_all(&data_dir) {
+                Ok(_) => println!("[DEBUG] 缓存目录清空成功"),
+                Err(e) => {
+                    println!("[DEBUG] 清空缓存目录失败: {}", e);
+                    return Err(CacheError::io_error(&format!("清空缓存目录失败: {}", e)));
+                }
+            }
+        }
+        
         // 确保数据目录存在
         if !data_dir.exists() {
             println!("[DEBUG] 尝试创建数据目录...");

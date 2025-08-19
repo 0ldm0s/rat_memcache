@@ -49,6 +49,8 @@ pub struct L2Config {
     pub enable_l2_cache: bool,
     /// RocksDB 数据目录（可选，None 时使用临时目录）
     pub data_dir: Option<PathBuf>,
+    /// 启动时清空缓存目录
+    pub clear_on_startup: bool,
     /// 最大磁盘使用量（字节）
     pub max_disk_size: u64,
     /// 写缓冲区大小
@@ -441,18 +443,14 @@ impl PathUtils {
         println!("[DEBUG] 验证路径是否可写: {:?}", path);
         println!("[DEBUG] 路径是否存在: {}", path.exists());
         
-        if let Some(parent) = path.parent() {
-            println!("[DEBUG] 父目录: {:?}", parent);
-            println!("[DEBUG] 父目录是否存在: {}", parent.exists());
-            
-            if !parent.exists() {
-                println!("[DEBUG] 尝试创建父目录...");
-                match std::fs::create_dir_all(parent) {
-                    Ok(_) => println!("[DEBUG] 父目录创建成功"),
-                    Err(e) => {
-                        println!("[DEBUG] 创建父目录失败: {}", e);
-                        return Err(CacheError::config_error(&format!("创建父目录失败: {}", e)));
-                    }
+        // 确保目标目录存在（包括所有父目录）
+        if !path.exists() {
+            println!("[DEBUG] 目标目录不存在，尝试创建: {:?}", path);
+            match std::fs::create_dir_all(path) {
+                Ok(_) => println!("[DEBUG] 目标目录创建成功"),
+                Err(e) => {
+                    println!("[DEBUG] 创建目标目录失败: {}", e);
+                    return Err(CacheError::config_error(&format!("创建目录失败: {}", e)));
                 }
             }
         }
@@ -510,6 +508,7 @@ impl CacheConfig {
             .with_l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(cache_dir.clone()),
+                clear_on_startup: false, // 开发环境默认不清空缓存
                 max_disk_size: 1024 * 1024 * 1024, // 1GB
                 write_buffer_size: 64 * 1024 * 1024, // 64MB
                 max_write_buffer_number: 3,
@@ -572,6 +571,7 @@ impl CacheConfig {
             .with_l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(cache_dir),
+                clear_on_startup: false, // 生产环境默认不清空缓存
                 max_disk_size: 10 * 1024 * 1024 * 1024, // 10GB
                 write_buffer_size: 128 * 1024 * 1024, // 128MB
                 max_write_buffer_number: 6,
@@ -633,6 +633,7 @@ impl CacheConfig {
             .with_l2_config(L2Config {
                 enable_l2_cache: false, // 禁用 L2 缓存
                 data_dir: None,
+                clear_on_startup: false, // L2缓存禁用时此选项无效
                 max_disk_size: 0,
                 write_buffer_size: 0,
                 max_write_buffer_number: 0,
