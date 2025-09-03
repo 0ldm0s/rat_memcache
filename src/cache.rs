@@ -13,7 +13,6 @@ use crate::ttl::TtlManager;
 use crate::types::{CacheLayer, CacheOperation, EvictionStrategy};
 use crate::{cache_log, perf_log, transfer_log};
 use bytes::Bytes;
-use rat_quick_threshold::{SmartTransferRouter, RouterBuilder};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
@@ -28,8 +27,8 @@ pub struct RatMemCache {
     l1_cache: Arc<L1Cache>,
     /// L2 持久化缓存（可选，仅在启用时存在）
     l2_cache: Option<Arc<L2Cache>>,
-    /// 智能传输路由器
-    transfer_router: Arc<SmartTransferRouter>,
+    /// 智能传输路由器（已移除）
+    // transfer_router: Arc<SmartTransferRouter>,
     /// TTL 管理器
     ttl_manager: Arc<TtlManager>,
     /// 指标收集器
@@ -185,13 +184,8 @@ impl RatMemCache {
         println!("[DEBUG] 初始化指标收集器");
         let metrics = Arc::new(MetricsCollector::new().await?);
         
-        // 初始化智能传输路由器
-        println!("[DEBUG] 初始化智能传输路由器");
-        let transfer_router = Arc::new(
-            RouterBuilder::new()
-                .build()
-                .map_err(|e| CacheError::smart_transfer_error(&format!("创建传输路由器失败: {}", e)))?
-        );
+        // 初始化智能传输路由器（已移除）
+        // println!("[DEBUG] 初始化智能传输路由器");
         
         // 初始化 L1 缓存
         println!("[DEBUG] 初始化 L1 缓存");
@@ -269,7 +263,7 @@ impl RatMemCache {
             config: Arc::new(config.clone()),
             l1_cache,
             l2_cache,
-            transfer_router,
+            // transfer_router,
             ttl_manager,
             metrics,
             log_manager,
@@ -601,7 +595,7 @@ impl RatMemCache {
 
     /// 记录操作统计
     async fn record_operation(&self, operation: CacheOperation, duration: std::time::Duration) {
-        // 使用 rat_quick_threshold 的指标系统记录操作
+        // 使用指标系统记录操作
         self.metrics.record_cache_operation(operation).await;
         self.metrics.record_operation_latency(operation, duration).await;
     }
@@ -693,7 +687,7 @@ impl Clone for RatMemCache {
             config: Arc::clone(&self.config),
             l1_cache: Arc::clone(&self.l1_cache),
             l2_cache: self.l2_cache.as_ref().map(|cache| Arc::clone(cache)),
-            transfer_router: Arc::clone(&self.transfer_router),
+            // transfer_router: Arc::clone(&self.transfer_router),
             ttl_manager: Arc::clone(&self.ttl_manager),
             metrics: Arc::clone(&self.metrics),
             log_manager: Arc::clone(&self.log_manager),

@@ -1,10 +1,9 @@
 //! 指标模块
 //!
-//! 使用 rat_quick_threshold 库的读写分离功能实现高性能指标收集
+//! 实现高性能指标收集
 
 use crate::error::{CacheError, CacheResult};
 use crate::types::{CacheLayer, CacheOperation};
-use rat_quick_threshold::{SmartTransferRouter, RouterBuilder, get_global_unified_pool};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -12,11 +11,11 @@ use tokio::sync::RwLock;
 use std::collections::HashMap;
 
 /// 指标收集器
-/// 使用 rat_quick_threshold 的读写分离机制
+/// 使用读写分离机制
 #[derive(Debug)]
 pub struct MetricsCollector {
-    /// 智能传输路由器用于指标数据传输
-    router: Arc<SmartTransferRouter>,
+    /// 智能传输路由器用于指标数据传输（已移除）
+    // router: Arc<SmartTransferRouter>,
     /// 读写分离的指标存储
     read_metrics: Arc<RwLock<HashMap<String, AtomicU64>>>,
     write_metrics: Arc<RwLock<HashMap<String, AtomicU64>>>,
@@ -66,13 +65,7 @@ mod metric_keys {
 impl MetricsCollector {
     /// 创建新的指标收集器
     pub async fn new() -> CacheResult<Self> {
-        // 创建智能传输路由器用于指标数据的高效传输
-        let router = RouterBuilder::new()
-            .build()
-            .map_err(|e| CacheError::smart_transfer_error(&format!("创建指标路由器失败: {}", e)))?;
-
         Ok(Self {
-            router: Arc::new(router),
             read_metrics: Arc::new(RwLock::new(HashMap::new())),
             write_metrics: Arc::new(RwLock::new(HashMap::new())),
             start_time: Instant::now(),
