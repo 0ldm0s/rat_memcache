@@ -921,7 +921,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     println!("⚙️ 服务器配置:");
     println!("  - 绑定地址: {}", config.bind_addr);
-    println!("  - 强制使用 mammoth_transport 传输层");
     println!("  - 预设配置: {:?}", config.preset);
     if let Some(ref config_path) = config.cache_config_path {
         println!("  - 配置文件: {}", config_path);

@@ -100,38 +100,38 @@ impl L2Cache {
         ttl_manager: Arc<TtlManager>,
         metrics: Arc<MetricsCollector>,
     ) -> CacheResult<Self> {
-        println!("[DEBUG] L2Cache::new 开始初始化");
-        println!("[DEBUG] L2 缓存配置: {:?}", config);
+        cache_log!(logging_config, debug, "L2Cache::new 开始初始化");
+        cache_log!(logging_config, debug, "L2 缓存配置: {:?}", config);
         
         // 检查是否启用 L2 缓存
         if !config.enable_l2_cache {
-            println!("[DEBUG] L2 缓存已禁用");
+            cache_log!(logging_config, debug, "L2 缓存已禁用");
             return Err(CacheError::config_error("L2 缓存已禁用"));
         }
         
         // 获取数据目录
-        println!("[DEBUG] 获取数据目录");
-        println!("[DEBUG] 配置中的数据目录: {:?}", config.data_dir);
+        cache_log!(logging_config, debug, "获取数据目录");
+        cache_log!(logging_config, debug, "配置中的数据目录: {:?}", config.data_dir);
         let data_dir = config.data_dir.clone().unwrap_or_else(|| {
-            println!("[DEBUG] 使用临时目录作为数据目录");
+            cache_log!(logging_config, debug, "使用临时目录作为数据目录");
             let temp_dir = tempfile::tempdir().expect("无法创建临时目录");
             let path = temp_dir.path().to_path_buf();
-            println!("[DEBUG] 临时目录路径: {:?}", path);
+            cache_log!(logging_config, debug, "临时目录路径: {:?}", path);
             std::mem::forget(temp_dir); // 防止临时目录被删除
             path
         });
-        println!("[DEBUG] 最终数据目录: {:?}", data_dir);
+        cache_log!(logging_config, debug, "最终数据目录: {:?}", data_dir);
         
         // 创建数据目录和所有必要的子目录
-        println!("[DEBUG] 检查数据目录是否存在: {}", data_dir.exists());
+        cache_log!(logging_config, debug, "检查数据目录是否存在: {}", data_dir.exists());
         
         // 处理启动时清空缓存目录的逻辑
         if config.clear_on_startup && data_dir.exists() {
-            println!("[DEBUG] 配置要求启动时清空缓存目录，正在删除: {:?}", data_dir);
+            cache_log!(logging_config, debug, "配置要求启动时清空缓存目录，正在删除: {:?}", data_dir);
             match std::fs::remove_dir_all(&data_dir) {
-                Ok(_) => println!("[DEBUG] 缓存目录清空成功"),
+                Ok(_) => cache_log!(logging_config, debug, "缓存目录清空成功"),
                 Err(e) => {
-                    println!("[DEBUG] 清空缓存目录失败: {}", e);
+                    cache_log!(logging_config, debug, "清空缓存目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("清空缓存目录失败: {}", e)));
                 }
             }
@@ -139,27 +139,27 @@ impl L2Cache {
         
         // 确保数据目录存在
         if !data_dir.exists() {
-            println!("[DEBUG] 尝试创建数据目录...");
+            cache_log!(logging_config, debug, "尝试创建数据目录...");
             match std::fs::create_dir_all(&data_dir) {
-                Ok(_) => println!("[DEBUG] 数据目录创建成功"),
+                Ok(_) => cache_log!(logging_config, debug, "数据目录创建成功"),
                 Err(e) => {
-                    println!("[DEBUG] 创建数据目录失败: {}", e);
+                    cache_log!(logging_config, debug, "创建数据目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("创建数据目录失败: {}", e)));
                 }
             }
         }
         
         // 确保数据目录可写
-        println!("[DEBUG] 验证数据目录写权限");
+        cache_log!(logging_config, debug, "验证数据目录写权限");
         let test_file = data_dir.join(".write_test");
-        println!("[DEBUG] 尝试创建测试文件: {:?}", test_file);
+        cache_log!(logging_config, debug, "尝试创建测试文件: {:?}", test_file);
         
         // 确保测试文件的父目录存在
         if let Some(parent) = test_file.parent() {
             if !parent.exists() {
-                println!("[DEBUG] 测试文件父目录不存在，创建: {:?}", parent);
+                cache_log!(logging_config, debug, "测试文件父目录不存在，创建: {:?}", parent);
                 if let Err(e) = std::fs::create_dir_all(parent) {
-                    println!("[DEBUG] 创建测试文件父目录失败: {}", e);
+                    cache_log!(logging_config, debug, "创建测试文件父目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("创建测试文件父目录失败: {}", e)));
                 }
             }
@@ -167,12 +167,12 @@ impl L2Cache {
         
         match std::fs::write(&test_file, b"test") {
             Ok(_) => {
-                println!("[DEBUG] 数据目录写权限验证成功");
+                cache_log!(logging_config, debug, "数据目录写权限验证成功");
                 // 清理测试文件
                 let _ = std::fs::remove_file(&test_file);
             },
             Err(e) => {
-                println!("[DEBUG] 数据目录写权限验证失败: {}", e);
+                cache_log!(logging_config, debug, "数据目录写权限验证失败: {}", e);
                 return Err(CacheError::io_error(&format!("数据目录不可写: {}", e)));
             }
         }
@@ -180,86 +180,86 @@ impl L2Cache {
         // 创建 RocksDB 可能需要的子目录
         let wal_dir = data_dir.join("wal");
         if !wal_dir.exists() {
-            println!("[DEBUG] 创建 WAL 目录: {:?}", wal_dir);
+            cache_log!(logging_config, debug, "创建 WAL 目录: {:?}", wal_dir);
             if let Err(e) = std::fs::create_dir_all(&wal_dir) {
-                println!("[DEBUG] 创建 WAL 目录失败: {}", e);
+                cache_log!(logging_config, debug, "创建 WAL 目录失败: {}", e);
                 // WAL 目录创建失败不是致命错误，RocksDB 会自己处理
             }
         }
 
         // 配置 RocksDB 选项
-        println!("[DEBUG] 配置 RocksDB 选项");
+        cache_log!(logging_config, debug, "配置 RocksDB 选项");
         let mut opts = Options::default();
         opts.create_if_missing(true);
         opts.set_write_buffer_size(config.write_buffer_size);
         opts.set_max_write_buffer_number(config.max_write_buffer_number);
         opts.set_max_background_jobs(config.background_threads);
-        println!("[DEBUG] 写缓冲区大小: {}", config.write_buffer_size);
-        println!("[DEBUG] 最大写缓冲区数量: {}", config.max_write_buffer_number);
-        println!("[DEBUG] 后台线程数: {}", config.background_threads);
+        cache_log!(logging_config, debug, "写缓冲区大小: {}", config.write_buffer_size);
+        cache_log!(logging_config, debug, "最大写缓冲区数量: {}", config.max_write_buffer_number);
+        cache_log!(logging_config, debug, "后台线程数: {}", config.background_threads);
         
         // 设置块缓存
         if config.block_cache_size > 0 {
-            println!("[DEBUG] 设置块缓存，大小: {}", config.block_cache_size);
+            cache_log!(logging_config, debug, "设置块缓存，大小: {}", config.block_cache_size);
             let cache = rocksdb::Cache::new_lru_cache(config.block_cache_size);
             let mut block_opts = rocksdb::BlockBasedOptions::default();
             block_opts.set_block_cache(&cache);
             opts.set_block_based_table_factory(&block_opts);
         } else {
-            println!("[DEBUG] 未设置块缓存");
+            cache_log!(logging_config, debug, "未设置块缓存");
         }
         
         // 设置压缩
         if config.enable_compression {
-            println!("[DEBUG] 启用压缩，级别: {}", config.compression_level);
+            cache_log!(logging_config, debug, "启用压缩，级别: {}", config.compression_level);
             match config.compression_level {
                 1..=3 => {
-                    println!("[DEBUG] 使用 Snappy 压缩");
+                    cache_log!(logging_config, debug, "使用 Snappy 压缩");
                     opts.set_compression_type(rocksdb::DBCompressionType::Snappy);
                 },
                 4..=6 => {
-                    println!("[DEBUG] 使用 Lz4 压缩");
+                    cache_log!(logging_config, debug, "使用 Lz4 压缩");
                     opts.set_compression_type(rocksdb::DBCompressionType::Lz4);
                 },
                 7..=9 => {
-                    println!("[DEBUG] 使用 Zstd 压缩");
+                    cache_log!(logging_config, debug, "使用 Zstd 压缩");
                     opts.set_compression_type(rocksdb::DBCompressionType::Zstd);
                 },
                 _ => {
-                    println!("[DEBUG] 使用默认 Lz4 压缩");
+                    cache_log!(logging_config, debug, "使用默认 Lz4 压缩");
                     opts.set_compression_type(rocksdb::DBCompressionType::Lz4);
                 },
             }
         } else {
-            println!("[DEBUG] 禁用压缩");
+            cache_log!(logging_config, debug, "禁用压缩");
             opts.set_compression_type(rocksdb::DBCompressionType::None);
         }
         
         // 打开数据库
-        println!("[DEBUG] 尝试打开 RocksDB 数据库，路径: {:?}", data_dir);
+        cache_log!(logging_config, debug, "尝试打开 RocksDB 数据库，路径: {:?}", data_dir);
         
         // 手动验证路径是否可写
-        println!("[DEBUG] 手动验证数据目录是否可写");
+        cache_log!(logging_config, debug, "手动验证数据目录是否可写");
         let test_file = data_dir.join(".write_test");
-        println!("[DEBUG] 测试文件路径: {:?}", test_file);
+        cache_log!(logging_config, debug, "测试文件路径: {:?}", test_file);
         match std::fs::write(&test_file, b"test") {
             Ok(_) => {
-                println!("[DEBUG] 测试文件写入成功");
+                cache_log!(logging_config, debug, "测试文件写入成功");
                 match std::fs::remove_file(&test_file) {
-                    Ok(_) => println!("[DEBUG] 测试文件删除成功"),
-                    Err(e) => println!("[DEBUG] 测试文件删除失败: {}", e)
+                    Ok(_) => cache_log!(logging_config, debug, "测试文件删除成功"),
+                    Err(e) => cache_log!(logging_config, debug, "测试文件删除失败: {}", e)
                 }
             },
-            Err(e) => println!("[DEBUG] 测试文件写入失败: {}", e)
+            Err(e) => cache_log!(logging_config, debug, "测试文件写入失败: {}", e)
         }
         
         let db = match DB::open(&opts, &data_dir) {
             Ok(db) => {
-                println!("[DEBUG] RocksDB 数据库打开成功");
+                cache_log!(logging_config, debug, "RocksDB 数据库打开成功");
                 db
             },
             Err(e) => {
-                println!("[DEBUG] 打开 RocksDB 失败: {}", e);
+                cache_log!(logging_config, debug, "打开 RocksDB 失败: {}", e);
                 return Err(CacheError::rocksdb_error(&format!("打开 RocksDB 失败: {}", e)));
             }
         };
@@ -278,7 +278,7 @@ impl L2Cache {
         // 初始化磁盘使用量统计
         cache.update_disk_usage_estimate().await;
 
-        cache_log!(cache.logging_config, info, "L2 缓存已初始化，数据目录: {:?}", &data_dir);
+        cache_log!(cache.logging_config, debug, "L2 缓存已初始化，数据目录: {:?}", &data_dir);
         
         Ok(cache)
     }
@@ -480,7 +480,7 @@ impl L2Cache {
         self.metrics.record_cache_operation(CacheOperation::Clear).await;
         self.metrics.record_memory_usage(CacheLayer::Persistent, 0).await;
         
-        cache_log!(self.logging_config, info, "L2 缓存已清空");
+        cache_log!(self.logging_config, debug, "L2 缓存已清空");
         
         Ok(())
     }
@@ -505,7 +505,7 @@ impl L2Cache {
         // 重新计算磁盘使用量
         self.update_disk_usage_estimate().await;
         
-        cache_log!(self.logging_config, info, "L2 缓存压缩完成，耗时: {:.2}ms", 
+        cache_log!(self.logging_config, debug, "L2 缓存压缩完成，耗时: {:.2}ms", 
             start_time.elapsed().as_millis());
         
         Ok(())

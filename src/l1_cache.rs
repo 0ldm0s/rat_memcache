@@ -89,7 +89,7 @@ impl L1Cache {
             eviction_stats: Arc::new(RwLock::new(EvictionStats::default())),
         };
 
-        cache_log!(cache.logging_config, info, "L1 缓存已初始化，最大内存: {} bytes，最大条目: {}", 
+        cache_log!(cache.logging_config, debug, "L1 缓存已初始化，最大内存: {} bytes，最大条目: {}", 
             cache.config.max_memory, cache.config.max_entries);
         
         Ok(cache)
@@ -229,7 +229,7 @@ impl L1Cache {
         self.metrics.record_cache_operation(CacheOperation::Clear).await;
         self.metrics.record_memory_usage(CacheLayer::Memory, 0).await;
         
-        cache_log!(self.logging_config, info, "L1 缓存已清空，删除了 {} 个条目", old_count);
+        cache_log!(self.logging_config, debug, "L1 缓存已清空，删除了 {} 个条目", old_count);
         
         Ok(())
     }
@@ -344,7 +344,7 @@ impl L1Cache {
             self.update_eviction_stats(evicted_count, evicted_bytes).await;
             self.metrics.record_cache_eviction().await;
             
-            cache_log!(self.logging_config, info, "内存驱逐完成: {} 个条目，{} 字节", 
+            cache_log!(self.logging_config, debug, "内存驱逐完成: {} 个条目，{} 字节", 
                 evicted_count, evicted_bytes);
         }
         
@@ -382,7 +382,7 @@ impl L1Cache {
             self.update_eviction_stats(evicted_count, evicted_bytes).await;
             self.metrics.record_cache_eviction().await;
             
-            cache_log!(self.logging_config, info, "条目驱逐完成: {} 个条目，{} 字节", 
+            cache_log!(self.logging_config, debug, "条目驱逐完成: {} 个条目，{} 字节", 
                 evicted_count, evicted_bytes);
         }
         
