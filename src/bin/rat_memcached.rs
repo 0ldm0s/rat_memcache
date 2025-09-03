@@ -14,10 +14,9 @@ use tokio::sync::RwLock;
 use tokio::time::timeout;
 use clap::{Arg, Command};
 
-use mammoth_transport::config::{TransportBuilder, ProtocolType};
-use mammoth_transport::core::TransportRuntime;
-use mammoth_transport::protocols::tcp::{CongestionControlConfig, TcpConfig};
-use mammoth_transport::metrics::global_metrics;
+use std::net::TcpListener;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpStream, TcpListener as TokioTcpListener};
 
 use rat_memcache::{
     RatMemCache, RatMemCacheBuilder,
@@ -93,7 +92,7 @@ pub struct MemcachedServer {
     bind_addr: SocketAddr,
     config: ServerConfig,
     start_time: Instant,
-    transport: Option<Arc<RwLock<TransportRuntime>>>,
+    listener: Option<TokioTcpListener>,
 }
 
 impl MemcachedServer {
@@ -117,15 +116,15 @@ impl MemcachedServer {
         let cache = Arc::new(RatMemCache::new(cache_config).await?);
         info!("✅ 缓存实例创建成功");
         
-        // 创建传输层（bin 模式强制使用 mammoth_transport）
-        let transport = Some(Arc::new(RwLock::new(Self::create_transport(bind_addr).await?)));
+        // 创建传统 TCP 监听器
+        let listener = Some(Self::create_tcp_listener(bind_addr).await?);
         
         Ok(Self {
             cache,
             bind_addr,
             config,
             start_time: Instant::now(),
-            transport,
+            listener,
         })
     }
     
@@ -153,133 +152,149 @@ impl MemcachedServer {
         }
     }
     
-    async fn create_transport(bind_addr: SocketAddr) -> CacheResult<TransportRuntime> {
-        info!("🔧 初始化 mammoth_transport 传输层");
+    async fn create_tcp_listener(bind_addr: SocketAddr) -> CacheResult<TokioTcpListener> {
+        info!("🔧 初始化传统 TCP 监听器");
         
-        // 初始化全局指标系统
-        global_metrics().initialize().await
-            .map_err(|e| CacheError::io_error(&format!("初始化指标系统失败: {}", e)))?;
+        // 创建 TCP 监听器
+        let listener = TokioTcpListener::bind(bind_addr).await
+            .map_err(|e| CacheError::io_error(&format!("绑定地址失败: {}", e)))?;
         
-        // 创建高性能 TCP 配置
-        let tcp_config = TcpConfig::default()
-            .with_connect_timeout(Duration::from_secs(5))
-            .with_read_timeout(Some(Duration::from_secs(30)))
-            .with_write_timeout(Some(Duration::from_secs(30)))
-            .with_no_delay(true) // 禁用 Nagle 算法，优化延迟
-            .with_reuse_options(true, true)
-            .with_backlog(Some(2048)) // 大监听队列支持高并发
-            .with_zero_copy(true)
-            .with_congestion_control(Some(
-                CongestionControlConfig::new()
-                    .with_algorithm("auto")
-                    .with_platform_optimized(true),
-            ));
+        // 设置平台特定的优化
+        Self::configure_tcp_options(&listener).await?;
         
-        // 使用服务器高吞吐预设
-        let transport = TransportBuilder::new()
-            .as_server_high_throughput()
-            .map_err(|e| CacheError::config_error(&format!("创建传输构建器失败: {}", e)))?
-            .with_tcp_listener(bind_addr, tcp_config)
-            .build()
-            .map_err(|e| CacheError::config_error(&format!("构建传输层失败: {}", e)))?;
+        info!("✅ TCP 监听器创建成功，地址: {}", bind_addr);
+        Ok(listener)
+    }
+    
+    /// 配置 TCP 选项（平台特定优化）
+    async fn configure_tcp_options(listener: &TokioTcpListener) -> CacheResult<()> {
+        info!("🔧 配置平台特定的 TCP 优化");
         
-        info!("✅ mammoth_transport 传输层创建成功");
-        Ok(transport)
+        #[cfg(unix)]
+        {
+            use std::os::fd::AsRawFd;
+            
+            // 获取底层 socket 进行平台特定优化
+            let socket = listener.as_raw_fd();
+            
+            // Unix 平台优化
+            unsafe {
+                // 设置 TCP_NODELAY 禁用 Nagle 算法
+                let nodelay: libc::c_int = 1;
+                if libc::setsockopt(
+                    socket,
+                    libc::IPPROTO_TCP,
+                    libc::TCP_NODELAY,
+                    &nodelay as *const _ as *const libc::c_void,
+                    std::mem::size_of::<libc::c_int>() as libc::socklen_t
+                ) != 0 {
+                    warn!("设置 TCP_NODELAY 失败: {}", std::io::Error::last_os_error());
+                }
+                
+                // 设置 SO_REUSEADDR 允许地址重用
+                let reuseaddr: libc::c_int = 1;
+                if libc::setsockopt(
+                    socket,
+                    libc::SOL_SOCKET,
+                    libc::SO_REUSEADDR,
+                    &reuseaddr as *const _ as *const libc::c_void,
+                    std::mem::size_of::<libc::c_int>() as libc::socklen_t
+                ) != 0 {
+                    warn!("设置 SO_REUSEADDR 失败: {}", std::io::Error::last_os_error());
+                }
+                
+                // 设置 SO_KEEPALIVE 启用连接保持
+                let keepalive: libc::c_int = 1;
+                if libc::setsockopt(
+                    socket,
+                    libc::SOL_SOCKET,
+                    libc::SO_KEEPALIVE,
+                    &keepalive as *const _ as *const libc::c_void,
+                    std::mem::size_of::<libc::c_int>() as libc::socklen_t
+                ) != 0 {
+                    warn!("设置 SO_KEEPALIVE 失败: {}", std::io::Error::last_os_error());
+                }
+            }
+        }
+        
+        #[cfg(windows)]
+        {
+            use std::os::windows::io::AsRawSocket;
+            use windows_sys::Win32::Networking::WinSock;
+            
+            // 获取底层 socket 进行平台特定优化
+            let socket = listener.as_raw_socket();
+            
+            // Windows 平台优化
+            unsafe {
+                // 设置 TCP_NODELAY
+                let nodelay: i32 = 1;
+                if WinSock::setsockopt(
+                    socket as WinSock::SOCKET,
+                    WinSock::IPPROTO_TCP,
+                    WinSock::TCP_NODELAY,
+                    &nodelay as *const _ as *const i8,
+                    std::mem::size_of::<i32>() as i32
+                ) != 0 {
+                    warn!("设置 TCP_NODELAY 失败: {}", std::io::Error::last_os_error());
+                }
+                
+                // 设置 SO_REUSEADDR
+                let reuseaddr: i32 = 1;
+                if WinSock::setsockopt(
+                    socket as WinSock::SOCKET,
+                    WinSock::SOL_SOCKET,
+                    WinSock::SO_REUSEADDR,
+                    &reuseaddr as *const _ as *const i8,
+                    std::mem::size_of::<i32>() as i32
+                ) != 0 {
+                    warn!("设置 SO_REUSEADDR 失败: {}", std::io::Error::last_os_error());
+                }
+            }
+        }
+        
+        info!("✅ TCP 优化配置完成");
+        Ok(())
     }
     
     /// 启动服务器
     pub async fn start(&self) -> CacheResult<()> {
         info!("🚀 启动 RatMemcached 服务器");
         
-        // bin 模式强制使用 mammoth_transport
-        self.start_with_mammoth_transport().await
-    }
-    
-    async fn start_with_mammoth_transport(&self) -> CacheResult<()> {
-        info!("🔧 使用 mammoth_transport 启动服务器");
-        
-        let transport = self.transport.as_ref().unwrap();
-        
-        // 启动传输层
-        {
-            let mut transport_guard = transport.write().await;
-            transport_guard.start().await
-                .map_err(|e| CacheError::io_error(&format!("启动传输层失败: {}", e)))?;
-        }
-        
-        // 等待监听器完全启动
-        tokio::time::sleep(Duration::from_millis(500)).await;
-        info!("✅ mammoth_transport 传输层已启动");
-        
-        // 获取连接适配器并处理连接
-        let connection_adapter = {
-            let transport_guard = transport.read().await;
-            transport_guard.connection_adapter()
-                .map_err(|e| CacheError::io_error(&format!("获取连接适配器失败: {}", e)))?
-        };
-        
+        let listener = self.listener.as_ref().unwrap();
         info!("🔗 开始监听连接...");
-        
-        // 跟踪已知连接，避免重复处理
-        let mut known_connections: std::collections::HashSet<mammoth_transport::core::ConnectionId> = std::collections::HashSet::new();
         
         // 主循环：处理传入的连接
         loop {
-            // 检查活跃连接并处理新连接
-            match connection_adapter.list_active_connections().await {
-                Ok(active_connections) => {
-                    // 检查是否有新连接
-                    for connection_id in &active_connections {
-                        if !known_connections.contains(connection_id) {
-                            // 发现新连接
-                            known_connections.insert(connection_id.clone());
-                            
-                            // 获取连接信息
-                            match connection_adapter.get_connection_info(connection_id).await {
-                                Ok(conn_info) => {
-                                    info!("🔗 检测到新连接: {} 来自 {}", connection_id, conn_info.remote_addr);
-                                    
-                                    // 为新连接创建处理任务
-                                    let cache = Arc::clone(&self.cache);
-                                    let adapter = connection_adapter.clone();
-                                    let start_time = self.start_time;
-                                    let conn_id = connection_id.clone();
-                                    let conn_id_for_error = connection_id.clone();
-                                    
-                                    tokio::spawn(async move {
-                                        if let Err(e) = Self::handle_mammoth_connection(conn_id, cache, adapter, start_time).await {
-                                            error!("处理 mammoth_transport 连接 {} 失败: {}", conn_id_for_error, e);
-                                        }
-                                    });
-                                }
-                                Err(e) => {
-                                    error!("获取连接 {} 信息失败: {}", connection_id, e);
-                                    known_connections.remove(connection_id);
-                                }
-                            }
-                        }
-                    }
+            match listener.accept().await {
+                Ok((stream, addr)) => {
+                    info!("🔗 新连接来自: {}", addr);
                     
-                    // 清理已断开的连接
-                    known_connections.retain(|conn_id| active_connections.contains(conn_id));
+                    // 为新连接创建处理任务
+                    let cache = Arc::clone(&self.cache);
+                    let start_time = self.start_time;
+                    
+                    tokio::spawn(async move {
+                        if let Err(e) = Self::handle_tcp_connection(stream, cache, start_time).await {
+                            error!("处理 TCP 连接失败: {}", e);
+                        }
+                    });
                 }
                 Err(e) => {
-                    debug!("获取活跃连接失败: {}", e);
+                    error!("接受连接失败: {}", e);
+                    // 短暂休眠避免错误循环
+                    tokio::time::sleep(Duration::from_millis(100)).await;
                 }
             }
-            
-            // 短暂休眠避免过度轮询
-            tokio::time::sleep(Duration::from_millis(100)).await;
         }
     }
     
-    async fn handle_mammoth_connection(
-        connection_id: mammoth_transport::core::ConnectionId,
+    async fn handle_tcp_connection(
+        mut stream: TcpStream,
         cache: Arc<RatMemCache>,
-        connection_adapter: mammoth_transport::adapters::ConnectionAdapter,
         start_time: Instant,
     ) -> CacheResult<()> {
-        info!("🔗 开始处理连接: {}", connection_id);
+        info!("🔗 开始处理 TCP 连接");
         
         let mut consecutive_errors = 0;
         const MAX_CONSECUTIVE_ERRORS: u32 = 5;
@@ -290,42 +305,19 @@ impl MemcachedServer {
         let mut expected_bytes = 0; // 期待的数据字节数
         
         loop {
-            info!("🔄 连接 {} 进入处理循环", connection_id);
-            // 检查连接是否仍然活跃
-            match connection_adapter.list_active_connections().await {
-                Ok(active_connections) => {
-                    if !active_connections.contains(&connection_id) {
-                        info!("🔌 连接 {} 已断开", connection_id);
-                        break;
-                    }
-                }
-                Err(e) => {
-                    error!("检查连接 {} 状态失败: {}", connection_id, e);
-                    consecutive_errors += 1;
-                    if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
-                        error!("连接 {} 连续错误次数过多，停止处理", connection_id);
-                        break;
-                    }
-                    tokio::time::sleep(Duration::from_millis(100)).await;
-                    continue;
-                }
-            }
-            
             // 尝试接收数据，设置超时
             let mut buffer = vec![0u8; 4096];
-            info!("🔍 准备从连接 {} 接收数据，缓冲区大小: {}", connection_id, buffer.len());
             let receive_result = tokio::time::timeout(
                 Duration::from_secs(30),
-                connection_adapter.receive_data(connection_id.clone(), &mut buffer)
+                stream.read(&mut buffer)
             ).await;
-            info!("📥 连接 {} 接收数据调用完成", connection_id);
             
             match receive_result {
                 Ok(Ok(bytes_read)) => {
                     if bytes_read == 0 {
                         empty_read_count += 1;
                         if empty_read_count >= MAX_EMPTY_READS {
-                            debug!("连接 {} 连续收到空数据，可能已断开", connection_id);
+                            debug!("连接连续收到空数据，可能已断开");
                             break;
                         }
                         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -336,40 +328,32 @@ impl MemcachedServer {
                     consecutive_errors = 0;
                     empty_read_count = 0;
                     
-                    info!("📨 从连接 {} 接收到 {} 字节数据", connection_id, bytes_read);
+                    info!("📨 接收到 {} 字节数据", bytes_read);
                     
                     // 将新数据添加到累积缓冲区
                     let new_data = String::from_utf8_lossy(&buffer[..bytes_read]);
                     buffer_accumulator.push_str(&new_data);
-                    info!("📝 累积缓冲区内容: {:?}", buffer_accumulator);
                     
                     // 处理累积的数据
-                    info!("🔄 开始处理累积数据，缓冲区长度: {}", buffer_accumulator.len());
                     let mut should_quit = false;
                     while !buffer_accumulator.is_empty() {
                         if let Some(mut cmd) = pending_command.take() {
                             // 正在等待数据的命令
-                            info!("📋 处理待处理命令，期待字节数: {}, 当前缓冲区长度: {}", expected_bytes, buffer_accumulator.len());
-                            info!("📋 当前缓冲区内容: {:?}", buffer_accumulator);
                             
                             // 检查是否有足够的数据，需要考虑数据后的行结束符
                             let data_with_terminator_len = if buffer_accumulator.len() >= expected_bytes + 2 
                                 && buffer_accumulator.chars().skip(expected_bytes).take(2).collect::<String>() == "\r\n" {
-                                info!("📋 检测到 \\r\\n 结束符");
                                 expected_bytes + 2 // 数据 + \r\n
                             } else if buffer_accumulator.len() >= expected_bytes + 1 
                                 && buffer_accumulator.chars().skip(expected_bytes).next() == Some('\n') {
-                                info!("📋 检测到 \\n 结束符");
                                 expected_bytes + 1 // 数据 + \n
                             } else {
-                                info!("📋 数据不完整，等待更多数据");
                                 0 // 数据不完整
                             };
                             
                             if data_with_terminator_len > 0 {
                                 let data = buffer_accumulator.chars().take(expected_bytes).collect::<String>();
                                 buffer_accumulator = buffer_accumulator.chars().skip(data_with_terminator_len).collect();
-                                info!("📋 提取的数据: {:?}, 剩余缓冲区: {:?}", data, buffer_accumulator);
                                 
                                 // 设置命令数据
                                  match &mut cmd {
@@ -379,20 +363,16 @@ impl MemcachedServer {
                                      _ => {}
                                  }
                                 
-                                info!("📋 数据设置后的命令: {:?}", cmd);
-                                
                                 // 执行命令
                                 let response = Self::execute_command(cmd, &cache, start_time).await;
                                 let response_data = Self::format_response(response);
                                 
-                                if let Err(e) = connection_adapter.send_data(connection_id.clone(), response_data.as_bytes()).await {
-                                    error!("向连接 {} 发送响应失败: {}", connection_id, e);
+                                if let Err(e) = stream.write_all(response_data.as_bytes()).await {
+                                    error!("发送响应失败: {}", e);
                                     consecutive_errors += 1;
                                     if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
                                         return Ok(());
                                     }
-                                } else {
-                                    debug!("✅ 向连接 {} 发送响应成功", connection_id);
                                 }
                                 
                                 pending_command = None;
@@ -422,7 +402,6 @@ impl MemcachedServer {
                                 
                                 debug!("📝 处理命令行: {}", line);
                                  let command = Self::parse_command(&line);
-                                 info!("🔍 解析的命令: {:?}", command);
                                  
                                  // 检查是否需要等待数据
                                  let needs_data = matches!(command, 
@@ -439,28 +418,25 @@ impl MemcachedServer {
                                          MemcachedCommand::Replace { bytes, .. } => *bytes,
                                          _ => 0,
                                      };
-                                     info!("📋 设置待处理命令，期待字节数: {}", bytes);
                                      pending_command = Some(command);
                                      expected_bytes = bytes;
                                  } else if matches!(command, MemcachedCommand::Quit) {
                                      should_quit = true;
                                      let response = Self::execute_command(command, &cache, start_time).await;
                                      let response_data = Self::format_response(response);
-                                     let _ = connection_adapter.send_data(connection_id.clone(), response_data.as_bytes()).await;
+                                     let _ = stream.write_all(response_data.as_bytes()).await;
                                      break;
                                  } else {
                                      // 立即执行的命令
                                      let response = Self::execute_command(command, &cache, start_time).await;
                                      let response_data = Self::format_response(response);
                                      
-                                     if let Err(e) = connection_adapter.send_data(connection_id.clone(), response_data.as_bytes()).await {
-                                         error!("向连接 {} 发送响应失败: {}", connection_id, e);
+                                     if let Err(e) = stream.write_all(response_data.as_bytes()).await {
+                                         error!("发送响应失败: {}", e);
                                          consecutive_errors += 1;
                                          if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
                                              return Ok(());
                                          }
-                                     } else {
-                                         debug!("✅ 向连接 {} 发送响应成功", connection_id);
                                      }
                                  }
                             } else {
@@ -471,23 +447,16 @@ impl MemcachedServer {
                     }
                     
                     if should_quit {
-                        info!("🔚 客户端请求退出连接: {}", connection_id);
+                        info!("🔚 客户端请求退出连接");
                         break;
                     }
                 }
                 Ok(Err(e)) => {
-                    let error_msg = e.to_string();
-                    error!("从连接 {} 接收数据失败: {}", connection_id, e);
-                    
-                    // 如果是连接不存在错误，立即退出
-                    if error_msg.contains("连接句柄不存在") || error_msg.contains("Connection not found") {
-                        info!("🔌 连接 {} 已不存在，停止处理", connection_id);
-                        break;
-                    }
+                    error!("接收数据失败: {}", e);
                     
                     consecutive_errors += 1;
                     if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
-                        error!("连接 {} 连续错误次数过多，停止处理", connection_id);
+                        error!("连续错误次数过多，停止处理");
                         break;
                     }
                     // 短暂等待后重试
@@ -495,13 +464,13 @@ impl MemcachedServer {
                 }
                 Err(_) => {
                     // 超时
-                    debug!("连接 {} 接收数据超时，检查连接状态", connection_id);
+                    debug!("接收数据超时，检查连接状态");
                     // 超时不算错误，继续循环检查连接状态
                 }
             }
         }
         
-        info!("🔚 连接 {} 处理结束", connection_id);
+        info!("🔚 连接处理结束");
         Ok(())
     }
     

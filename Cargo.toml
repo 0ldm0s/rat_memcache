@@ -3,7 +3,7 @@ name = "rat_memcache"
 version = "0.1.1"
 edition = "2024"
 authors = ["0ldm0s <oldmos@gmail.com>"]
-description = "高性能双层缓存系统，基于 rat_quick_threshold 智能传输和 RocksDB 持久化存储"
+description = "高性能双层缓存系统，基于内存缓存和 RocksDB 持久化存储"
 repository = "https://git.sukiyaki.su/0ldm0s/rat_memcache"
 keywords = ["cache", "memcache", "rocksdb", "performance", "rust"]
 categories = ["caching", "database", "memory-management"]
@@ -11,11 +11,8 @@ categories = ["caching", "database", "memory-management"]
 [[bin]]
 name = "rat_memcached"
 path = "src/bin/rat_memcached.rs"
-required-features = ["memcache-protocol", "mammoth-transport"]
 
 [dependencies]
-# 核心智能传输和缓冲池
-rat_quick_threshold = { path = "../rat_quick_threshold" }
 
 # 日志系统
 zerg_creep = { path = "../zerg_creep" }
@@ -63,20 +60,27 @@ clap = "4.4"
 # 系统信息获取
 sysinfo = "0.30"
 
+# Unix 系统调用
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+# Windows API
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.52", features = ["Win32_Networking_WinSock"] }
+
 [features]
 default = ["lz4-compression", "ttl-support", "metrics", "rocksdb-storage"]
 lz4-compression = []
 ttl-support = []
 metrics = []
-memcache-protocol = []
 rocksdb-storage = ["rocksdb"]
-mammoth-transport = ["mammoth_transport"]
+# mammoth-transport = ["mammoth_transport"]
 
-# 可选依赖
-[dependencies.mammoth_transport]
-path = "../mammoth_transport"
-optional = true
-features = ["tcp"]
+# 可选依赖（已移除）
+# [dependencies.mammoth_transport]
+# path = "../mammoth_transport"
+# optional = true
+# features = ["tcp"]
 
 [dev-dependencies]
 tokio-test = "0.4"

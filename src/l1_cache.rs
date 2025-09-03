@@ -13,7 +13,6 @@ use crate::{cache_log, perf_log};
 use bytes::Bytes;
 use dashmap::DashMap;
 use parking_lot::RwLock;
-use rat_quick_threshold::{SmartTransferRouter, RouterBuilder};
 use std::collections::{HashMap, VecDeque};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -29,8 +28,8 @@ pub struct L1Cache {
     logging_config: Arc<LoggingConfig>,
     /// 主要存储：键值对映射
     storage: Arc<DashMap<String, CacheValue>>,
-    /// 智能传输路由器
-    router: Arc<SmartTransferRouter>,
+    /// 智能传输路由器（已移除）
+    // router: Arc<SmartTransferRouter>,
     /// 压缩器
     compressor: Arc<Compressor>,
     /// TTL 管理器
@@ -74,16 +73,11 @@ impl L1Cache {
         ttl_manager: Arc<TtlManager>,
         metrics: Arc<MetricsCollector>,
     ) -> CacheResult<Self> {
-        // 创建智能传输路由器
-        let router = RouterBuilder::new()
-            .build()
-            .map_err(|e| CacheError::smart_transfer_error(&format!("创建路由器失败: {}", e)))?;
-
         let cache = Self {
             config: Arc::new(config),
             logging_config: Arc::new(logging_config),
             storage: Arc::new(DashMap::new()),
-            router: Arc::new(router),
+            // router: Arc::new(router),
             compressor: Arc::new(compressor),
             ttl_manager,
             metrics,
@@ -561,8 +555,6 @@ mod tests {
             max_memory: 1024 * 1024, // 1MB
             max_entries: 1000,
             eviction_strategy: EvictionStrategy::Lru,
-            enable_smart_transfer: true,
-            pool_size: 128,
         };
         
         let logging_config = LoggingConfig {
@@ -655,8 +647,6 @@ mod tests {
             max_memory: 1024, // 很小的内存限制
             max_entries: 5,    // 很小的条目限制
             eviction_strategy: EvictionStrategy::Lru,
-            enable_smart_transfer: false,
-            pool_size: 128,
         };
         
         let logging_config = LoggingConfig {

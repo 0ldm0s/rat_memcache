@@ -30,12 +30,6 @@ pub enum CacheError {
         source: rocksdb::Error,
     },
 
-    /// 智能传输错误
-    #[error("智能传输失败: {source}")]
-    TransferError {
-        #[from]
-        source: rat_quick_threshold::TransferError,
-    },
 
     /// 配置错误
     #[error("配置错误: {message}")]
@@ -126,12 +120,6 @@ impl CacheError {
         }
     }
 
-    /// 创建智能传输错误
-    pub fn smart_transfer_error(message: impl Into<String>) -> Self {
-        Self::Other {
-            message: format!("智能传输错误: {}", message.into()),
-        }
-    }
 
     /// 创建内存不足错误
     pub fn out_of_memory(requested_size: usize) -> Self {

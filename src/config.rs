@@ -36,10 +36,6 @@ pub struct L1Config {
     pub max_entries: usize,
     /// 驱逐策略
     pub eviction_strategy: EvictionStrategy,
-    /// 启用智能传输
-    pub enable_smart_transfer: bool,
-    /// 预分配内存池大小
-    pub pool_size: usize,
 }
 
 /// L2 持久化缓存配置
@@ -260,9 +256,6 @@ impl CacheConfigBuilder {
         if l1_config.max_entries == 0 {
             return Err(CacheError::config_error("L1 最大条目数不能为 0"));
         }
-        if l1_config.pool_size == 0 {
-            return Err(CacheError::config_error("内存池大小不能为 0"));
-        }
 
         // 验证 L2 配置（仅在启用时验证）
         if l2_config.enable_l2_cache {
@@ -402,12 +395,6 @@ impl SystemInfo {
         (self.cpu_count * 2).min(32).max(4)
     }
     
-    /// 计算推荐的内存池大小
-    fn recommended_pool_size(&self) -> usize {
-        let base_pool_size = 1024;
-        let memory_factor = (self.available_memory / (1024 * 1024 * 1024)).max(1) as usize; // GB
-        (base_pool_size * memory_factor).min(16384)
-    }
 }
 
 /// 跨平台路径工具
@@ -502,8 +489,6 @@ impl CacheConfig {
                 max_memory: l1_memory,
                 max_entries: 10_000,
                 eviction_strategy: EvictionStrategy::Lru,
-                enable_smart_transfer: true,
-                pool_size: system_info.recommended_pool_size() / 4,
             })
             .with_l2_config(L2Config {
                 enable_l2_cache: true,
@@ -565,8 +550,6 @@ impl CacheConfig {
                 max_memory: (system_info.recommended_l1_memory() / 2), // 最少 512MB
                 max_entries: 100_000,
                 eviction_strategy: EvictionStrategy::LruLfu,
-                enable_smart_transfer: true,
-                pool_size: system_info.recommended_pool_size(),
             })
             .with_l2_config(L2Config {
                 enable_l2_cache: true,
@@ -627,8 +610,6 @@ impl CacheConfig {
                 max_memory: system_info.recommended_l1_memory(),
                 max_entries: 500_000,
                 eviction_strategy: EvictionStrategy::Lru,
-                enable_smart_transfer: true,
-                pool_size: system_info.recommended_pool_size() * 2, // 高速模式使用更大的池
             })
             .with_l2_config(L2Config {
                 enable_l2_cache: false, // 禁用 L2 缓存
