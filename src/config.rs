@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 use sysinfo::System;
 use tempfile::TempDir;
+use zerg_creep;
 
 /// 缓存系统主配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -333,7 +334,7 @@ impl CacheConfigBuilder {
                 )));
             }
         } else {
-            println!("[DEBUG] 无法获取可用内存信息，跳过内存检查");
+            zerg_creep::debug!("无法获取可用内存信息，跳过内存检查");
         }
         
         // 检查工作线程数是否合理
@@ -403,40 +404,40 @@ struct PathUtils;
 impl PathUtils {
     /// 获取跨平台的默认缓存目录
     fn default_cache_dir() -> CacheResult<PathBuf> {
-        println!("[DEBUG] 获取默认缓存目录");
+        zerg_creep::debug!("获取默认缓存目录");
         // 使用系统临时目录，确保跨平台兼容性
         let temp_dir = std::env::temp_dir();
-        println!("[DEBUG] 系统临时目录: {:?}", temp_dir);
+        zerg_creep::debug!("系统临时目录: {:?}", temp_dir);
         
         let cache_dir = temp_dir.join("rat_memcache");
-        println!("[DEBUG] 缓存目录路径: {:?}", cache_dir);
+        zerg_creep::debug!("缓存目录路径: {:?}", cache_dir);
         
-        println!("[DEBUG] 尝试创建缓存目录...");
+        zerg_creep::debug!("尝试创建缓存目录...");
         match std::fs::create_dir_all(&cache_dir) {
-            Ok(_) => println!("[DEBUG] 缓存目录创建成功"),
+            Ok(_) => zerg_creep::debug!("缓存目录创建成功"),
             Err(e) => {
-                println!("[DEBUG] 创建缓存目录失败: {}", e);
+                zerg_creep::debug!("创建缓存目录失败: {}", e);
                 return Err(CacheError::config_error(&format!("创建缓存目录失败: {}", e)));
             }
         }
         
         // 返回系统临时目录中的缓存目录路径
-        println!("[DEBUG] 返回缓存目录: {:?}", cache_dir);
+        zerg_creep::debug!("返回缓存目录: {:?}", cache_dir);
         Ok(cache_dir)
     }
     
     /// 验证路径是否可写
     fn validate_writable_path(path: &PathBuf) -> CacheResult<()> {
-        println!("[DEBUG] 验证路径是否可写: {:?}", path);
-        println!("[DEBUG] 路径是否存在: {}", path.exists());
+        zerg_creep::debug!("验证路径是否可写: {:?}", path);
+        zerg_creep::debug!("路径是否存在: {}", path.exists());
         
         // 确保目标目录存在（包括所有父目录）
         if !path.exists() {
-            println!("[DEBUG] 目标目录不存在，尝试创建: {:?}", path);
+            zerg_creep::debug!("目标目录不存在，尝试创建: {:?}", path);
             match std::fs::create_dir_all(path) {
-                Ok(_) => println!("[DEBUG] 目标目录创建成功"),
+                Ok(_) => zerg_creep::debug!("目标目录创建成功"),
                 Err(e) => {
-                    println!("[DEBUG] 创建目标目录失败: {}", e);
+                    zerg_creep::debug!("创建目标目录失败: {}", e);
                     return Err(CacheError::config_error(&format!("创建目录失败: {}", e)));
                 }
             }
@@ -444,23 +445,23 @@ impl PathUtils {
         
         // 尝试创建测试文件
         let test_file = path.join(".write_test");
-        println!("[DEBUG] 尝试创建测试文件: {:?}", test_file);
+        zerg_creep::debug!("尝试创建测试文件: {:?}", test_file);
         match std::fs::write(&test_file, b"test") {
-            Ok(_) => println!("[DEBUG] 测试文件创建成功"),
+            Ok(_) => zerg_creep::debug!("测试文件创建成功"),
             Err(e) => {
-                println!("[DEBUG] 创建测试文件失败: {}", e);
+                zerg_creep::debug!("创建测试文件失败: {}", e);
                 return Err(CacheError::config_error(&format!("路径不可写: {}", e)));
             }
         }
         
         // 清理测试文件
-        println!("[DEBUG] 尝试删除测试文件...");
+        zerg_creep::debug!("尝试删除测试文件...");
         match std::fs::remove_file(&test_file) {
-            Ok(_) => println!("[DEBUG] 测试文件删除成功"),
-            Err(e) => println!("[DEBUG] 删除测试文件失败: {}", e)
+            Ok(_) => zerg_creep::debug!("测试文件删除成功"),
+            Err(e) => zerg_creep::debug!("删除测试文件失败: {}", e)
         }
         
-        println!("[DEBUG] 路径验证成功");
+        zerg_creep::debug!("路径验证成功");
         Ok(())
     }
 }
@@ -470,9 +471,9 @@ impl CacheConfig {
     /// 开发环境配置
     pub fn development() -> CacheResult<Self> {
         let system_info = SystemInfo::get();
-        println!("[DEBUG] 开始创建默认缓存目录...");
+        zerg_creep::debug!("开始创建默认缓存目录...");
         let cache_dir = PathUtils::default_cache_dir()?;
-        println!("[DEBUG] 默认缓存目录创建成功: {:?}", cache_dir);
+        zerg_creep::debug!("默认缓存目录创建成功: {:?}", cache_dir);
         
         // 确保 L1 缓存内存不超过可用内存的一半
         let l1_memory = if system_info.available_memory > 0 {
@@ -482,7 +483,7 @@ impl CacheConfig {
             // 如果无法获取可用内存，使用固定值 16MB
             16 * 1024 * 1024
         };
-        println!("[DEBUG] 设置 L1 缓存内存大小: {} MB", l1_memory / (1024 * 1024));
+        zerg_creep::debug!("设置 L1 缓存内存大小: {} MB", l1_memory / (1024 * 1024));
         
         CacheConfigBuilder::new()
             .with_l1_config(L1Config {

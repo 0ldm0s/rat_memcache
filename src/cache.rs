@@ -163,32 +163,32 @@ impl RatMemCache {
     pub async fn new(config: CacheConfig) -> CacheResult<Self> {
         let start_time = Instant::now();
         
-        println!("[DEBUG] RatMemCache::new 开始初始化");
-        println!("[DEBUG] 配置: {:?}", config);
+        cache_log!(config.logging, debug, "RatMemCache::new 开始初始化");
+        cache_log!(config.logging, debug, "配置: {:?}", config);
         
         // 初始化日志管理器
-        println!("[DEBUG] 初始化日志管理器");
+        cache_log!(config.logging, debug, "初始化日志管理器");
         let log_manager = Arc::new(LogManager::new(config.logging.clone()));
         
-        cache_log!(config.logging, info, "开始初始化 RatMemCache...");
+        cache_log!(config.logging, debug, "开始初始化 RatMemCache...");
         
         // 初始化压缩器
-        println!("[DEBUG] 初始化压缩器");
+        cache_log!(config.logging, debug, "初始化压缩器");
         let compressor = Arc::new(Compressor::new(config.compression.clone()));
         
         // 初始化 TTL 管理器
-        println!("[DEBUG] 初始化 TTL 管理器");
+        cache_log!(config.logging, debug, "初始化 TTL 管理器");
         let ttl_manager = Arc::new(TtlManager::new(config.ttl.clone(), config.logging.clone()).await?);
         
         // 初始化指标收集器
-        println!("[DEBUG] 初始化指标收集器");
+        cache_log!(config.logging, debug, "初始化指标收集器");
         let metrics = Arc::new(MetricsCollector::new().await?);
         
         // 初始化智能传输路由器（已移除）
         // println!("[DEBUG] 初始化智能传输路由器");
         
         // 初始化 L1 缓存
-        println!("[DEBUG] 初始化 L1 缓存");
+        cache_log!(config.logging, debug, "初始化 L1 缓存");
         let l1_cache = Arc::new(
             L1Cache::new(
                 config.l1.clone(),
@@ -198,46 +198,46 @@ impl RatMemCache {
                 Arc::clone(&metrics),
             ).await?
         );
-        println!("[DEBUG] L1 缓存初始化成功");
+        cache_log!(config.logging, debug, "L1 缓存初始化成功");
         
         // 初始化 L2 缓存（如果启用）
-        println!("[DEBUG] 检查是否启用 L2 缓存: {}", config.l2.enable_l2_cache);
-        println!("[DEBUG] L2 缓存配置: {:?}", config.l2);
+        cache_log!(config.logging, debug, "检查是否启用 L2 缓存: {}", config.l2.enable_l2_cache);
+        cache_log!(config.logging, debug, "L2 缓存配置: {:?}", config.l2);
         let l2_cache = if config.l2.enable_l2_cache {
-            println!("[DEBUG] 开始初始化 L2 缓存");
-            println!("[DEBUG] L2 缓存数据目录: {:?}", config.l2.data_dir);
+            cache_log!(config.logging, debug, "开始初始化 L2 缓存");
+            cache_log!(config.logging, debug, "L2 缓存数据目录: {:?}", config.l2.data_dir);
             
             // 手动验证 L2 缓存目录是否可写
             if let Some(dir) = &config.l2.data_dir {
-                println!("[DEBUG] 手动验证 L2 缓存目录是否可写: {:?}", dir);
-                println!("[DEBUG] 目录是否存在: {}", dir.exists());
+                cache_log!(config.logging, debug, "手动验证 L2 缓存目录是否可写: {:?}", dir);
+                cache_log!(config.logging, debug, "目录是否存在: {}", dir.exists());
                 
                 if !dir.exists() {
-                    println!("[DEBUG] 尝试创建目录: {:?}", dir);
+                    cache_log!(config.logging, debug, "尝试创建目录: {:?}", dir);
                     match std::fs::create_dir_all(dir) {
-                        Ok(_) => println!("[DEBUG] 目录创建成功"),
-                        Err(e) => println!("[DEBUG] 创建目录失败: {}", e)
+                        Ok(_) => cache_log!(config.logging, debug, "目录创建成功"),
+                        Err(e) => cache_log!(config.logging, debug, "创建目录失败: {}", e)
                     }
                 }
                 
                 // 测试目录是否可写
                 let test_file = dir.join(".cache_write_test");
-                println!("[DEBUG] 尝试写入测试文件: {:?}", test_file);
+                cache_log!(config.logging, debug, "尝试写入测试文件: {:?}", test_file);
                 match std::fs::write(&test_file, b"test") {
                     Ok(_) => {
-                        println!("[DEBUG] 测试文件写入成功");
+                        cache_log!(config.logging, debug, "测试文件写入成功");
                         match std::fs::remove_file(&test_file) {
-                            Ok(_) => println!("[DEBUG] 测试文件删除成功"),
-                            Err(e) => println!("[DEBUG] 测试文件删除失败: {}", e)
+                            Ok(_) => cache_log!(config.logging, debug, "测试文件删除成功"),
+                            Err(e) => cache_log!(config.logging, debug, "测试文件删除失败: {}", e)
                         }
                     },
-                    Err(e) => println!("[DEBUG] 测试文件写入失败: {}", e)
+                    Err(e) => cache_log!(config.logging, debug, "测试文件写入失败: {}", e)
                 }
             } else {
-                println!("[DEBUG] L2 缓存数据目录未设置");
+                cache_log!(config.logging, debug, "L2 缓存数据目录未设置");
             }
             
-            println!("[DEBUG] 调用 L2Cache::new");
+            cache_log!(config.logging, debug, "调用 L2Cache::new");
             let l2_cache_result = L2Cache::new(
                 config.l2.clone(),
                 config.logging.clone(),
@@ -247,18 +247,18 @@ impl RatMemCache {
             ).await;
             
             match &l2_cache_result {
-                Ok(_) => println!("[DEBUG] L2Cache::new 调用成功"),
-                Err(e) => println!("[DEBUG] L2Cache::new 调用失败: {}", e)
+                Ok(_) => cache_log!(config.logging, debug, "L2Cache::new 调用成功"),
+                Err(e) => cache_log!(config.logging, debug, "L2Cache::new 调用失败: {}", e)
             }
             
             Some(Arc::new(l2_cache_result?))
         } else {
-            println!("[DEBUG] L2 缓存已禁用，不创建任何实例");
-            cache_log!(config.logging, info, "L2 缓存已禁用，跳过初始化");
+            cache_log!(config.logging, debug, "L2 缓存已禁用，不创建任何实例");
+            cache_log!(config.logging, debug, "L2 缓存已禁用，跳过初始化");
             None
         };
         
-        println!("[DEBUG] 创建 RatMemCache 实例");
+        cache_log!(config.logging, debug, "创建 RatMemCache 实例");
         let cache = Self {
             config: Arc::new(config.clone()),
             l1_cache,
@@ -272,14 +272,14 @@ impl RatMemCache {
         };
         
         // 启动后台任务
-        println!("[DEBUG] 启动后台任务");
+        cache_log!(config.logging, debug, "启动后台任务");
         cache.start_background_tasks().await;
         
         let elapsed = start_time.elapsed();
-        println!("[DEBUG] RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
-        cache_log!(config.logging, info, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
+        cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
+        cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
         
-        println!("[DEBUG] 返回 RatMemCache 实例");
+        cache_log!(config.logging, debug, "返回 RatMemCache 实例");
         Ok(cache)
     }
 
@@ -409,7 +409,7 @@ impl RatMemCache {
         
         // TTL 管理器会自动清理
         
-        cache_log!(self.config.logging, info, "缓存已清空");
+        cache_log!(self.config.logging, debug, "缓存已清空");
         
         self.record_operation(CacheOperation::Clear, start_time.elapsed()).await;
         Ok(())
@@ -651,7 +651,7 @@ impl RatMemCache {
                     let l1_stats = cache.get_l1_stats().await;
                     let l2_stats = cache.get_l2_stats().await;
                     
-                    perf_log!(cache.config.logging, info, 
+                    perf_log!(cache.config.logging, debug, 
                         "缓存性能统计 - L1内存使用: {}MB, L2磁盘使用: {}MB, L2命中: {}, L2未命中: {}",
                         l1_stats.memory_usage / 1024 / 1024,
                         l2_stats.estimated_disk_usage / 1024 / 1024,
