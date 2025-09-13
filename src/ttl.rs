@@ -420,6 +420,16 @@ impl TtlManager {
     }
 }
 
+impl Drop for TtlManager {
+    fn drop(&mut self) {
+        // 在销毁时尝试停止清理任务
+        if self.config.active_expiration {
+            // 忽略发送错误，因为清理任务可能已经停止
+            let _ = self.cleanup_sender.send(CleanupCommand::Stop);
+        }
+    }
+}
+
 /// TTL 辅助函数
 pub mod utils {
     use super::*;
