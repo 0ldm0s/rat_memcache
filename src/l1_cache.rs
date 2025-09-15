@@ -3,17 +3,17 @@
 //! 实现基于内存的高性能缓存层，支持多种驱逐策略
 
 use crate::config::L1Config;
-use crate::compression::{Compressor, CompressionResult};
+use crate::compression::Compressor;
 use crate::error::{CacheError, CacheResult};
 use crate::config::LoggingConfig;
 use crate::metrics::MetricsCollector;
 use crate::ttl::TtlManager;
 use crate::types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
-use crate::{cache_log, perf_log};
+use crate::cache_log;
 use bytes::Bytes;
 use dashmap::DashMap;
 use parking_lot::RwLock;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
@@ -52,7 +52,7 @@ pub struct L1Cache {
 
 /// 驱逐统计信息
 #[derive(Debug, Clone, Default)]
-struct EvictionStats {
+pub struct EvictionStats {
     /// 按策略分类的驱逐次数
     lru_evictions: u64,
     lfu_evictions: u64,
@@ -214,7 +214,7 @@ impl L1Cache {
 
     /// 清空缓存
     pub async fn clear(&self) -> CacheResult<()> {
-        let start_time = Instant::now();
+        let _start_time = Instant::now();
         
         let old_count = self.entry_count.load(Ordering::Relaxed);
         

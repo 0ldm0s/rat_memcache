@@ -6,9 +6,7 @@ use crate::error::{CacheError, CacheResult};
 use crate::types::EvictionStrategy;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::time::Duration;
 use sysinfo::System;
-use tempfile::TempDir;
 use zerg_creep;
 
 /// 缓存系统主配置

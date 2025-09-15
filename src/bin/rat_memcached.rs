@@ -5,29 +5,23 @@
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use bytes::{Bytes, BytesMut};
-use tokio::sync::RwLock;
-use tokio::time::timeout;
+use bytes::Bytes;
 use clap::{Arg, Command};
-
-use std::net::TcpListener;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpStream, TcpListener as TokioTcpListener};
 
 use rat_memcache::{
-    RatMemCache, RatMemCacheBuilder,
+    RatMemCache,
     config::CacheConfig,
     error::{CacheError, CacheResult},
-    logging::{init_logger, LogManager},
-    perf_log, audit_log, cache_log,
+    logging::LogManager,
 };
 
 // 使用 zerg_creep 日志宏
-use zerg_creep::{info, warn, error, debug, trace};
+use zerg_creep::{info, warn, error, debug};
 
 /// 服务器配置
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -233,7 +227,7 @@ impl MemcachedServer {
                     socket as WinSock::SOCKET,
                     WinSock::IPPROTO_TCP,
                     WinSock::TCP_NODELAY,
-                    &nodelay as *const _ as *const i8,
+                    &nodelay as *const _ as *const u8,
                     std::mem::size_of::<i32>() as i32
                 ) != 0 {
                     warn!("设置 TCP_NODELAY 失败: {}", std::io::Error::last_os_error());
@@ -245,7 +239,7 @@ impl MemcachedServer {
                     socket as WinSock::SOCKET,
                     WinSock::SOL_SOCKET,
                     WinSock::SO_REUSEADDR,
-                    &reuseaddr as *const _ as *const i8,
+                    &reuseaddr as *const _ as *const u8,
                     std::mem::size_of::<i32>() as i32
                 ) != 0 {
                     warn!("设置 SO_REUSEADDR 失败: {}", std::io::Error::last_os_error());

@@ -286,8 +286,8 @@ impl MetricsCollector {
 
     /// 重置所有指标
     pub async fn reset_metrics(&self) {
-        let mut read_metrics = self.read_metrics.write().await;
-        let mut write_metrics = self.write_metrics.write().await;
+        let read_metrics = self.read_metrics.write().await;
+        let write_metrics = self.write_metrics.write().await;
         
         for counter in read_metrics.values() {
             counter.store(0, Ordering::Relaxed);

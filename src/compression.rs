@@ -247,7 +247,7 @@ impl CompressionStats {
     }
 
     /// 记录解压缩操作
-    pub fn record_decompression(&mut self, size: usize) {
+    pub fn record_decompression(&mut self, _size: usize) {
         self.total_decompressions += 1;
     }
 
