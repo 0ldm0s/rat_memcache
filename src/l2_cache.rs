@@ -3,18 +3,17 @@
 //! 基于 RocksDB 实现持久化存储层
 
 use crate::config::L2Config;
-use crate::compression::{Compressor, CompressionResult};
+use crate::compression::Compressor;
 use crate::error::{CacheError, CacheResult};
 use crate::config::LoggingConfig;
 use crate::metrics::MetricsCollector;
 use crate::ttl::TtlManager;
-use crate::types::{CacheValue, CacheLayer, CacheOperation};
-use crate::{cache_log, perf_log};
+use crate::types::{CacheLayer, CacheOperation};
+use crate::cache_log;
 use bytes::Bytes;
-use rocksdb::{DB, Options, WriteBatch, IteratorMode, Direction};
+use rocksdb::{DB, Options, WriteBatch, IteratorMode};
 use bincode::{encode_to_vec, decode_from_slice};
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
@@ -449,7 +448,7 @@ impl L2Cache {
 
     /// 清空缓存
     pub async fn clear(&self) -> CacheResult<()> {
-        let start_time = Instant::now();
+        let _start_time = Instant::now();
         
         let db = Arc::clone(&self.db);
         
@@ -491,11 +490,11 @@ impl L2Cache {
         
         let db = Arc::clone(&self.db);
         
-        task::spawn_blocking(move || -> CacheResult<()> {
+        let _ = task::spawn_blocking(move || -> CacheResult<()> {
             db.compact_range(None::<&[u8]>, None::<&[u8]>);
             Ok(())
         }).await
-        .map_err(|e| CacheError::io_error(&format!("后台任务执行失败: {}", e)))?;
+        .map_err(|e| CacheError::io_error(&format!("后台任务执行失败: {}", e)));
         
         // 更新统计
         let mut stats = self.stats.write().await;

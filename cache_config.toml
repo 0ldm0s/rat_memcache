@@ -10,7 +10,7 @@ eviction_strategy = "Lru"
 [l2]
 # L2 缓存配置（磁盘持久化）
 enable_l2_cache = true
-data_dir = "/tmp/rat_memcache_test"
+data_dir = "./rat_memcache_test"
 clear_on_startup = false
 max_disk_size = 1073741824  # 1GB
 write_buffer_size = 67108864  # 64MB

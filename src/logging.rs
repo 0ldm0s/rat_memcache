@@ -3,7 +3,7 @@
 //! 基于 zerg_creep 库实现高性能日志系统
 
 use crate::config::LoggingConfig;
-use crate::error::{CacheError, CacheResult};
+use crate::error::CacheResult;
 use std::sync::Once;
 use std::io::Write;
 use chrono::Local;

@@ -2,7 +2,7 @@
 //!
 //! 定义缓存系统中使用的核心数据结构
 
-use chrono::{DateTime, Utc};
+use chrono;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 

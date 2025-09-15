@@ -10,7 +10,7 @@ use crate::l2_cache::{L2Cache, L2CacheStats};
 use crate::logging::LogManager;
 use crate::metrics::MetricsCollector;
 use crate::ttl::TtlManager;
-use crate::types::{CacheLayer, CacheOperation, EvictionStrategy};
+use crate::types::{CacheLayer, CacheOperation};
 use crate::{cache_log, perf_log, transfer_log};
 use bytes::Bytes;
 use std::sync::Arc;
@@ -370,7 +370,7 @@ impl RatMemCache {
         }
         
         // 根据策略决定是否写入 L2（仅在存在时）
-        let should_write_l2 = if let Some(l2_cache) = &self.l2_cache {
+        let should_write_l2 = if let Some(_l2_cache) = &self.l2_cache {
             options.force_l2 || self.should_write_to_l2(&key, &processed_value, options).await
         } else {
             false
@@ -503,7 +503,7 @@ impl RatMemCache {
     }
 
     /// 获取剩余 TTL
-    pub async fn get_ttl(&self, key: &str) -> Option<u64> {
+    pub async fn get_ttl(&self, _key: &str) -> Option<u64> {
         // 获取剩余 TTL（简化实现）
         None
     }
@@ -514,7 +514,7 @@ impl RatMemCache {
             return Err(CacheError::invalid_ttl(ttl_seconds as i64));
         }
         
-        self.ttl_manager.add_key(key.to_string(), Some(ttl_seconds)).await;
+        let _ = self.ttl_manager.add_key(key.to_string(), Some(ttl_seconds)).await;
         Ok(())
     }
 
@@ -570,7 +570,7 @@ impl RatMemCache {
     }
 
     /// 判断是否应该写入 L2
-    async fn should_write_to_l2(&self, key: &str, value: &Bytes, options: &CacheOptions) -> bool {
+    async fn should_write_to_l2(&self, _key: &str, value: &Bytes, options: &CacheOptions) -> bool {
         // 如果强制 L2，直接返回 true
         if options.force_l2 {
             return true;

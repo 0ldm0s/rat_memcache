@@ -4,14 +4,14 @@
 
 use crate::config::TtlConfig;
 use crate::error::{CacheError, CacheResult};
-use crate::types::{current_timestamp, CacheValue};
+use crate::types::current_timestamp;
 use crate::config::LoggingConfig;
 use crate::{ttl_log, perf_log};
 use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::{RwLock, Mutex};
-use tokio::time::{interval, sleep};
+use tokio::time::interval;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 /// TTL 管理器
