@@ -188,7 +188,7 @@ impl CacheConfigBuilder {
     pub fn new() -> Self {
         Self {
             l1_config: None,
-            #[cfg(feature = "melange-storage")]
+                #[cfg(feature = "melange-storage")]
             l2_config: None,
             compression_config: None,
             ttl_config: None,
@@ -271,6 +271,8 @@ impl CacheConfigBuilder {
             l1: l1_config,
             #[cfg(feature = "melange-storage")]
             l2: l2_config,
+            #[cfg(not(feature = "melange-storage"))]
+            l2: Default::default(),
             compression: compression_config,
             ttl: ttl_config,
             performance: performance_config,
@@ -604,13 +606,19 @@ impl CacheConfig {
     /// 开发环境配置
     pub fn development() -> CacheResult<Self> {
         let system_info = SystemInfo::get();
+        zerg_creep::debug!("开始创建默认缓存目录...");
         let cache_dir = PathUtils::default_cache_dir()?;
+        zerg_creep::debug!("默认缓存目录创建成功: {:?}", cache_dir);
 
+        // 确保 L1 缓存内存不超过可用内存的一半
         let l1_memory = if system_info.available_memory > 0 {
+            // 使用推荐的 L1 缓存大小，但至少为 16MB
             system_info.recommended_l1_memory().max(16 * 1024 * 1024)
         } else {
+            // 如果无法获取可用内存，使用固定值 16MB
             16 * 1024 * 1024
         };
+        zerg_creep::debug!("设置 L1 缓存内存大小: {} MB", l1_memory / (1024 * 1024));
 
         let mut builder = CacheConfigBuilder::new()
             .with_l1_config(L1Config {
@@ -619,8 +627,6 @@ impl CacheConfig {
                 eviction_strategy: EvictionStrategy::Lru,
             });
 
-        // TODO: Fix L2 config syntax error
-        /*
         #[cfg(feature = "melange-storage")]
         {
             builder = builder.with_l2_config(L2Config {
@@ -642,19 +648,18 @@ impl CacheConfig {
                     enable_statistics: true,
                 });
         }
-        */
 
-        let config = builder.with_compression_config(CompressionConfig {
+        builder = builder.with_compression_config(CompressionConfig {
                 enable_lz4: true,
-                compression_threshold: 1024,
+                compression_threshold: 1024, // 1KB
                 compression_level: 4,
                 auto_compression: true,
                 min_compression_ratio: 0.8,
             })
             .with_ttl_config(TtlConfig {
-                default_ttl: Some(3600),
-                max_ttl: 86400,
-                cleanup_interval: 300,
+                default_ttl: Some(3600), // 1小时
+                max_ttl: 86400, // 24小时
+                cleanup_interval: 300, // 5分钟
                 max_cleanup_entries: 1000,
                 lazy_expiration: true,
                 active_expiration: true,
@@ -679,9 +684,7 @@ impl CacheConfig {
                 enable_audit_logs: false,
                 enable_cache_logs: true,
             })
-            .build()?;
-
-        Ok(config)
+            .build()
     }
 
     /// 生产环境配置
@@ -716,7 +719,7 @@ impl CacheConfig {
             });
         }
 
-        let config = builder.with_compression_config(CompressionConfig {
+        builder = builder.with_compression_config(CompressionConfig {
                 enable_lz4: true,
                 compression_threshold: 512, // 512B
                 compression_level: 6,
@@ -751,9 +754,7 @@ impl CacheConfig {
                 enable_audit_logs: true,
                 enable_cache_logs: true,
             })
-            .build()?;
-
-        Ok(config)
+            .build()
     }
 
     /// 高速通讯配置（禁用 L2 缓存和压缩）
@@ -787,7 +788,7 @@ impl CacheConfig {
             });
         }
 
-        let config = builder.with_compression_config(CompressionConfig {
+        builder = builder.with_compression_config(CompressionConfig {
                 enable_lz4: false, // 禁用压缩
                 compression_threshold: 0,
                 compression_level: 1, // 最低有效级别，但不会使用
@@ -822,8 +823,6 @@ impl CacheConfig {
                 enable_audit_logs: false,
                 enable_cache_logs: false,
             })
-            .build()?;
-
-        Ok(config)
+            .build()
     }
 }

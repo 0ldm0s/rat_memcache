@@ -46,7 +46,7 @@ dist-linux: build
 copy-mingw64-deps:
 	@echo "Copying mingw64 dependencies..."
 	@mkdir -p $(DIST_DIR)
-	@if [ -f "$(MINGW64_BIN)/librocksdb.dll" ]; then cp "$(MINGW64_BIN)/librocksdb.dll" "$(DIST_DIR)/" && echo "Copied: librocksdb.dll"; fi
+	@if [ -f "$(MINGW64_BIN)/libmelange_db.dll" ]; then cp "$(MINGW64_BIN)/libmelange_db.dll" "$(DIST_DIR)/" && echo "Copied: libmelange_db.dll"; fi
 	@if [ -f "$(MINGW64_BIN)/libgcc_s_seh-1.dll" ]; then cp "$(MINGW64_BIN)/libgcc_s_seh-1.dll" "$(DIST_DIR)/" && echo "Copied: libgcc_s_seh-1.dll"; fi
 	@if [ -f "$(MINGW64_BIN)/libstdc++-6.dll" ]; then cp "$(MINGW64_BIN)/libstdc++-6.dll" "$(DIST_DIR)/" && echo "Copied: libstdc++-6.dll"; fi
 	@if [ -f "$(MINGW64_BIN)/libwinpthread-1.dll" ]; then cp "$(MINGW64_BIN)/libwinpthread-1.dll" "$(DIST_DIR)/" && echo "Copied: libwinpthread-1.dll"; fi
@@ -58,7 +58,7 @@ copy-mingw64-deps:
 # 安装mingw64依赖
 install-mingw64-deps:
 	@echo "Installing mingw64 dependencies..."
-	pacman -S --noconfirm --needed mingw-w64-x86_64-rocksdb mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib mingw-w64-x86_64-lz4 mingw-w64-x86_64-bzip2 mingw-w64-x86_64-zstd
+	pacman -S --noconfirm --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-zlib mingw-w64-x86_64-lz4 mingw-w64-x86_64-bzip2 mingw-w64-x86_64-zstd
 
 # 清理构建文件
 clean:

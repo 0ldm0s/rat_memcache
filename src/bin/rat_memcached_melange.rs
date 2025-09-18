@@ -1,7 +1,8 @@
-//! RatMemcached - 高性能 Memcached 协议兼容服务器
+//! RatMemcached - 高性能 Memcached 协议兼容服务器 (MelangeDB 版本)
 //!
 //! 基于 mammoth_transport 和 rat_memcache 构建的高性能缓存服务器
 //! 完全兼容 Memcached 协议，性能超越原版 Memcached
+//! 使用 MelangeDB 作为持久化存储引擎
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -17,7 +18,7 @@ use rat_memcache::{
     config::CacheConfig,
     error::{CacheError, CacheResult},
     logging::LogManager,
-    RatMemCache,
+    RatMemCacheMelange, RatMemCacheMelangeBuilder,
 };
 
 // 使用 zerg_creep 日志宏
@@ -113,9 +114,9 @@ enum MemcachedResponse {
     Version(String),
 }
 
-/// Memcached 服务器
+/// Memcached 服务器 (MelangeDB 版本)
 pub struct MemcachedServer {
-    cache: Arc<RatMemCache>,
+    cache: Arc<RatMemCacheMelange>,
     bind_addr: SocketAddr,
     config: ServerConfig,
     start_time: Instant,
@@ -137,13 +138,23 @@ impl MemcachedServer {
         let log_manager = LogManager::new(cache_config.logging.clone());
         log_manager.initialize()?;
 
-        info!("🚀 初始化 RatMemcached 服务器");
+        info!("🚀 初始化 RatMemcached 服务器 (MelangeDB 版本)");
         info!("📍 绑定地址: {}", bind_addr);
-        info!("🔧 强制使用 mammoth_transport 传输层");
+        info!("🔧 使用 MelangeDB 作为持久化存储引擎");
 
         // 创建缓存实例
-        let cache = Arc::new(RatMemCache::new(cache_config).await?);
-        info!("✅ 缓存实例创建成功");
+        let cache = Arc::new(
+            RatMemCacheMelangeBuilder::new()
+                .l1_config(cache_config.l1.clone())
+                .l2_config(cache_config.l2.clone())
+                .compression_config(cache_config.compression.clone())
+                .ttl_config(cache_config.ttl.clone())
+                .performance_config(cache_config.performance.clone())
+                .logging_config(cache_config.logging.clone())
+                .build()
+                .await?,
+        );
+        info!("✅ MelangeDB 缓存实例创建成功");
 
         // 创建传统 TCP 监听器
         let listener = Some(Self::create_tcp_listener(bind_addr).await?);
@@ -307,7 +318,7 @@ impl MemcachedServer {
 
     /// 启动服务器
     pub async fn start(&self) -> CacheResult<()> {
-        info!("🚀 启动 RatMemcached 服务器");
+        info!("🚀 启动 RatMemcached 服务器 (MelangeDB 版本)");
 
         let listener = self.listener.as_ref().unwrap();
         info!("🔗 开始监听连接...");
@@ -340,7 +351,7 @@ impl MemcachedServer {
 
     async fn handle_tcp_connection(
         mut stream: TcpStream,
-        cache: Arc<RatMemCache>,
+        cache: Arc<RatMemCacheMelange>,
         start_time: Instant,
     ) -> CacheResult<()> {
         info!("🔗 开始处理 TCP 连接");
@@ -689,7 +700,7 @@ impl MemcachedServer {
     /// 执行 Memcached 命令
     async fn execute_command(
         command: MemcachedCommand,
-        cache: &Arc<RatMemCache>,
+        cache: &Arc<RatMemCacheMelange>,
         start_time: Instant,
     ) -> MemcachedResponse {
         match command {
@@ -933,7 +944,7 @@ impl MemcachedServer {
                 stats_map.insert("uptime".to_string(), uptime.to_string());
                 stats_map.insert(
                     "version".to_string(),
-                    format!("RatMemcached {}", env!("CARGO_PKG_VERSION")),
+                    format!("RatMemcached-MelangeDB {}", env!("CARGO_PKG_VERSION")),
                 );
                 stats_map.insert("pointer_size".to_string(), "64".to_string());
                 stats_map.insert("rusage_user".to_string(), "0.0".to_string());
@@ -953,6 +964,7 @@ impl MemcachedServer {
                 stats_map.insert("bytes_written".to_string(), "0".to_string());
                 stats_map.insert("limit_maxbytes".to_string(), "67108864".to_string());
                 stats_map.insert("threads".to_string(), "4".to_string());
+                stats_map.insert("storage_engine".to_string(), "MelangeDB".to_string());
 
                 MemcachedResponse::Stats(stats_map)
             }
@@ -972,7 +984,10 @@ impl MemcachedServer {
             }
             MemcachedCommand::Version => {
                 debug!("执行 VERSION 命令");
-                MemcachedResponse::Version(format!("RatMemcached {}", env!("CARGO_PKG_VERSION")))
+                MemcachedResponse::Version(format!(
+                    "RatMemcached-MelangeDB {}",
+                    env!("CARGO_PKG_VERSION")
+                ))
             }
             MemcachedCommand::Quit => {
                 debug!("执行 QUIT 命令");
@@ -989,7 +1004,7 @@ impl MemcachedServer {
 /// 加载服务器配置
 fn load_server_config() -> Result<ServerConfig, Box<dyn std::error::Error>> {
     // 尝试从配置文件加载
-    let config_content = std::fs::read_to_string("rat_memcached.toml")?;
+    let config_content = std::fs::read_to_string("rat_memcached_melange.toml")?;
     let config = toml::from_str::<ServerConfig>(&config_content)?;
     Ok(config)
 }
@@ -997,10 +1012,10 @@ fn load_server_config() -> Result<ServerConfig, Box<dyn std::error::Error>> {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 创建命令行参数解析器
-    let matches = Command::new("rat_memcached")
+    let matches = Command::new("rat_memcached_melange")
         .version(env!("CARGO_PKG_VERSION"))
         .author("RatMemcache Team")
-        .about("高性能 Memcached 协议兼容服务器")
+        .about("高性能 Memcached 协议兼容服务器 (MelangeDB 版本)")
         .arg(
             Arg::new("bind")
                 .short('b')
@@ -1027,9 +1042,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     // 启动前的美观输出
-    println!("🚀 RatMemcached - 高性能 Memcached 协议兼容服务器");
-    println!("📦 基于 rat_memcache + mammoth_transport");
+    println!("🚀 RatMemcached - 高性能 Memcached 协议兼容服务器 (MelangeDB 版本)");
+    println!("📦 基于 rat_memcache + mammoth_transport + MelangeDB");
     println!("⚡ 支持完整的 Memcached 协议");
+    println!("💾 使用 MelangeDB 作为持久化存储引擎");
 
     // 从命令行参数构建配置
     let mut config = ServerConfig {
