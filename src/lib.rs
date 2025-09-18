@@ -146,22 +146,14 @@ mod l1_cache;
 #[cfg(feature = "melange-storage")]
 mod l2_cache;
 #[cfg(feature = "melange-storage")]
-mod l2_cache_melange;
-#[cfg(feature = "melange-storage")]
 mod melange_adapter;
 mod metrics;
 mod ttl;
 
-// MelangeDB 版本的缓存模块
-#[cfg(feature = "melange-storage")]
-mod cache_melange;
 
 // 重新导出主要类型
 pub use cache::{RatMemCache, RatMemCacheBuilder, CacheOptions};
 
-// 重新导出 MelangeDB 版本的主要类型
-#[cfg(feature = "melange-storage")]
-pub use cache_melange::{RatMemCacheMelange, RatMemCacheMelangeBuilder};
 pub use error::{CacheError, CacheResult};
 pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
 

@@ -257,6 +257,9 @@ impl RatMemCache {
             let l2_cache_result = L2Cache::new(
                 config.l2.clone(),
                 config.logging.clone(),
+                compressor.as_ref().clone(),
+                Arc::clone(&ttl_manager),
+                Arc::clone(&metrics),
             ).await;
 
             match &l2_cache_result {
@@ -403,7 +406,7 @@ impl RatMemCache {
                 if let Some(ttl) = options.ttl_seconds {
                     l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
                 } else {
-                    l2_cache.set(&key, processed_value).await?;
+                    l2_cache.set(key.clone(), processed_value, None).await?;
                 }
             }
         }

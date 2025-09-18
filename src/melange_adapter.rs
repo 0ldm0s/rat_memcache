@@ -15,6 +15,19 @@ pub enum CompressionAlgorithm {
     Zstd,
 }
 
+/// 缓存预热策略
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CacheWarmupStrategy {
+    /// 无预热
+    None,
+    /// 预热最近访问的数据
+    Recent,
+    /// 预热热点数据
+    Hot,
+    /// 全部预热
+    Full,
+}
+
 /// MelangeDB 适配器配置
 #[derive(Debug, Clone)]
 pub struct MelangeConfig {
@@ -22,16 +35,139 @@ pub struct MelangeConfig {
     pub cache_size_mb: usize,
     pub max_file_size_mb: usize,
     pub enable_statistics: bool,
+    /// 智能flush配置
+    pub smart_flush_enabled: bool,
+    pub smart_flush_base_interval_ms: usize,
+    pub smart_flush_min_interval_ms: usize,
+    pub smart_flush_max_interval_ms: usize,
+    pub smart_flush_write_rate_threshold: usize,
+    pub smart_flush_accumulated_bytes_threshold: usize,
+    /// 缓存预热策略
+    pub cache_warmup_strategy: CacheWarmupStrategy,
+    /// ZSTD压缩级别（仅当使用ZSTD压缩时有效）
+    pub zstd_compression_level: Option<i32>,
 }
 
 impl Default for MelangeConfig {
     fn default() -> Self {
+        Self::balanced()
+    }
+}
+
+impl MelangeConfig {
+    /// 平衡模式 - 适合大多数场景的便捷方法
+    pub fn balanced() -> Self {
         Self {
             compression_algorithm: CompressionAlgorithm::Lz4,
             cache_size_mb: 512,
             max_file_size_mb: 1024,
             enable_statistics: true,
+            smart_flush_enabled: true,
+            smart_flush_base_interval_ms: 100,
+            smart_flush_min_interval_ms: 20,
+            smart_flush_max_interval_ms: 1000,
+            smart_flush_write_rate_threshold: 10000,
+            smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+            cache_warmup_strategy: CacheWarmupStrategy::Recent,
+            zstd_compression_level: None, // LZ4压缩，不需要ZSTD级别
         }
+    }
+
+    /// 高性能模式 - 优先考虑性能的便捷方法
+    pub fn high_performance() -> Self {
+        Self {
+            compression_algorithm: CompressionAlgorithm::None,
+            cache_size_mb: 1024,
+            max_file_size_mb: 2048,
+            enable_statistics: true,
+            smart_flush_enabled: true,
+            smart_flush_base_interval_ms: 50,
+            smart_flush_min_interval_ms: 5,
+            smart_flush_max_interval_ms: 200,
+            smart_flush_write_rate_threshold: 20000,
+            smart_flush_accumulated_bytes_threshold: 2 * 1024 * 1024,
+            cache_warmup_strategy: CacheWarmupStrategy::Hot,
+            zstd_compression_level: None, // 无压缩，不需要ZSTD级别
+        }
+    }
+
+    /// 存储优化模式 - 优先考虑存储空间的便捷方法
+    pub fn storage_optimized() -> Self {
+        Self {
+            compression_algorithm: CompressionAlgorithm::Zstd,
+            cache_size_mb: 256,
+            max_file_size_mb: 512,
+            enable_statistics: true,
+            smart_flush_enabled: true,
+            smart_flush_base_interval_ms: 200,
+            smart_flush_min_interval_ms: 50,
+            smart_flush_max_interval_ms: 2000,
+            smart_flush_write_rate_threshold: 5000,
+            smart_flush_accumulated_bytes_threshold: 8 * 1024 * 1024,
+            cache_warmup_strategy: CacheWarmupStrategy::Full,
+            zstd_compression_level: Some(6), // ZSTD压缩，设置级别
+        }
+    }
+
+    /// 设置压缩算法
+    pub fn with_compression(mut self, algorithm: CompressionAlgorithm) -> Self {
+        self.compression_algorithm = algorithm;
+        // 如果不是ZSTD压缩，清除ZSTD级别设置
+        if algorithm != CompressionAlgorithm::Zstd {
+            self.zstd_compression_level = None;
+        }
+        self
+    }
+
+    /// 设置缓存大小（MB）
+    pub fn with_cache_size(mut self, size_mb: usize) -> Self {
+        self.cache_size_mb = size_mb;
+        self
+    }
+
+    /// 设置最大文件大小（MB）
+    pub fn with_max_file_size(mut self, size_mb: usize) -> Self {
+        self.max_file_size_mb = size_mb;
+        self
+    }
+
+    /// 启用或禁用统计信息
+    pub fn with_statistics(mut self, enabled: bool) -> Self {
+        self.enable_statistics = enabled;
+        self
+    }
+
+    /// 配置智能flush
+    pub fn with_smart_flush(
+        mut self,
+        enabled: bool,
+        base_interval_ms: usize,
+        min_interval_ms: usize,
+        max_interval_ms: usize,
+        write_rate_threshold: usize,
+        accumulated_bytes_threshold: usize,
+    ) -> Self {
+        self.smart_flush_enabled = enabled;
+        self.smart_flush_base_interval_ms = base_interval_ms;
+        self.smart_flush_min_interval_ms = min_interval_ms;
+        self.smart_flush_max_interval_ms = max_interval_ms;
+        self.smart_flush_write_rate_threshold = write_rate_threshold;
+        self.smart_flush_accumulated_bytes_threshold = accumulated_bytes_threshold;
+        self
+    }
+
+    /// 设置缓存预热策略
+    pub fn with_warmup_strategy(mut self, strategy: CacheWarmupStrategy) -> Self {
+        self.cache_warmup_strategy = strategy;
+        self
+    }
+
+    /// 设置ZSTD压缩级别（仅在ZSTD压缩时有效）
+    pub fn with_zstd_level(mut self, level: i32) -> Self {
+        if self.compression_algorithm == CompressionAlgorithm::Zstd {
+            self.zstd_compression_level = Some(level);
+        }
+        self
     }
 }
 
@@ -245,11 +381,39 @@ impl MelangeAdapter {
 }
 
 // 辅助函数：创建 MelangeDB 配置
-fn create_melange_config(_config: &MelangeConfig) -> melange_db::Config {
-    let melange_config = melange_db::Config::new();
+fn create_melange_config(config: &MelangeConfig) -> melange_db::Config {
+    let mut melange_config = melange_db::Config::new()
+        .cache_capacity_bytes(config.cache_size_mb * 1024 * 1024)
+        .compression_algorithm(match config.compression_algorithm {
+            CompressionAlgorithm::None => melange_db::CompressionAlgorithm::None,
+            CompressionAlgorithm::Lz4 => melange_db::CompressionAlgorithm::Lz4,
+            CompressionAlgorithm::Zstd => melange_db::CompressionAlgorithm::Zstd,
+        })
+        .flush_every_ms(None); // 禁用传统自动flush，使用智能flush
 
-    // 注意：MelangeDB 的配置 API 可能与预期的不同
-    // 这里使用默认配置，后续可以根据实际 API 调整
+    // 仅在ZSTD压缩时设置压缩级别
+    if let Some(level) = config.zstd_compression_level {
+        melange_config = melange_config.zstd_compression_level(level);
+    }
+
+    // 配置智能flush
+    melange_config.smart_flush_config = melange_db::smart_flush::SmartFlushConfig {
+        enabled: config.smart_flush_enabled,
+        base_interval_ms: config.smart_flush_base_interval_ms,
+        min_interval_ms: config.smart_flush_min_interval_ms,
+        max_interval_ms: config.smart_flush_max_interval_ms,
+        write_rate_threshold: config.smart_flush_write_rate_threshold as u64,
+        accumulated_bytes_threshold: config.smart_flush_accumulated_bytes_threshold,
+    };
+
+    // 配置缓存预热策略
+    melange_config.cache_warmup_strategy = match config.cache_warmup_strategy {
+        CacheWarmupStrategy::None => melange_db::CacheWarmupStrategy::None,
+        CacheWarmupStrategy::Recent => melange_db::CacheWarmupStrategy::Recent,
+        CacheWarmupStrategy::Hot => melange_db::CacheWarmupStrategy::Hot,
+        CacheWarmupStrategy::Full => melange_db::CacheWarmupStrategy::Full,
+    };
+
     melange_config
 }
 

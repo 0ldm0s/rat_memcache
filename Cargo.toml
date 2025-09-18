@@ -12,10 +12,6 @@ categories = ["caching", "database", "memory-management"]
 name = "rat_memcached"
 path = "src/bin/rat_memcached.rs"
 
-[[bin]]
-name = "rat_memcached_melange"
-path = "src/bin/rat_memcached_melange.rs"
-required-features = ["melange-storage"]
 
 [dependencies]
 
