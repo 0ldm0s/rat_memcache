@@ -1,7 +1,14 @@
 //! RatMemcached - 高性能 Memcached 协议兼容服务器
 //!
-//! 基于 mammoth_transport 和 rat_memcache 构建的高性能缓存服务器
+//! 基于 rat_memcache 构建的高性能缓存服务器
 //! 完全兼容 Memcached 协议，性能超越原版 Memcached
+
+#[cfg(feature = "mimalloc-allocator")]
+use mimalloc::MiMalloc;
+
+#[cfg(feature = "mimalloc-allocator")]
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -139,7 +146,9 @@ impl MemcachedServer {
 
         info!("🚀 初始化 RatMemcached 服务器");
         info!("📍 绑定地址: {}", bind_addr);
-        info!("🔧 强制使用 mammoth_transport 传输层");
+
+        // 显示配置详情
+        Self::print_configuration_details(&cache_config);
 
         // 创建缓存实例
         let cache = Arc::new(RatMemCache::new(cache_config).await?);
@@ -155,6 +164,79 @@ impl MemcachedServer {
             start_time: Instant::now(),
             listener,
         })
+    }
+
+    /// 显示配置详情
+    fn print_configuration_details(cache_config: &CacheConfig) {
+        info!("📊 缓存配置详情:");
+
+        // L1 配置
+        info!("  🎯 L1 内存缓存:");
+        info!("    - 最大内存: {:.2} MB", cache_config.l1.max_memory as f64 / 1024.0 / 1024.0);
+        info!("    - 最大条目: {}", cache_config.l1.max_entries);
+        info!("    - 淘汰策略: {:?}", cache_config.l1.eviction_strategy);
+
+        #[cfg(feature = "melange-storage")]
+        {
+            let l2_config = &cache_config.l2;
+            if l2_config.enable_l2_cache {
+                info!("  💾 L2 MelangeDB 持久化缓存:");
+                info!("    - 启用状态: 是");
+                if let Some(data_dir) = &l2_config.data_dir {
+                    info!("    - 数据目录: {}", data_dir.display());
+                }
+                info!("    - 最大磁盘空间: {:.2} MB", l2_config.max_disk_size as f64 / 1024.0 / 1024.0);
+                info!("    - 块缓存大小: {:.2} MB", l2_config.block_cache_size as f64 / 1024.0 / 1024.0);
+                info!("    - 写缓冲区: {:.2} MB", l2_config.write_buffer_size as f64 / 1024.0 / 1024.0);
+                info!("    - 压缩: {}", if l2_config.enable_compression { "启用" } else { "禁用" });
+
+                // MelangeDB 特定配置
+                let melange_config = &l2_config.melange_config;
+                info!("    - MelangeDB 压缩算法: {:?}", melange_config.compression_algorithm);
+                info!("    - 缓存大小: {} MB", melange_config.cache_size_mb);
+                info!("    - 最大文件大小: {} MB", melange_config.max_file_size_mb);
+                info!("    - 智能Flush: {}", if melange_config.smart_flush_enabled { "启用" } else { "禁用" });
+                if melange_config.smart_flush_enabled {
+                    info!("    - Flush间隔: {}-{}ms (基础: {}ms)",
+                          melange_config.smart_flush_min_interval_ms,
+                          melange_config.smart_flush_max_interval_ms,
+                          melange_config.smart_flush_base_interval_ms);
+                }
+                info!("    - 缓存预热策略: {:?}", melange_config.cache_warmup_strategy);
+                info!("    - 统计信息: {}", if melange_config.enable_statistics { "启用" } else { "禁用" });
+            } else {
+                info!("  💾 L2 MelangeDB 持久化缓存: 禁用");
+            }
+        }
+
+        #[cfg(not(feature = "melange-storage"))]
+        {
+            info!("  💾 L2 MelangeDB 持久化缓存: 未编译支持");
+        }
+
+        // TTL 配置
+        info!("  ⏰ TTL 配置:");
+        info!("    - 默认TTL: {}秒", cache_config.ttl.default_ttl.unwrap_or(0));
+        info!("    - 最大TTL: {}秒", cache_config.ttl.max_ttl);
+        info!("    - 清理间隔: {}秒", cache_config.ttl.cleanup_interval);
+
+        // 压缩配置
+        info!("  🗜️  压缩配置:");
+        info!("    - LZ4压缩: {}", if cache_config.compression.enable_lz4 { "启用" } else { "禁用" });
+        info!("    - 压缩阈值: {} bytes", cache_config.compression.compression_threshold);
+        info!("    - 压缩级别: {}", cache_config.compression.compression_level);
+
+        // 性能配置
+        info!("  ⚡ 性能配置:");
+        info!("    - 工作线程: {}", cache_config.performance.worker_threads);
+        info!("    - 并发支持: {}", if cache_config.performance.enable_concurrency { "启用" } else { "禁用" });
+        info!("    - 读写分离: {}", if cache_config.performance.read_write_separation { "启用" } else { "禁用" });
+
+        #[cfg(feature = "mimalloc-allocator")]
+        info!("  🧠 内存分配器: mimalloc (高性能优化)");
+
+        #[cfg(not(feature = "mimalloc-allocator"))]
+        info!("  🧠 内存分配器: 系统默认");
     }
 
     /// 加载缓存配置
@@ -1028,8 +1110,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 启动前的美观输出
     println!("🚀 RatMemcached - 高性能 Memcached 协议兼容服务器");
-    println!("📦 基于 rat_memcache + mammoth_transport");
+    println!("📦 基于 rat_memcache (MelangeDB存储后端)");
     println!("⚡ 支持完整的 Memcached 协议");
+    #[cfg(feature = "mimalloc-allocator")]
+    println!("🧠 使用 mimalloc 高性能内存分配器");
 
     // 从命令行参数构建配置
     let mut config = ServerConfig {
