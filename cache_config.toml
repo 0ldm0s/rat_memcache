@@ -1,24 +1,42 @@
 # RatMemcache 缓存配置文件
-# 用于测试配置文件加载机制
+# Surface Book 2 优化配置
 
 [l1]
 # L1 缓存配置（内存缓存）
-max_memory = 134217728  # 128MB
-max_entries = 10000
+max_memory = 1073741824  # 1GB (Surface Book 2优化)
+max_entries = 100000
 eviction_strategy = "Lru"
 
 [l2]
-# L2 缓存配置（磁盘持久化）
+# L2 缓存配置（MelangeDB持久化存储）
 enable_l2_cache = true
-data_dir = "./rat_memcache_test"
+data_dir = "./rat_memcache_data"
 clear_on_startup = false
-max_disk_size = 1073741824  # 1GB
+max_disk_size = 1073741824  # 1GB (Surface Book 2优化)
 write_buffer_size = 67108864  # 64MB
 max_write_buffer_number = 3
 block_cache_size = 33554432  # 32MB
 enable_compression = true
 compression_level = 6
 background_threads = 4
+
+# MelangeDB配置 (Surface Book 2优化)
+compression_algorithm = "Lz4"
+cache_size_mb = 512
+max_file_size_mb = 1024
+enable_statistics = true
+cache_warmup_strategy = "Recent"
+
+# 智能flush配置 (Surface Book 2 优化)
+smart_flush_enabled = true
+smart_flush_base_interval_ms = 100      # 100ms基础间隔，SSD优化
+smart_flush_min_interval_ms = 20       # 20ms最小间隔，低延迟
+smart_flush_max_interval_ms = 500      # 500ms最大间隔，平衡延迟
+smart_flush_write_rate_threshold = 8000   # 8K ops/sec阈值，稳定高负载检测
+smart_flush_accumulated_bytes_threshold = 8388608  # 8MB累积字节，最佳平衡点
+
+# ZSTD压缩级别 (如果使用ZSTD压缩时生效)
+# zstd_compression_level = 6
 
 [compression]
 # 压缩配置
