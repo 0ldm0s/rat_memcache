@@ -79,6 +79,20 @@ pub enum DatabaseEngine {
     MelangeDB,
 }
 
+/// 缓存预热策略
+#[cfg(feature = "melange-storage")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CacheWarmupStrategy {
+    /// 无预热
+    None,
+    /// 预热最近访问的数据
+    Recent,
+    /// 预热热点数据
+    Hot,
+    /// 全部预热
+    Full,
+}
+
 /// MelangeDB 特定配置
 #[cfg(feature = "melange-storage")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,6 +109,25 @@ pub struct MelangeSpecificConfig {
     /// 是否启用统计信息
     #[serde(default = "default_melange_stats_enabled")]
     pub enable_statistics: bool,
+    /// 智能flush配置
+    #[serde(default = "default_melange_smart_flush_enabled")]
+    pub smart_flush_enabled: bool,
+    #[serde(default = "default_melange_smart_flush_base_interval")]
+    pub smart_flush_base_interval_ms: usize,
+    #[serde(default = "default_melange_smart_flush_min_interval")]
+    pub smart_flush_min_interval_ms: usize,
+    #[serde(default = "default_melange_smart_flush_max_interval")]
+    pub smart_flush_max_interval_ms: usize,
+    #[serde(default = "default_melange_smart_flush_write_threshold")]
+    pub smart_flush_write_rate_threshold: usize,
+    #[serde(default = "default_melange_smart_flush_bytes_threshold")]
+    pub smart_flush_accumulated_bytes_threshold: usize,
+    /// 缓存预热策略
+    #[serde(default = "default_melange_warmup_strategy")]
+    pub cache_warmup_strategy: CacheWarmupStrategy,
+    /// ZSTD压缩级别（仅当使用ZSTD压缩时有效）
+    #[serde(default)]
+    pub zstd_compression_level: Option<i32>,
 }
 
 /// 压缩配置
@@ -576,6 +609,14 @@ fn default_melange_config() -> MelangeSpecificConfig {
         cache_size_mb: default_melange_cache_size(),
         max_file_size_mb: default_melange_max_file_size(),
         enable_statistics: default_melange_stats_enabled(),
+        smart_flush_enabled: default_melange_smart_flush_enabled(),
+        smart_flush_base_interval_ms: default_melange_smart_flush_base_interval(),
+        smart_flush_min_interval_ms: default_melange_smart_flush_min_interval(),
+        smart_flush_max_interval_ms: default_melange_smart_flush_max_interval(),
+        smart_flush_write_rate_threshold: default_melange_smart_flush_write_threshold(),
+        smart_flush_accumulated_bytes_threshold: default_melange_smart_flush_bytes_threshold(),
+        cache_warmup_strategy: default_melange_warmup_strategy(),
+        zstd_compression_level: None, // 默认不设置，使用LZ4压缩
     }
 }
 
@@ -597,6 +638,41 @@ fn default_melange_max_file_size() -> usize {
 #[cfg(feature = "melange-storage")]
 fn default_melange_stats_enabled() -> bool {
     true
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_smart_flush_enabled() -> bool {
+    true
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_smart_flush_base_interval() -> usize {
+    100 // ms
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_smart_flush_min_interval() -> usize {
+    20 // ms
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_smart_flush_max_interval() -> usize {
+    500 // ms (Surface Book 2优化配置)
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_smart_flush_write_threshold() -> usize {
+    10000
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_smart_flush_bytes_threshold() -> usize {
+    4 * 1024 * 1024 // 4MB
+}
+
+#[cfg(feature = "melange-storage")]
+fn default_melange_warmup_strategy() -> CacheWarmupStrategy {
+    CacheWarmupStrategy::Recent
 }
 
 /// 预设配置模板
