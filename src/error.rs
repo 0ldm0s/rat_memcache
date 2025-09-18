@@ -23,12 +23,11 @@ pub enum CacheError {
     #[error("LZ4 压缩/解压缩失败: {message}")]
     CompressionError { message: String },
 
-    /// RocksDB 错误
-    #[error("RocksDB 操作失败: {source}")]
-    RocksDbError {
-        #[from]
-        source: rocksdb::Error,
-    },
+  
+    /// MelangeDB 错误
+    #[cfg(feature = "melange-storage")]
+    #[error("MelangeDB 操作失败: {message}")]
+    MelangeDbError { message: String },
 
 
     /// 配置错误
@@ -113,10 +112,19 @@ impl CacheError {
         }
     }
 
-    /// 创建 RocksDB 错误
-    pub fn rocksdb_error(message: impl Into<String>) -> Self {
+    
+    /// 创建 MelangeDB 错误
+    #[cfg(feature = "melange-storage")]
+    pub fn melange_db_error(message: impl Into<String>) -> Self {
+        Self::MelangeDbError {
+            message: message.into(),
+        }
+    }
+
+    /// 创建数据库错误
+    pub fn database_error(message: impl Into<String>) -> Self {
         Self::Other {
-            message: format!("RocksDB错误: {}", message.into()),
+            message: format!("数据库错误: {}", message.into()),
         }
     }
 

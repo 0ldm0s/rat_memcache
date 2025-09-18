@@ -135,7 +135,7 @@ pub enum EvictionStrategy {
 pub enum CacheLayer {
     /// L1 内存缓存
     Memory,
-    /// L2 RocksDB 持久化缓存
+    /// L2 MelangeDB 持久化缓存
     Persistent,
 }
 

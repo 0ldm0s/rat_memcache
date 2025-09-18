@@ -1,11 +1,11 @@
 //! RatMemCache - 高性能双层缓存系统
 //!
-//! 基于 RocksDB 持久化存储的双层缓存系统，
+//! 基于 MelangeDB 持久化存储的双层缓存系统，
 //! 支持多种驱逐策略、TTL 管理、数据压缩和高性能指标收集。
 //!
 //! # 特性
 //!
-//! - **双层缓存**: 内存 L1 缓存 + RocksDB L2 持久化缓存
+//! - **双层缓存**: 内存 L1 缓存 + MelangeDB L2 持久化缓存
 //! - **高性能传输**: 优化的 TCP 网络传输
 //! - **多种策略**: 支持 LRU、LFU、FIFO、混合策略等
 //! - **TTL 支持**: 灵活的过期时间管理
@@ -143,24 +143,44 @@ pub mod logging;
 // 内部模块
 mod compression;
 mod l1_cache;
+#[cfg(feature = "melange-storage")]
 mod l2_cache;
+#[cfg(feature = "melange-storage")]
+mod l2_cache_melange;
+#[cfg(feature = "melange-storage")]
+mod melange_adapter;
 mod metrics;
 mod ttl;
 
+// MelangeDB 版本的缓存模块
+#[cfg(feature = "melange-storage")]
+mod cache_melange;
+
 // 重新导出主要类型
 pub use cache::{RatMemCache, RatMemCacheBuilder, CacheOptions};
+
+// 重新导出 MelangeDB 版本的主要类型
+#[cfg(feature = "melange-storage")]
+pub use cache_melange::{RatMemCacheMelange, RatMemCacheMelangeBuilder};
 pub use error::{CacheError, CacheResult};
 pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
 
 // 重新导出配置类型
 pub use config::{
     CacheConfig, CacheConfigBuilder,
-    L1Config, L2Config, CompressionConfig, TtlConfig, 
+    L1Config, CompressionConfig, TtlConfig,
     PerformanceConfig, LoggingConfig
 };
+#[cfg(feature = "melange-storage")]
+pub use config::{L2Config, DatabaseEngine, MelangeSpecificConfig};
+
+// 重新导出 MelangeDB 相关类型
+#[cfg(feature = "melange-storage")]
+pub use melange_adapter::{MelangeAdapter, MelangeConfig, CompressionAlgorithm, BatchOperation};
 
 // 重新导出统计类型
 pub use l1_cache::L1CacheStats;
+#[cfg(feature = "melange-storage")]
 pub use l2_cache::L2CacheStats;
 pub use ttl::TtlStats;
 
@@ -203,6 +223,14 @@ mod tests {
                 enable_compression: true,
                 compression_level: 6,
                 background_threads: 2,
+                clear_on_startup: false,
+                database_engine: DatabaseEngine::MelangeDB,
+                melange_config: MelangeSpecificConfig {
+                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                    cache_size_mb: 256,
+                    max_file_size_mb: 512,
+                    enable_statistics: true,
+                },
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
@@ -245,6 +273,14 @@ mod tests {
                 enable_compression: true,
                 compression_level: 6,
                 background_threads: 2,
+                clear_on_startup: false,
+                database_engine: DatabaseEngine::MelangeDB,
+                melange_config: MelangeSpecificConfig {
+                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                    cache_size_mb: 256,
+                    max_file_size_mb: 512,
+                    enable_statistics: true,
+                },
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
@@ -295,6 +331,14 @@ mod tests {
                 enable_compression: true,
                 compression_level: 6,
                 background_threads: 2,
+                clear_on_startup: false,
+                database_engine: DatabaseEngine::MelangeDB,
+                melange_config: MelangeSpecificConfig {
+                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                    cache_size_mb: 256,
+                    max_file_size_mb: 512,
+                    enable_statistics: true,
+                },
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
