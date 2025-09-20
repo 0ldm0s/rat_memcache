@@ -1,9 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(top:*)"
+      "Bash(top:*)",
+      "Bash(cargo run:*)"
     ],
     "deny": [],
-    "ask": []
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\workspaces\\rust\\rat\\rat_logger\\"
+    ]
   }
 }

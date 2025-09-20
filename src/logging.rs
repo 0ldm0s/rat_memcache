@@ -1,17 +1,19 @@
 //! 日志模块
 //!
-//! 基于 zerg_creep 库实现高性能日志系统
+//! 基于 rat_logger 库实现高性能日志系统
 
 use crate::config::LoggingConfig;
 use crate::error::CacheResult;
 use std::sync::Once;
 use std::io::Write;
 use chrono::Local;
-use zerg_creep::logger::builder::LoggerBuilder;
-use zerg_creep::logger::{Level, LevelFilter, Record};
+use rat_logger::{LoggerBuilder, Level, LevelFilter};
+use rat_logger::config::{Record, Metadata};
+use rat_logger::handler::term::TermConfig;
+use rat_logger::{FormatConfig, LevelStyle, ColorConfig};
 
-// 重新导出 zerg_creep 的日志宏
-pub use zerg_creep::{debug, error, info, trace, warn};
+// 重新导出 rat_logger 的日志宏
+pub use rat_logger::{debug, error, info, trace, warn};
 
 /// 日志管理器
 #[derive(Debug)]
@@ -35,65 +37,6 @@ fn convert_log_level(level: &str) -> LevelFilter {
 /// 全局日志初始化标志
 static INIT: Once = Once::new();
 
-/// RAT 缓存主题格式化函数
-fn rat_cache_format(
-    buf: &mut dyn Write,
-    record: &Record,
-) -> std::io::Result<()> {
-    let level = record.metadata.level;
-
-    // RAT 缓存主题配色方案
-    let (level_color, level_bg, level_icon, prefix) = match level {
-        Level::Error => ("\x1b[97m", "\x1b[41m", "💥", "[RAT-CACHE-ERROR]"), // 白字红底 - 错误
-        Level::Warn => ("\x1b[30m", "\x1b[43m", "⚠️", "[RAT-CACHE-WARN]"),   // 黑字黄底 - 警告
-        Level::Info => ("\x1b[97m", "\x1b[42m", "📦", "[RAT-CACHE-INFO]"),   // 白字绿底 - 信息
-        Level::Debug => ("\x1b[30m", "\x1b[46m", "🔧", "[RAT-CACHE-DEBUG]"), // 黑字青底 - 调试
-        Level::Trace => ("\x1b[97m", "\x1b[45m", "🔍", "[RAT-CACHE-TRACE]"), // 白字紫底 - 追踪
-    };
-
-    // 配色方案
-    let timestamp_color = "\x1b[90m"; // 灰色 - 时间戳
-    let message_color = "\x1b[97m";   // 亮白色 - 消息
-    let prefix_color = "\x1b[93m";    // 亮黄色 - 前缀
-    let reset = "\x1b[0m";
-
-    // 获取当前时间
-    let now = Local::now();
-    let timestamp = now.format("%H:%M:%S%.3f");
-
-    writeln!(
-        buf,
-        "{}{} {}{}{:5}{} {} {}{}{} {}{}{}",
-        timestamp_color,
-        timestamp, // 时间戳
-        level_color,
-        level_bg,
-        level,
-        reset,      // 状态指示器
-        level_icon, // 图标
-        prefix_color,
-        prefix,
-        reset, // 前缀
-        message_color,
-        record.args,
-        reset // 消息内容
-    )
-}
-
-/// 纯文本格式化函数（无颜色）
-fn rat_cache_plain_format(
-    buf: &mut dyn Write,
-    record: &Record,
-) -> std::io::Result<()> {
-    let now = Local::now();
-    let timestamp = now.format("%Y-%m-%d %H:%M:%S%.3f");
-
-    writeln!(
-        buf,
-        "[{}] [{}] [RAT-CACHE] {}",
-        timestamp, record.metadata.level, record.args
-    )
-}
 
 impl LogManager {
     /// 创建新的日志管理器
@@ -107,17 +50,50 @@ impl LogManager {
         
         INIT.call_once(|| {
             let mut builder = LoggerBuilder::new();
-            builder.filter(convert_log_level(&config.level));
-            
-            // 根据配置选择格式化器
-            if config.enable_colors {
-                builder.format(rat_cache_format);
+            builder = builder.with_level(convert_log_level(&config.level));
+
+            // 创建RAT缓存主题格式配置
+            let format_config = FormatConfig {
+                timestamp_format: "%H:%M:%S%.3f".to_string(),
+                level_style: LevelStyle {
+                    error: "ERROR".to_string(),
+                    warn: "WARN ".to_string(),
+                    info: "INFO ".to_string(),
+                    debug: "DEBUG".to_string(),
+                    trace: "TRACE".to_string(),
+                },
+                format_template: "[{level}] {timestamp} [RAT-CACHE] {message}".to_string(),
+            };
+
+            // 创建颜色配置（如果启用颜色）
+            let color_config = if config.enable_colors {
+                Some(ColorConfig {
+                    error: "\x1b[91m".to_string(),      // 亮红色
+                    warn: "\x1b[93m".to_string(),       // 亮黄色
+                    info: "\x1b[92m".to_string(),       // 亮绿色
+                    debug: "\x1b[96m".to_string(),      // 亮青色
+                    trace: "\x1b[95m".to_string(),      // 亮紫色
+                    timestamp: "\x1b[90m".to_string(),   // 深灰色
+                    target: "\x1b[94m".to_string(),      // 亮蓝色
+                    file: "\x1b[95m".to_string(),       // 亮紫色
+                    message: "\x1b[97m".to_string(),      // 亮白色
+                })
             } else {
-                builder.format(rat_cache_plain_format);
-            }
+                None
+            };
+
+            // 创建终端配置
+            let term_config = TermConfig {
+                format: Some(format_config),
+                color: color_config,
+                ..Default::default()
+            };
+
+            // 添加带配置的终端处理器
+            builder = builder.add_terminal_with_config(term_config);
 
             // 尝试初始化日志器
-            match builder.try_init() {
+            match builder.init() {
                 Ok(_) => {},
                 Err(e) => {
                     // 如果已经初始化过了，这是正常的
@@ -160,7 +136,7 @@ pub fn init_default_logger() -> CacheResult<()> {
 macro_rules! perf_log {
     ($config:expr, $level:ident, $($arg:tt)*) => {
         if $config.enable_performance_logs {
-            zerg_creep::$level!("[PERF] {}", format!($($arg)*));
+            rat_logger::$level!("[PERF] {}", format!($($arg)*));
         }
     };
 }
@@ -170,7 +146,7 @@ macro_rules! perf_log {
 macro_rules! audit_log {
     ($config:expr, $level:ident, $($arg:tt)*) => {
         if $config.enable_audit_logs {
-            zerg_creep::$level!("[AUDIT] {}", format!($($arg)*));
+            rat_logger::$level!("[AUDIT] {}", format!($($arg)*));
         }
     };
 }
@@ -180,27 +156,27 @@ macro_rules! audit_log {
 macro_rules! cache_log {
     ($config:expr, trace, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::trace!("[CACHE] {}", format!($($arg)*));
+            rat_logger::trace!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, debug, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::debug!("[CACHE] {}", format!($($arg)*));
+            rat_logger::debug!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, info, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::info!("[CACHE] {}", format!($($arg)*));
+            rat_logger::info!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, warn, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::warn!("[CACHE] {}", format!($($arg)*));
+            rat_logger::warn!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, error, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::error!("[CACHE] {}", format!($($arg)*));
+            rat_logger::error!("[CACHE] {}", format!($($arg)*));
         }
     };
 }
@@ -209,19 +185,19 @@ macro_rules! cache_log {
 #[macro_export]
 macro_rules! compression_log {
     (trace, $($arg:tt)*) => {
-        zerg_creep::trace!("[COMPRESSION] {}", format!($($arg)*));
+        rat_logger::trace!("[COMPRESSION] {}", format!($($arg)*));
     };
     (debug, $($arg:tt)*) => {
-        zerg_creep::debug!("[COMPRESSION] {}", format!($($arg)*));
+        rat_logger::debug!("[COMPRESSION] {}", format!($($arg)*));
     };
     (info, $($arg:tt)*) => {
-        zerg_creep::info!("[COMPRESSION] {}", format!($($arg)*));
+        rat_logger::info!("[COMPRESSION] {}", format!($($arg)*));
     };
     (warn, $($arg:tt)*) => {
-        zerg_creep::warn!("[COMPRESSION] {}", format!($($arg)*));
+        rat_logger::warn!("[COMPRESSION] {}", format!($($arg)*));
     };
     (error, $($arg:tt)*) => {
-        zerg_creep::error!("[COMPRESSION] {}", format!($($arg)*));
+        rat_logger::error!("[COMPRESSION] {}", format!($($arg)*));
     };
 }
 
@@ -230,27 +206,27 @@ macro_rules! compression_log {
 macro_rules! ttl_log {
     ($config:expr, trace, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::trace!("[TTL] {}", format!($($arg)*));
+            rat_logger::trace!("[TTL] {}", format!($($arg)*));
         }
     };
     ($config:expr, debug, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::debug!("[TTL] {}", format!($($arg)*));
+            rat_logger::debug!("[TTL] {}", format!($($arg)*));
         }
     };
     ($config:expr, info, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::info!("[TTL] {}", format!($($arg)*));
+            rat_logger::info!("[TTL] {}", format!($($arg)*));
         }
     };
     ($config:expr, warn, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::warn!("[TTL] {}", format!($($arg)*));
+            rat_logger::warn!("[TTL] {}", format!($($arg)*));
         }
     };
     ($config:expr, error, $($arg:tt)*) => {
         if $config.enable_cache_logs {
-            zerg_creep::error!("[TTL] {}", format!($($arg)*));
+            rat_logger::error!("[TTL] {}", format!($($arg)*));
         }
     };
 }
@@ -259,19 +235,19 @@ macro_rules! ttl_log {
 #[macro_export]
 macro_rules! transfer_log {
     (trace, $($arg:tt)*) => {
-        zerg_creep::trace!("[TRANSFER] {}", format!($($arg)*));
+        rat_logger::trace!("[TRANSFER] {}", format!($($arg)*));
     };
     (debug, $($arg:tt)*) => {
-        zerg_creep::debug!("[TRANSFER] {}", format!($($arg)*));
+        rat_logger::debug!("[TRANSFER] {}", format!($($arg)*));
     };
     (info, $($arg:tt)*) => {
-        zerg_creep::info!("[TRANSFER] {}", format!($($arg)*));
+        rat_logger::info!("[TRANSFER] {}", format!($($arg)*));
     };
     (warn, $($arg:tt)*) => {
-        zerg_creep::warn!("[TRANSFER] {}", format!($($arg)*));
+        rat_logger::warn!("[TRANSFER] {}", format!($($arg)*));
     };
     (error, $($arg:tt)*) => {
-        zerg_creep::error!("[TRANSFER] {}", format!($($arg)*));
+        rat_logger::error!("[TRANSFER] {}", format!($($arg)*));
     };
 }
 

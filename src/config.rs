@@ -9,7 +9,7 @@ use crate::melange_adapter::CompressionAlgorithm;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use sysinfo::System;
-use zerg_creep;
+use rat_logger;
 
 /// 缓存系统主配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -463,7 +463,7 @@ impl CacheConfigBuilder {
                 )));
             }
         } else {
-            zerg_creep::debug!("无法获取可用内存信息，跳过内存检查");
+            rat_logger::debug!("无法获取可用内存信息，跳过内存检查");
         }
         
         // 检查工作线程数是否合理
@@ -534,40 +534,40 @@ struct PathUtils;
 impl PathUtils {
     /// 获取跨平台的默认缓存目录
     fn default_cache_dir() -> CacheResult<PathBuf> {
-        zerg_creep::debug!("获取默认缓存目录");
+        rat_logger::debug!("获取默认缓存目录");
         // 使用系统临时目录，确保跨平台兼容性
         let temp_dir = std::env::temp_dir();
-        zerg_creep::debug!("系统临时目录: {:?}", temp_dir);
+        rat_logger::debug!("系统临时目录: {:?}", temp_dir);
         
         let cache_dir = temp_dir.join("rat_memcache");
-        zerg_creep::debug!("缓存目录路径: {:?}", cache_dir);
+        rat_logger::debug!("缓存目录路径: {:?}", cache_dir);
         
-        zerg_creep::debug!("尝试创建缓存目录...");
+        rat_logger::debug!("尝试创建缓存目录...");
         match std::fs::create_dir_all(&cache_dir) {
-            Ok(_) => zerg_creep::debug!("缓存目录创建成功"),
+            Ok(_) => rat_logger::debug!("缓存目录创建成功"),
             Err(e) => {
-                zerg_creep::debug!("创建缓存目录失败: {}", e);
+                rat_logger::debug!("创建缓存目录失败: {}", e);
                 return Err(CacheError::config_error(&format!("创建缓存目录失败: {}", e)));
             }
         }
         
         // 返回系统临时目录中的缓存目录路径
-        zerg_creep::debug!("返回缓存目录: {:?}", cache_dir);
+        rat_logger::debug!("返回缓存目录: {:?}", cache_dir);
         Ok(cache_dir)
     }
     
     /// 验证路径是否可写
     fn validate_writable_path(path: &PathBuf) -> CacheResult<()> {
-        zerg_creep::debug!("验证路径是否可写: {:?}", path);
-        zerg_creep::debug!("路径是否存在: {}", path.exists());
+        rat_logger::debug!("验证路径是否可写: {:?}", path);
+        rat_logger::debug!("路径是否存在: {}", path.exists());
         
         // 确保目标目录存在（包括所有父目录）
         if !path.exists() {
-            zerg_creep::debug!("目标目录不存在，尝试创建: {:?}", path);
+            rat_logger::debug!("目标目录不存在，尝试创建: {:?}", path);
             match std::fs::create_dir_all(path) {
-                Ok(_) => zerg_creep::debug!("目标目录创建成功"),
+                Ok(_) => rat_logger::debug!("目标目录创建成功"),
                 Err(e) => {
-                    zerg_creep::debug!("创建目标目录失败: {}", e);
+                    rat_logger::debug!("创建目标目录失败: {}", e);
                     return Err(CacheError::config_error(&format!("创建目录失败: {}", e)));
                 }
             }
@@ -575,23 +575,23 @@ impl PathUtils {
         
         // 尝试创建测试文件
         let test_file = path.join(".write_test");
-        zerg_creep::debug!("尝试创建测试文件: {:?}", test_file);
+        rat_logger::debug!("尝试创建测试文件: {:?}", test_file);
         match std::fs::write(&test_file, b"test") {
-            Ok(_) => zerg_creep::debug!("测试文件创建成功"),
+            Ok(_) => rat_logger::debug!("测试文件创建成功"),
             Err(e) => {
-                zerg_creep::debug!("创建测试文件失败: {}", e);
+                rat_logger::debug!("创建测试文件失败: {}", e);
                 return Err(CacheError::config_error(&format!("路径不可写: {}", e)));
             }
         }
         
         // 清理测试文件
-        zerg_creep::debug!("尝试删除测试文件...");
+        rat_logger::debug!("尝试删除测试文件...");
         match std::fs::remove_file(&test_file) {
-            Ok(_) => zerg_creep::debug!("测试文件删除成功"),
-            Err(e) => zerg_creep::debug!("删除测试文件失败: {}", e)
+            Ok(_) => rat_logger::debug!("测试文件删除成功"),
+            Err(e) => rat_logger::debug!("删除测试文件失败: {}", e)
         }
         
-        zerg_creep::debug!("路径验证成功");
+        rat_logger::debug!("路径验证成功");
         Ok(())
     }
 }
