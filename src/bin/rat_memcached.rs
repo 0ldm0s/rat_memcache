@@ -27,8 +27,8 @@ use rat_memcache::{
     RatMemCache,
 };
 
-// 使用 zerg_creep 日志宏
-use zerg_creep::{debug, error, info, warn};
+// 使用 rat_logger 日志宏
+use rat_logger::{debug, error, info, warn};
 
 /// 服务器配置
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -1141,7 +1141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 创建并启动服务器
     let server = MemcachedServer::new(config).await?;
 
-    // 启动后的日志使用 zerg_creep
+    // 启动后的日志使用 rat_logger
     info!("✅ 服务器创建成功，开始监听...");
 
     server.start().await?;
