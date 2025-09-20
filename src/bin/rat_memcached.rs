@@ -14,10 +14,12 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::Notify;
 
 use bytes::Bytes;
 use clap::{Arg, Command};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::signal;
 use tokio::net::{TcpListener as TokioTcpListener, TcpStream};
 
 use rat_memcache::{
@@ -127,6 +129,7 @@ pub struct MemcachedServer {
     config: ServerConfig,
     start_time: Instant,
     listener: Option<TokioTcpListener>,
+    shutdown_notify: Arc<Notify>,
 }
 
 impl MemcachedServer {
@@ -163,6 +166,7 @@ impl MemcachedServer {
             config,
             start_time: Instant::now(),
             listener,
+            shutdown_notify: Arc::new(Notify::new()),
         })
     }
 
@@ -394,30 +398,53 @@ impl MemcachedServer {
         let listener = self.listener.as_ref().unwrap();
         info!("🔗 开始监听连接...");
 
-        // 主循环：处理传入的连接
-        loop {
-            match listener.accept().await {
-                Ok((stream, addr)) => {
-                    info!("🔗 新连接来自: {}", addr);
+        // 创建用于优雅退出的 future
+        let shutdown = self.shutdown_notify.notified();
 
-                    // 为新连接创建处理任务
-                    let cache = Arc::clone(&self.cache);
-                    let start_time = self.start_time;
+        // 使用 tokio::select! 来同时处理连接和退出信号
+        tokio::select! {
+            // 主循环：处理传入的连接
+            result = async {
+                loop {
+                    match listener.accept().await {
+                        Ok((stream, addr)) => {
+                            info!("🔗 新连接来自: {}", addr);
 
-                    tokio::spawn(async move {
-                        if let Err(e) = Self::handle_tcp_connection(stream, cache, start_time).await
-                        {
-                            error!("处理 TCP 连接失败: {}", e);
+                            // 为新连接创建处理任务
+                            let cache = Arc::clone(&self.cache);
+                            let start_time = self.start_time;
+
+                            tokio::spawn(async move {
+                                if let Err(e) = Self::handle_tcp_connection(stream, cache, start_time).await
+                                {
+                                    error!("处理 TCP 连接失败: {}", e);
+                                }
+                            });
                         }
-                    });
+                        Err(e) => {
+                            error!("接受连接失败: {}", e);
+                            // 短暂休眠避免错误循环
+                            tokio::time::sleep(Duration::from_millis(100)).await;
+                        }
+                    }
                 }
-                Err(e) => {
-                    error!("接受连接失败: {}", e);
-                    // 短暂休眠避免错误循环
-                    tokio::time::sleep(Duration::from_millis(100)).await;
-                }
+            } => {
+                return result;
+            },
+
+            // 等待退出信号
+            _ = shutdown => {
+                info!("🛑 收到退出信号，开始优雅关闭...");
+                // 这里可以执行一些清理工作
+                Ok(())
             }
         }
+    }
+
+    /// 触发优雅退出
+    pub async fn shutdown(&self) {
+        info!("🛑 触发服务器关闭...");
+        self.shutdown_notify.notify_waiters();
     }
 
     async fn handle_tcp_connection(
@@ -1139,12 +1166,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // 创建并启动服务器
-    let server = MemcachedServer::new(config).await?;
+    let server = Arc::new(MemcachedServer::new(config).await?);
 
     // 启动后的日志使用 rat_logger
     info!("✅ 服务器创建成功，开始监听...");
 
-    server.start().await?;
+    // 克隆服务器引用用于信号处理
+    let server_clone = Arc::clone(&server);
+
+    // 启动服务器任务
+    let server_handle = tokio::spawn(async move {
+        if let Err(e) = server.start().await {
+            error!("服务器运行错误: {}", e);
+        }
+    });
+
+    // 等待 Ctrl+C 信号
+    tokio::select! {
+        // 等待服务器自然结束
+        result = server_handle => {
+            if let Err(e) = result {
+                error!("服务器任务异常退出: {}", e);
+            }
+        },
+
+        // 等待 Ctrl+C 信号
+        _ = signal::ctrl_c() => {
+            info!("🛑 收到 Ctrl+C 信号，开始优雅关闭...");
+
+            // 触发服务器关闭
+            server_clone.shutdown().await;
+
+            // 等待一小段时间让服务器完成清理
+            tokio::time::sleep(Duration::from_millis(100)).await;
+
+            info!("✅ 服务器已优雅关闭");
+        }
+    }
 
     Ok(())
 }
