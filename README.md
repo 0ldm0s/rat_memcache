@@ -1,13 +1,22 @@
 # RatMemCache
 
-高性能 Memcached 协议兼容服务器，支持双层缓存和持久化存储
+高性能 Memcached 协议兼容服务器，支持双层缓存和 **melange_db** 持久化存储
 
 ## 项目描述
 
 RatMemCache 是一个基于 Rust 实现的高性能缓存系统，提供了以下两种使用模式：
 
-1. **作为库使用**：提供高性能的缓存 API，支持内存和持久化双层缓存
+1. **作为库使用**：提供高性能的缓存 API，支持内存和 **melange_db** 持久化双层缓存
 2. **作为独立服务器使用**：100% 兼容 Memcached 协议的独立服务器
+
+### 🪟 Windows 平台原生支持
+
+**RatMemCache 是目前少数能在 Windows 平台原生运行的高性能 Memcached 兼容服务器！**
+
+- ✅ **原生 Windows 支持**：无需 WSL 或虚拟机，直接在 Windows 上运行
+- ✅ **100% 协议兼容**：完全兼容 Memcached 协议，可直接替换原版 memcached
+- ✅ **跨平台一致性**：Windows、Linux、macX 功能完全一致
+- ✅ **解决 Windows 痛点**：原版 memcached 在 Windows 上部署复杂，RatMemCache 开箱即用
 
 采用 LGPL-v3 许可证，支持自由使用和修改。
 
@@ -16,6 +25,7 @@ RatMemCache 是一个基于 Rust 实现的高性能缓存系统，提供了以�
 - 🚀 **高性能**: 基于异步运行时，支持高并发访问
 - 📦 **双层缓存架构**: 内存 L1 缓存 + MelangeDB L2 持久化缓存
 - 🔌 **100% Memcached 协议兼容**: 可直接替换标准的 memcached 服务器
+- 🪟 **Windows 原生支持**: 无需 WSL，直接在 Windows 平台运行
 - 🧠 **智能驱逐策略**: 支持 LRU、LFU、FIFO、混合策略等
 - ⏰ **TTL 支持**: 灵活的过期时间管理
 - 🗜️ **数据压缩**: LZ4 压缩算法，节省存储空间
@@ -79,7 +89,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ```bash
 # 克隆项目
-git clone https://git.sukiyaki.su/0ldm0s/rat_memcache.git
+git clone https://github.com/0ldm0s/rat_memcache.git
 cd rat_memcache
 
 # 编译（启用服务器功能）
@@ -97,6 +107,30 @@ cargo run --bin rat_memcached -- --config custom_config.toml
 # 作为守护进程运行
 cargo run --bin rat_memcached -- --daemon --pid-file /var/run/rat_memcached.pid
 ```
+
+#### Windows 平台特别说明
+
+在 Windows 平台上，RatMemCache 提供了与 Linux/macX 完全一致的功能：
+
+```powershell
+# Windows 编译
+cargo build --release
+
+# Windows 启动服务器
+cargo run --bin rat_memcached
+
+# Windows 指定端口
+cargo run --bin rat_memcached -- --bind 127.0.0.1:11211
+
+# Windows 后台运行（使用 PowerShell Start-Process）
+Start-Process cargo -ArgumentList "run --bin rat_memcached -- --bind 0.0.0.0:11211" -NoNewWindow
+```
+
+**Windows 优势**：
+- 无需安装 WSL 或虚拟机
+- 原生性能，无虚拟化开销
+- 与 Windows 服务完美集成
+- 支持 Windows 原生路径和权限管理
 
 ### 协议兼容性
 
@@ -232,7 +266,7 @@ cargo clippy
 
 主要依赖：
 - **tokio**: 异步运行时
-- **melange_db**: 持久化存储 (可选)
+- **melange_db**: 持久化存储 (可选) - 高性能嵌入式数据库
 - **dashmap**: 并发哈希表
 - **lz4**: 数据压缩
 - **rat_logger**: 日志系统
@@ -242,8 +276,9 @@ cargo clippy
 ## 版本兼容性
 
 - **Rust**: 1.70+ (edition 2021)
-- **操作系统**: Linux, macOS, Windows
+- **操作系统**: Linux, macOS, Windows (完全原生支持)
 - **Memcached 协议**: 1.4.0+
+- **Windows 特性**: 原生支持，无需 WSL 或虚拟机
 
 ## 贡献指南
 
@@ -257,13 +292,13 @@ cargo clippy
 
 ## 维护者
 
-- [@0ldm0s](https://git.sukiyaki.su/0ldm0s) - 主要开发者
+- [@0ldm0s](https://github.com/0ldm0s) - 主要开发者
 
 ## 致谢
 
 感谢以下开源项目：
 - [Tokio](https://tokio.rs/) - 异步运行时
-- [MelangeDB](https://melangedb.io/) - 持久化存储
+- [melange_db](https://github.com/melange-db/melange_db) - 高性能嵌入式持久化存储
 - [Rust](https://www.rust-lang.org/) - 编程语言
 
 ## 路线图
