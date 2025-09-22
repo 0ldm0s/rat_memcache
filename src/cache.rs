@@ -154,8 +154,7 @@ impl RatMemCache {
         
                 
         // 初始化智能传输路由器（已移除）
-        // println!("[DEBUG] 初始化智能传输路由器");
-        
+                
         // 初始化 L1 缓存
         cache_log!(config.logging, debug, "初始化 L1 缓存");
         let l1_cache = Arc::new(
