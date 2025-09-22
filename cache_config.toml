@@ -66,6 +66,7 @@ stats_interval = 60
 enable_background_stats = true
 l2_write_strategy = "WriteThrough"
 l2_write_threshold = 1024
+large_value_threshold = 10240  # 10KB 大值阈值
 l2_write_ttl_threshold = 3600
 
 [logging]

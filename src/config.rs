@@ -64,12 +64,23 @@ pub struct L2Config {
     pub compression_level: i32,
     /// 后台线程数
     pub background_threads: i32,
-    /// 数据库引擎类型
-    #[serde(default = "default_database_engine")]
-    pub database_engine: DatabaseEngine,
-    /// MelangeDB 特定配置
-    #[serde(default = "default_melange_config")]
-    pub melange_config: MelangeSpecificConfig,
+    /// MelangeDB 压缩算法
+    pub compression_algorithm: CompressionAlgorithm,
+    /// MelangeDB 缓存大小（MB）
+    pub cache_size_mb: usize,
+    /// 最大文件大小（MB）
+    pub max_file_size_mb: usize,
+    /// 智能flush配置
+    pub smart_flush_enabled: bool,
+    pub smart_flush_base_interval_ms: usize,
+    pub smart_flush_min_interval_ms: usize,
+    pub smart_flush_max_interval_ms: usize,
+    pub smart_flush_write_rate_threshold: usize,
+    pub smart_flush_accumulated_bytes_threshold: usize,
+    /// 缓存预热策略
+    pub cache_warmup_strategy: CacheWarmupStrategy,
+    /// ZSTD压缩级别（仅当使用ZSTD压缩时有效）
+    pub zstd_compression_level: Option<i32>,
 }
 
 #[cfg(feature = "melange-storage")]
@@ -86,18 +97,21 @@ impl Default for L2Config {
             enable_compression: true,
             compression_level: 6,
             background_threads: 2,
-            database_engine: default_database_engine(),
-            melange_config: default_melange_config(),
+            compression_algorithm: CompressionAlgorithm::Lz4,
+            cache_size_mb: 512,
+            max_file_size_mb: 1024,
+            smart_flush_enabled: true,
+            smart_flush_base_interval_ms: 100,
+            smart_flush_min_interval_ms: 20,
+            smart_flush_max_interval_ms: 500,
+            smart_flush_write_rate_threshold: 10000,
+            smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024, // 4MB
+            cache_warmup_strategy: CacheWarmupStrategy::Recent,
+            zstd_compression_level: None,
         }
     }
 }
 
-/// 数据库引擎类型
-#[cfg(feature = "melange-storage")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DatabaseEngine {
-    MelangeDB,
-}
 
 /// 缓存预热策略
 #[cfg(feature = "melange-storage")]
@@ -113,42 +127,6 @@ pub enum CacheWarmupStrategy {
     Full,
 }
 
-/// MelangeDB 特定配置
-#[cfg(feature = "melange-storage")]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MelangeSpecificConfig {
-    /// MelangeDB 压缩算法
-    #[serde(default = "default_melange_compression")]
-    pub compression_algorithm: CompressionAlgorithm,
-    /// MelangeDB 缓存大小（MB）
-    #[serde(default = "default_melange_cache_size")]
-    pub cache_size_mb: usize,
-    /// 最大文件大小（MB）
-    #[serde(default = "default_melange_max_file_size")]
-    pub max_file_size_mb: usize,
-    /// 是否启用统计信息
-    #[serde(default = "default_melange_stats_enabled")]
-    pub enable_statistics: bool,
-    /// 智能flush配置
-    #[serde(default = "default_melange_smart_flush_enabled")]
-    pub smart_flush_enabled: bool,
-    #[serde(default = "default_melange_smart_flush_base_interval")]
-    pub smart_flush_base_interval_ms: usize,
-    #[serde(default = "default_melange_smart_flush_min_interval")]
-    pub smart_flush_min_interval_ms: usize,
-    #[serde(default = "default_melange_smart_flush_max_interval")]
-    pub smart_flush_max_interval_ms: usize,
-    #[serde(default = "default_melange_smart_flush_write_threshold")]
-    pub smart_flush_write_rate_threshold: usize,
-    #[serde(default = "default_melange_smart_flush_bytes_threshold")]
-    pub smart_flush_accumulated_bytes_threshold: usize,
-    /// 缓存预热策略
-    #[serde(default = "default_melange_warmup_strategy")]
-    pub cache_warmup_strategy: CacheWarmupStrategy,
-    /// ZSTD压缩级别（仅当使用ZSTD压缩时有效）
-    #[serde(default)]
-    pub zstd_compression_level: Option<i32>,
-}
 
 /// 压缩配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -205,6 +183,8 @@ pub struct PerformanceConfig {
     pub l2_write_threshold: usize,
     /// L2 写入 TTL 阈值
     pub l2_write_ttl_threshold: u64,
+    /// 大值阈值（字节），超过此值的数据直接写入L2或抛弃
+    pub large_value_threshold: usize,
 }
 
 /// 日志配置
@@ -615,29 +595,6 @@ impl PathUtils {
 }
 
 // 默认值函数
-#[cfg(feature = "melange-storage")]
-fn default_database_engine() -> DatabaseEngine {
-    DatabaseEngine::MelangeDB
-}
-
-#[cfg(feature = "melange-storage")]
-fn default_melange_config() -> MelangeSpecificConfig {
-    MelangeSpecificConfig {
-        compression_algorithm: default_melange_compression(),
-        cache_size_mb: default_melange_cache_size(),
-        max_file_size_mb: default_melange_max_file_size(),
-        enable_statistics: default_melange_stats_enabled(),
-        smart_flush_enabled: default_melange_smart_flush_enabled(),
-        smart_flush_base_interval_ms: default_melange_smart_flush_base_interval(),
-        smart_flush_min_interval_ms: default_melange_smart_flush_min_interval(),
-        smart_flush_max_interval_ms: default_melange_smart_flush_max_interval(),
-        smart_flush_write_rate_threshold: default_melange_smart_flush_write_threshold(),
-        smart_flush_accumulated_bytes_threshold: default_melange_smart_flush_bytes_threshold(),
-        cache_warmup_strategy: default_melange_warmup_strategy(),
-        zstd_compression_level: None, // 默认不设置，使用LZ4压缩
-    }
-}
-
 #[cfg(feature = "melange-storage")]
 fn default_melange_compression() -> CompressionAlgorithm {
     CompressionAlgorithm::Lz4

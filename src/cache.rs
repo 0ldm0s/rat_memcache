@@ -9,7 +9,6 @@ use crate::l1_cache::{L1Cache, L1CacheStats};
 #[cfg(feature = "melange-storage")]
 use crate::l2_cache::{L2Cache, L2CacheStats};
 use crate::logging::LogManager;
-use crate::metrics::MetricsCollector;
 use crate::ttl::TtlManager;
 use crate::types::{CacheLayer, CacheOperation};
 use crate::{cache_log, perf_log, transfer_log};
@@ -33,9 +32,7 @@ pub struct RatMemCache {
     // transfer_router: Arc<SmartTransferRouter>,
     /// TTL 管理器
     ttl_manager: Arc<TtlManager>,
-    /// 指标收集器
-    metrics: Arc<MetricsCollector>,
-    /// 日志管理器
+      /// 日志管理器
     log_manager: Arc<LogManager>,
     /// 压缩器
     compressor: Arc<Compressor>,
@@ -62,18 +59,6 @@ pub struct CacheOptions {
     pub enable_compression: Option<bool>,
 }
 
-/// 整体缓存统计信息
-#[derive(Debug, Clone)]
-pub struct CacheStats {
-    /// L1 缓存统计
-    pub l1_stats: L1CacheStats,
-    /// L2 缓存统计
-    pub l2_stats: L2CacheStats,
-    /// 总内存使用量（字节）
-    pub total_memory_usage: usize,
-    /// 总条目数
-    pub total_entries: usize,
-}
 
 impl Default for CacheOptions {
     fn default() -> Self {
@@ -167,10 +152,7 @@ impl RatMemCache {
         cache_log!(config.logging, debug, "初始化 TTL 管理器");
         let ttl_manager = Arc::new(TtlManager::new(config.ttl.clone(), config.logging.clone()).await?);
         
-        // 初始化指标收集器
-        cache_log!(config.logging, debug, "初始化指标收集器");
-        let metrics = Arc::new(MetricsCollector::new().await?);
-        
+                
         // 初始化智能传输路由器（已移除）
         // println!("[DEBUG] 初始化智能传输路由器");
         
@@ -182,7 +164,6 @@ impl RatMemCache {
                 config.logging.clone(),
                 compressor.as_ref().clone(),
                 Arc::clone(&ttl_manager),
-                Arc::clone(&metrics),
             ).await?
         );
         cache_log!(config.logging, debug, "L1 缓存初始化成功");
@@ -231,7 +212,6 @@ impl RatMemCache {
                 config.logging.clone(),
                 compressor.as_ref().clone(),
                 Arc::clone(&ttl_manager),
-                Arc::clone(&metrics),
             ).await;
 
             match &l2_cache_result {
@@ -257,7 +237,6 @@ impl RatMemCache {
             l2_cache,
             // transfer_router,
             ttl_manager,
-            metrics,
             log_manager,
             compressor,
             is_running: Arc::new(RwLock::new(true)),
@@ -287,16 +266,14 @@ impl RatMemCache {
         // 检查 TTL
         if self.ttl_manager.is_expired(key).await {
             self.delete_internal(key).await?;
-            self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-            return Ok(None);
+                        return Ok(None);
         }
         
         // 尝试从 L1 获取（除非跳过）
         if !options.skip_l1 {
             if let Some(value) = self.l1_cache.get(key).await? {
                 transfer_log!(debug, "L1 缓存命中: {}", key);
-                self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-                return Ok(Some(value));
+                                return Ok(Some(value));
             }
         }
         
@@ -314,17 +291,14 @@ impl RatMemCache {
                     }
                 }
 
-                self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-                return Ok(Some(value));
+                                return Ok(Some(value));
             }
         }
         
         // 缓存未命中
-        self.metrics.record_cache_miss().await;
         cache_log!(self.config.logging, debug, "缓存未命中: {}", key);
         
-        self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-        Ok(None)
+                Ok(None)
     }
 
     /// 设置缓存值
@@ -352,50 +326,85 @@ impl RatMemCache {
             }
         }
         
-        // 使用智能传输路由器处理数据（简化处理）
+        // 大值处理：检查是否超过大值阈值
+        let threshold = self.config.performance.large_value_threshold;
+        let is_large_value = value.len() > threshold;
         let processed_value = value.clone();
+
         
-        // 设置到 L1（除非跳过或强制 L2）
-        if !options.skip_l1 && !options.force_l2 {
-            if let Err(e) = self.l1_cache.set(key.clone(), processed_value.clone(), options.ttl_seconds).await {
-                cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
-            }
-        }
-        
-        // 根据策略决定是否写入 L2（仅在存在时）
-        #[cfg(feature = "melange-storage")]
-        let should_write_l2 = if let Some(_l2_cache) = &self.l2_cache {
-            options.force_l2 || self.should_write_to_l2(&key, &processed_value, options).await
-        } else {
-            false
-        };
-        #[cfg(not(feature = "melange-storage"))]
-        let should_write_l2 = false;
-        
-        if should_write_l2 {
+        if is_large_value {
+            // 大值处理策略
+            cache_log!(self.config.logging, debug, "检测到大值: {} ({} bytes)", key, value.len());
+
             #[cfg(feature = "melange-storage")]
-            if let Some(l2_cache) = &self.l2_cache {
-                if let Some(ttl) = options.ttl_seconds {
-                    l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
+            {
+                if let Some(l2_cache) = &self.l2_cache {
+                    // 有 L2 缓存，直接写入 L2
+                    cache_log!(self.config.logging, debug, "大值直接下沉到 L2: {}", key);
+                    if let Some(ttl) = options.ttl_seconds {
+                        l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
+                    } else {
+                        l2_cache.set(key.clone(), processed_value, None).await?;
+                    }
                 } else {
-                    l2_cache.set(key.clone(), processed_value, None).await?;
+                    // 无 L2 缓存，抛弃大值并记录警告
+                    cache_log!(self.config.logging, warn,
+                        "大值被抛弃（无 L2 缓存）: {} ({} bytes > {} bytes)",
+                        key, value.len(), self.config.performance.large_value_threshold);
+                    return Ok(());
+                }
+            }
+
+            #[cfg(not(feature = "melange-storage"))]
+            {
+                // 无 L2 功能，抛弃大值并记录警告
+                cache_log!(self.config.logging, warn,
+                    "大值被抛弃（未启用 L2 功能）: {} ({} bytes > {} bytes)",
+                    key, value.len(), self.config.performance.large_value_threshold);
+                return Ok(());
+            }
+        } else {
+            // 普通值处理
+            // 设置到 L1（除非跳过或强制 L2）
+            if !options.skip_l1 && !options.force_l2 {
+                if let Err(e) = self.l1_cache.set(key.clone(), processed_value.clone(), options.ttl_seconds).await {
+                    cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
+                }
+            }
+
+            // 根据策略决定是否写入 L2（仅在存在时）
+            #[cfg(feature = "melange-storage")]
+            let should_write_l2 = if let Some(_l2_cache) = &self.l2_cache {
+                options.force_l2 || self.should_write_to_l2(&key, &processed_value, options).await
+            } else {
+                false
+            };
+            #[cfg(not(feature = "melange-storage"))]
+            let should_write_l2 = false;
+
+            if should_write_l2 {
+                #[cfg(feature = "melange-storage")]
+                if let Some(l2_cache) = &self.l2_cache {
+                    if let Some(ttl) = options.ttl_seconds {
+                        l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
+                    } else {
+                        l2_cache.set(key.clone(), processed_value, None).await?;
+                    }
                 }
             }
         }
         
-        cache_log!(self.config.logging, debug, "缓存设置完成: {} (L1: {}, L2: {})", 
-            key, !options.skip_l1 && !options.force_l2, should_write_l2);
+        cache_log!(self.config.logging, debug, "缓存设置完成: {} (大值: {}, L1: {}, L2: {})",
+            key, is_large_value, !options.skip_l1 && !options.force_l2 && !is_large_value, is_large_value);
         
-        self.record_operation(CacheOperation::Set, start_time.elapsed()).await;
-        Ok(())
+                Ok(())
     }
 
     /// 删除缓存值
     pub async fn delete(&self, key: &str) -> CacheResult<bool> {
         let start_time = Instant::now();
         let deleted = self.delete_internal(key).await?;
-        self.record_operation(CacheOperation::Delete, start_time.elapsed()).await;
-        Ok(deleted)
+                Ok(deleted)
     }
 
     /// 清空缓存
@@ -413,8 +422,7 @@ impl RatMemCache {
         
         cache_log!(self.config.logging, debug, "缓存已清空");
         
-        self.record_operation(CacheOperation::Clear, start_time.elapsed()).await;
-        Ok(())
+                Ok(())
     }
 
     /// 检查键是否存在
@@ -496,23 +504,7 @@ impl RatMemCache {
         }
     }
 
-    /// 获取整体缓存统计信息
-    pub async fn get_cache_stats(&self) -> CacheStats {
-        let l1_stats = self.get_l1_stats().await;
-
-        #[cfg(feature = "melange-storage")]
-        let l2_stats = self.get_l2_stats().await;
-        #[cfg(not(feature = "melange-storage"))]
-        let l2_stats = L2CacheStats::default();
-
-        CacheStats {
-            l1_stats: l1_stats.clone(),
-            l2_stats: l2_stats.clone(),
-            total_memory_usage: l1_stats.memory_usage + l2_stats.estimated_disk_usage as usize,
-            total_entries: l1_stats.entry_count + l2_stats.entry_count as usize,
-        }
-    }
-
+    
     /// 获取缓存命中率（基于L2统计）
     #[cfg(feature = "melange-storage")]
     pub async fn get_hit_rate(&self) -> Option<f64> {
@@ -639,15 +631,7 @@ impl RatMemCache {
         }
     }
 
-    /// 记录操作统计
-    async fn record_operation(&self, operation: CacheOperation, duration: std::time::Duration) {
-        // 仅在启用统计时记录指标
-        if self.config.performance.enable_background_stats {
-            self.metrics.record_cache_operation(operation).await;
-            self.metrics.record_operation_latency(operation, duration).await;
-        }
-    }
-
+    
     /// 启动后台任务
     async fn start_background_tasks(&self) {
         // 启动统计更新任务（仅在启用统计时）
@@ -723,8 +707,7 @@ impl RatMemCache {
         // 更新内存使用统计
         let l1_stats = self.l1_cache.get_stats().await;
 
-        self.metrics.record_memory_usage(CacheLayer::Memory, l1_stats.memory_usage as u64).await;
-
+        
         #[cfg(feature = "melange-storage")]
         {
             let l2_stats = if let Some(l2_cache) = &self.l2_cache {
@@ -732,13 +715,11 @@ impl RatMemCache {
             } else {
                 L2CacheStats::default()
             };
-            self.metrics.record_memory_usage(CacheLayer::Persistent, l2_stats.estimated_disk_usage as u64).await;
-        }
+                    }
 
         #[cfg(not(feature = "melange-storage"))]
         {
-            self.metrics.record_memory_usage(CacheLayer::Persistent, 0).await;
-        }
+                    }
 
         Ok(())
     }
@@ -754,7 +735,6 @@ impl Clone for RatMemCache {
             l2_cache: self.l2_cache.as_ref().map(|cache| Arc::clone(cache)),
             // transfer_router: Arc::clone(&self.transfer_router),
             ttl_manager: Arc::clone(&self.ttl_manager),
-            metrics: Arc::clone(&self.metrics),
             log_manager: Arc::clone(&self.log_manager),
             compressor: Arc::clone(&self.compressor),
             is_running: Arc::clone(&self.is_running),
@@ -789,21 +769,17 @@ mod tests {
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: crate::config::DatabaseEngine::MelangeDB,
-                melange_config: crate::config::MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                    smart_flush_enabled: true,
-                    smart_flush_base_interval_ms: 100,
-                    smart_flush_min_interval_ms: 20,
-                    smart_flush_max_interval_ms: 500,
-                    smart_flush_write_rate_threshold: 10000,
-                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
-                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
-                    zstd_compression_level: None,
-                },
+                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
             })
             .ttl_config(crate::config::TtlConfig {
                 default_ttl: Some(60),
@@ -831,6 +807,7 @@ mod tests {
                 l2_write_strategy: "write_through".to_string(),
                 l2_write_threshold: 1024,
                 l2_write_ttl_threshold: 300,
+                large_value_threshold: 10240, // 10KB
             })
             .logging_config(crate::config::LoggingConfig {
                 level: "debug".to_string(),

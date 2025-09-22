@@ -33,6 +33,8 @@ mod metric_keys {
     pub const CACHE_DELETES: &str = "cache.deletes";
     pub const CACHE_EXPIRES: &str = "cache.expires";
     pub const CACHE_EVICTIONS: &str = "cache.evictions";
+    pub const LARGE_VALUES_DROPPED: &str = "cache.large_values_dropped";
+    pub const LARGE_VALUES_PROCESSED: &str = "cache.large_values_processed";
     
     // 性能指标
     pub const OPERATION_LATENCY_GET: &str = "latency.get";
@@ -179,6 +181,25 @@ impl MetricsCollector {
     pub async fn record_cache_eviction(&self) {
         self.increment_write_metric(metric_keys::CACHE_EVICTIONS, 1).await;
     }
+
+    /// 记录大值抛弃
+    pub async fn record_large_value_dropped(&self) {
+        self.increment_write_metric(metric_keys::LARGE_VALUES_DROPPED, 1).await;
+    }
+
+    /// 记录大值处理
+    pub async fn record_large_value_processed(&self) {
+        self.increment_write_metric(metric_keys::LARGE_VALUES_PROCESSED, 1).await;
+    }
+
+    /// 获取大值处理指标
+    pub async fn get_large_value_metrics(&self) -> (u64, u64) {
+        let processed = self.get_metric(metric_keys::LARGE_VALUES_PROCESSED, false).await;
+        let dropped = self.get_metric(metric_keys::LARGE_VALUES_DROPPED, false).await;
+
+        (processed, dropped)
+    }
+
 
     /// 记录操作延迟
     pub async fn record_operation_latency(&self, operation: CacheOperation, duration: Duration) {

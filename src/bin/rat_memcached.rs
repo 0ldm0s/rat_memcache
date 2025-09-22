@@ -195,19 +195,18 @@ impl MemcachedServer {
                 info!("    - 压缩: {}", if l2_config.enable_compression { "启用" } else { "禁用" });
 
                 // MelangeDB 特定配置
-                let melange_config = &l2_config.melange_config;
-                info!("    - MelangeDB 压缩算法: {:?}", melange_config.compression_algorithm);
-                info!("    - 缓存大小: {} MB", melange_config.cache_size_mb);
-                info!("    - 最大文件大小: {} MB", melange_config.max_file_size_mb);
-                info!("    - 智能Flush: {}", if melange_config.smart_flush_enabled { "启用" } else { "禁用" });
-                if melange_config.smart_flush_enabled {
+                info!("    - MelangeDB 压缩算法: {:?}", l2_config.compression_algorithm);
+                info!("    - 缓存大小: {} MB", l2_config.cache_size_mb);
+                info!("    - 最大文件大小: {} MB", l2_config.max_file_size_mb);
+                info!("    - 智能Flush: {}", if l2_config.smart_flush_enabled { "启用" } else { "禁用" });
+                if l2_config.smart_flush_enabled {
                     info!("    - Flush间隔: {}-{}ms (基础: {}ms)",
-                          melange_config.smart_flush_min_interval_ms,
-                          melange_config.smart_flush_max_interval_ms,
-                          melange_config.smart_flush_base_interval_ms);
+                          l2_config.smart_flush_min_interval_ms,
+                          l2_config.smart_flush_max_interval_ms,
+                          l2_config.smart_flush_base_interval_ms);
                 }
-                info!("    - 缓存预热策略: {:?}", melange_config.cache_warmup_strategy);
-                info!("    - 统计信息: {}", if melange_config.enable_statistics { "启用" } else { "禁用" });
+                info!("    - 缓存预热策略: {:?}", l2_config.cache_warmup_strategy);
+                info!("    - 统计信息: {}", if true { "启用" } else { "禁用" });
             } else {
                 info!("  💾 L2 MelangeDB 持久化缓存: 禁用");
             }
