@@ -234,6 +234,7 @@ impl MemcachedServer {
         info!("    - 工作线程: {}", cache_config.performance.worker_threads);
         info!("    - 并发支持: {}", if cache_config.performance.enable_concurrency { "启用" } else { "禁用" });
         info!("    - 读写分离: {}", if cache_config.performance.read_write_separation { "启用" } else { "禁用" });
+        info!("    - 大值阈值: {} bytes ({}KB)", cache_config.performance.large_value_threshold, cache_config.performance.large_value_threshold / 1024);
 
         #[cfg(feature = "mimalloc-allocator")]
         info!("  🧠 内存分配器: mimalloc (高性能优化)");
