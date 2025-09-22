@@ -49,7 +49,7 @@ mod ttl;
 
 
 // 重新导出主要类型
-pub use cache::{RatMemCache, RatMemCacheBuilder, CacheOptions, CacheStats};
+pub use cache::{RatMemCache, RatMemCacheBuilder, CacheOptions};
 
 pub use error::{CacheError, CacheResult};
 pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
@@ -61,7 +61,7 @@ pub use config::{
     PerformanceConfig, LoggingConfig
 };
 #[cfg(feature = "melange-storage")]
-pub use config::{L2Config, DatabaseEngine, MelangeSpecificConfig};
+pub use config::{L2Config, CacheWarmupStrategy};
 
 // 重新导出 MelangeDB 相关类型
 #[cfg(feature = "melange-storage")]
@@ -117,21 +117,17 @@ mod tests {
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                    smart_flush_enabled: true,
-                    smart_flush_base_interval_ms: 100,
-                    smart_flush_min_interval_ms: 20,
-                    smart_flush_max_interval_ms: 500,
-                    smart_flush_write_rate_threshold: 10000,
-                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
-                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
-                    zstd_compression_level: None,
-                },
+                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
@@ -159,6 +155,7 @@ mod tests {
                 l2_write_strategy: "write_through".to_string(),
                 l2_write_threshold: 1024,
                 l2_write_ttl_threshold: 300,
+                large_value_threshold: 10240, // 10KB
             })
             .logging_config(LoggingConfig {
                 level: "debug".to_string(),
@@ -171,7 +168,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-        
+
         // 基本操作测试
         let key = "test_key".to_string();
         let value = Bytes::from("test_value");
@@ -206,21 +203,17 @@ mod tests {
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                    smart_flush_enabled: true,
-                    smart_flush_base_interval_ms: 100,
-                    smart_flush_min_interval_ms: 20,
-                    smart_flush_max_interval_ms: 500,
-                    smart_flush_write_rate_threshold: 10000,
-                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
-                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
-                    zstd_compression_level: None,
-                },
+                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
@@ -248,6 +241,7 @@ mod tests {
                 l2_write_strategy: "write_through".to_string(),
                 l2_write_threshold: 1024,
                 l2_write_ttl_threshold: 300,
+                large_value_threshold: 10240, // 10KB
             })
             .logging_config(LoggingConfig {
                 level: "debug".to_string(),
@@ -260,7 +254,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-        
+
         let key = "options_key".to_string();
         let value = Bytes::from("options_value");
         
@@ -303,21 +297,17 @@ mod tests {
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                    smart_flush_enabled: true,
-                    smart_flush_base_interval_ms: 100,
-                    smart_flush_min_interval_ms: 20,
-                    smart_flush_max_interval_ms: 500,
-                    smart_flush_write_rate_threshold: 10000,
-                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
-                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
-                    zstd_compression_level: None,
-                },
+                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
@@ -345,6 +335,7 @@ mod tests {
                 l2_write_strategy: "write_through".to_string(),
                 l2_write_threshold: 1024,
                 l2_write_ttl_threshold: 300,
+                large_value_threshold: 10240, // 10KB
             })
             .logging_config(LoggingConfig {
                 level: "debug".to_string(),
@@ -357,7 +348,7 @@ mod tests {
             .build()
             .await
             .unwrap();
-        
+
         let key = "test_key".to_string();
         let value = Bytes::from("test_value");
         
@@ -370,7 +361,8 @@ mod tests {
         } else {
             panic!("Expected InvalidTtl error");
         }
-        
+
         cache.shutdown().await.unwrap();
     }
 }
+

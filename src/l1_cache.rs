@@ -6,7 +6,6 @@ use crate::config::L1Config;
 use crate::compression::Compressor;
 use crate::error::{CacheError, CacheResult};
 use crate::config::LoggingConfig;
-use crate::metrics::MetricsCollector;
 use crate::ttl::TtlManager;
 use crate::types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
 use crate::cache_log;
@@ -34,9 +33,7 @@ pub struct L1Cache {
     compressor: Arc<Compressor>,
     /// TTL 管理器
     ttl_manager: Arc<TtlManager>,
-    /// 指标收集器
-    metrics: Arc<MetricsCollector>,
-    /// LRU 访问顺序（用于 LRU 策略）
+        /// LRU 访问顺序（用于 LRU 策略）
     lru_order: Arc<Mutex<VecDeque<String>>>,
     /// LFU 访问计数（用于 LFU 策略）
     lfu_counter: Arc<DashMap<String, AtomicU64>>,
@@ -71,7 +68,6 @@ impl L1Cache {
         logging_config: LoggingConfig,
         compressor: Compressor,
         ttl_manager: Arc<TtlManager>,
-        metrics: Arc<MetricsCollector>,
     ) -> CacheResult<Self> {
         let cache = Self {
             config: Arc::new(config),
@@ -80,7 +76,6 @@ impl L1Cache {
             // router: Arc::new(router),
             compressor: Arc::new(compressor),
             ttl_manager,
-            metrics,
             lru_order: Arc::new(Mutex::new(VecDeque::new())),
             lfu_counter: Arc::new(DashMap::new()),
             fifo_order: Arc::new(Mutex::new(VecDeque::new())),
@@ -102,8 +97,6 @@ impl L1Cache {
         // 检查 TTL
         if self.ttl_manager.is_expired(key).await {
             self.remove_internal(key).await;
-            self.metrics.record_cache_miss().await;
-            self.metrics.record_operation_latency(CacheOperation::Get, start_time.elapsed()).await;
             return Ok(None);
         }
 
@@ -117,14 +110,10 @@ impl L1Cache {
                 cache_value.is_compressed,
             )?;
             
-            self.metrics.record_cache_hit(CacheLayer::Memory).await;
-            self.metrics.record_operation_latency(CacheOperation::Get, start_time.elapsed()).await;
             
             cache_log!(self.logging_config, debug, "L1 缓存命中: {}", key);
             Ok(Some(decompressed.data))
         } else {
-            self.metrics.record_cache_miss().await;
-            self.metrics.record_operation_latency(CacheOperation::Get, start_time.elapsed()).await;
             
             cache_log!(self.logging_config, debug, "L1 缓存未命中: {}", key);
             Ok(None)
@@ -178,19 +167,11 @@ impl L1Cache {
             self.ttl_manager.add_key(key.clone(), ttl_seconds).await?;
         }
         
-        // 记录指标
-        self.metrics.record_cache_operation(CacheOperation::Set).await;
-        self.metrics.record_memory_usage(CacheLayer::Memory, self.memory_usage.load(Ordering::Relaxed) as u64).await;
-        self.metrics.record_operation_latency(CacheOperation::Set, start_time.elapsed()).await;
-        
         if compression_result.is_compressed {
-            self.metrics.record_compression(
-                compression_result.original_size as u64,
-                compression_result.compressed_size as u64,
-            ).await;
+            // 压缩统计已移除
         }
-        
-        cache_log!(self.logging_config, debug, "L1 缓存设置: {} ({}压缩)", 
+
+        cache_log!(self.logging_config, debug, "L1 缓存设置: {} ({}压缩)",
             key, if compression_result.is_compressed { "已" } else { "未" });
         
         Ok(())
@@ -202,8 +183,6 @@ impl L1Cache {
         
         let removed = self.remove_internal(key).await;
         
-        self.metrics.record_cache_operation(CacheOperation::Delete).await;
-        self.metrics.record_operation_latency(CacheOperation::Delete, start_time.elapsed()).await;
         
         if removed {
             cache_log!(self.logging_config, debug, "L1 缓存删除: {}", key);
@@ -226,8 +205,6 @@ impl L1Cache {
         self.memory_usage.store(0, Ordering::Relaxed);
         self.entry_count.store(0, Ordering::Relaxed);
         
-        self.metrics.record_cache_operation(CacheOperation::Clear).await;
-        self.metrics.record_memory_usage(CacheLayer::Memory, 0).await;
         
         cache_log!(self.logging_config, debug, "L1 缓存已清空，删除了 {} 个条目", old_count);
         
@@ -342,7 +319,6 @@ impl L1Cache {
         
         if evicted_count > 0 {
             self.update_eviction_stats(evicted_count, evicted_bytes).await;
-            self.metrics.record_cache_eviction().await;
             
             cache_log!(self.logging_config, debug, "内存驱逐完成: {} 个条目，{} 字节", 
                 evicted_count, evicted_bytes);
@@ -380,7 +356,6 @@ impl L1Cache {
         
         if evicted_count > 0 {
             self.update_eviction_stats(evicted_count, evicted_bytes).await;
-            self.metrics.record_cache_eviction().await;
             
             cache_log!(self.logging_config, debug, "条目驱逐完成: {} 个条目，{} 字节", 
                 evicted_count, evicted_bytes);
@@ -512,7 +487,7 @@ impl L1Cache {
 }
 
 /// L1 缓存统计信息
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct L1CacheStats {
     pub entry_count: usize,
     pub memory_usage: usize,
@@ -547,8 +522,7 @@ mod tests {
     use crate::config::{L1Config, LoggingConfig, CompressionConfig, TtlConfig};
     use crate::compression::Compressor;
     use crate::ttl::TtlManager;
-    use crate::metrics::MetricsCollector;
-    use bytes::Bytes;
+        use bytes::Bytes;
 
     async fn create_test_cache() -> L1Cache {
         let l1_config = L1Config {
@@ -585,9 +559,8 @@ mod tests {
         
         let compressor = Compressor::new(compression_config);
         let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
-        let metrics = Arc::new(MetricsCollector::new().await.unwrap());
-        
-        L1Cache::new(l1_config, logging_config, compressor, ttl_manager, metrics).await.unwrap()
+                
+        L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap()
     }
 
     #[tokio::test]
@@ -677,9 +650,8 @@ mod tests {
         
         let compressor = Compressor::new(compression_config);
         let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
-        let metrics = Arc::new(MetricsCollector::new().await.unwrap());
-        
-        let cache = L1Cache::new(l1_config, logging_config, compressor, ttl_manager, metrics).await.unwrap();
+                
+        let cache = L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap();
         
         // 插入超过限制的条目
         for i in 0..10 {
