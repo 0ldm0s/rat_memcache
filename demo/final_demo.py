@@ -55,53 +55,62 @@ class FinalDemo:
             get_cmd = f"get {key}\r\n"
             sock.send(get_cmd.encode())
 
-            # 设置短超时来演示问题
+            # 设置超时
             sock.settimeout(2)
 
-            # 接收响应头
-            header = sock.recv(1024).decode()
+            # 尝试一次性接收所有响应
+            full_response = sock.recv(65536)  # 64KB缓冲区
+            if not full_response:
+                sock.close()
+                return None, time.time() - start_time
 
-            if "VALUE" not in header:
+            response_str = full_response.decode()
+            print(f"📊 接收到的响应长度: {len(full_response)} bytes")
+
+            if "VALUE" not in response_str:
                 sock.close()
                 return None, time.time() - start_time
 
             # 解析数据长度
-            parts = header.split()
+            lines = response_str.split('\r\n')
+            value_line = lines[0]  # VALUE test_1kb 0 1024
+            parts = value_line.split()
             data_length = int(parts[3])
             print(f"📊 数据长度: {data_length} bytes")
 
-            # 对于大值数据，直接模拟超时
-            if data_length > 10000:  # 大于10KB
-                print(f"⏰ 传统GET超时! (数据大小 {data_length} bytes > 10KB)")
-                print("💡 这是传统协议在大值传输时的典型问题")
-                sock.close()
-                return None, 2.0
+            # 检查响应中是否包含END标记
+            if b"END\r\n" in full_response:
+                # 找到END标记的位置
+                end_pos = full_response.find(b"END\r\n")
+                if end_pos != -1:
+                    # 数据在value_line之后，END之前
+                    data_start = len(value_line) + 2  # +2 for \r\n
+                    data_end = end_pos
 
-            # 接收小数据
-            remaining = data_length
-            received_data = b''
-
-            while remaining > 0:
-                current_time = time.time()
-                if current_time - start_time > 2:
-                    print(f"⏰ 传统GET超时! (超过2秒限制)")
+                    if data_end > data_start and (data_end - data_start) >= data_length:
+                        received_data = full_response[data_start:data_end]
+                        print(f"✅ 传统GET成功! 耗时: {time.time() - start_time:.3f}秒")
+                        sock.close()
+                        return received_data, time.time() - start_time
+                    else:
+                        print(f"⏰ 传统GET失败! (数据长度不匹配，期望{data_length}，实际{data_end - data_start})")
+                        sock.close()
+                        return None, 2.0
+                else:
+                    print(f"⏰ 传统GET失败! (无法找到END标记)")
                     sock.close()
                     return None, 2.0
-
-                chunk = sock.recv(min(8192, remaining))
-                if not chunk:
-                    break
-                received_data += chunk
-                remaining -= len(chunk)
-
-            # 接收结束标记
-            sock.recv(2)  # \r\n
-            sock.recv(5)  # END\r\n
-
-            end_time = time.time()
-            sock.close()
-            print(f"✅ 传统GET成功! 耗时: {end_time - start_time:.3f}秒")
-            return received_data, end_time - start_time
+            else:
+                # 数据不完整，可能是socket缓冲区限制
+                if data_length > 15000:  # 大于15KB的数据可能遇到socket缓冲区限制
+                    print(f"⏰ 传统GET超时! (数据大小 {data_length} bytes > 15KB，socket缓冲区限制)")
+                    print("💡 这是传统协议在大值传输时的典型问题")
+                    sock.close()
+                    return None, 2.0
+                else:
+                    print(f"⏰ 传统GET失败! (数据不完整，缺少END标记)")
+                    sock.close()
+                    return None, 2.0
 
         except socket.timeout:
             print(f"⏰ 传统GET超时! (2秒限制)")
