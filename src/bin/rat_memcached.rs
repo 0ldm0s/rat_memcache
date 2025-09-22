@@ -256,18 +256,10 @@ impl MemcachedServer {
 
             Ok(cache_config)
         } else {
-            // 使用预设配置
-            match config.preset.as_deref() {
-                Some("development") => CacheConfig::development(),
-                Some("production") => CacheConfig::production(),
-                Some("high_speed_communication") | None => CacheConfig::high_speed_communication(),
-                Some(preset) => {
-                    return Err(CacheError::config_error(&format!(
-                        "未知的预设配置: {}",
-                        preset
-                    )));
-                }
-            }
+            // 预设配置功能已移除，必须使用配置文件
+            return Err(CacheError::config_error(
+                "预设配置功能已移除，必须通过配置文件进行详细配置。请使用 --config 参数指定配置文件路径。"
+            ));
         }
     }
 

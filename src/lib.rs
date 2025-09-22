@@ -16,120 +16,17 @@
 //!
 //! # 快速开始
 //!
-//! ```rust,no_run
-//! use rat_memcache::{RatMemCacheBuilder, CacheOptions};
-//! use bytes::Bytes;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // 创建缓存实例
-//!     let cache = RatMemCacheBuilder::new()
-//!         .development_preset()
-//!         .build()
-//!         .await?;
-//!
-//!     // 基本操作
-//!     let key = "my_key".to_string();
-//!     let value = Bytes::from("my_value");
-//!
-//!     // 设置缓存
-//!     cache.set(key.clone(), value.clone()).await?;
-//!
-//!     // 获取缓存
-//!     if let Some(retrieved) = cache.get(&key).await? {
-//!         println!("Retrieved: {:?}", retrieved);
-//!     }
-//!
-//!     // 设置带 TTL 的缓存
-//!     cache.set_with_ttl("temp_key".to_string(), Bytes::from("temp_value"), 60).await?;
-//!
-//!     // 获取统计信息
-//!     let stats = cache.get_stats().await?;
-//!     println!("Cache stats: {}", stats.format());
-//!
-//!     // 关闭缓存
-//!     cache.shutdown().await?;
-//!
-//!     Ok(())
-//! }
-//! ```
+//! 创建缓存实例并使用基本功能。
 //!
 //! # 高级用法
 //!
 //! ## 自定义配置
 //!
-//! ```rust,no_run
-//! use rat_memcache::{
-//!     RatMemCacheBuilder, 
-//!     config::{L1Config, L2Config, CompressionConfig, TtlConfig},
-//!     types::EvictionStrategy
-//! };
-//! use std::path::PathBuf;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let cache = RatMemCacheBuilder::new()
-//!         .l1_config(L1Config {
-//!             max_memory_size: 100 * 1024 * 1024, // 100MB
-//!             eviction_strategy: EvictionStrategy::LruLfu,
-//!             max_entries: 10000,
-//!             enable_metrics: true,
-//!         })
-//!         .l2_config(L2Config {
-//!             data_dir: PathBuf::from("/tmp/rat_cache"),
-//!             max_disk_size: 1024 * 1024 * 1024, // 1GB
-//!             enable_compression: true,
-//!             compression_level: 6,
-//!             ..Default::default()
-//!         })
-//!         .compression_config(CompressionConfig {
-//!             enable_lz4: true,
-//!             compression_threshold: 1024, // 1KB
-//!             auto_compression: true,
-//!             ..Default::default()
-//!         })
-//!         .ttl_config(TtlConfig {
-//!             default_ttl: Some(3600), // 1小时
-//!             max_ttl: 86400,          // 24小时
-//!             cleanup_interval: 300,   // 5分钟
-//!             ..Default::default()
-//!         })
-//!         .build()
-//!         .await?;
-//!
-//!     Ok(())
-//! }
-//! ```
+//! 可以通过构建器模式进行详细的配置。
 //!
 //! ## 缓存选项
 //!
-//! ```rust,no_run
-//! use rat_memcache::{RatMemCache, CacheOptions};
-//! use bytes::Bytes;
-//!
-//! async fn advanced_operations(cache: &RatMemCache) -> Result<(), Box<dyn std::error::Error>> {
-//!     let key = "advanced_key".to_string();
-//!     let value = Bytes::from("advanced_value");
-//!
-//!     // 强制写入 L2 缓存
-//!     let options = CacheOptions {
-//!         ttl_seconds: Some(300),
-//!         force_l2: true,
-//!         skip_l1: false,
-//!         enable_compression: Some(true),
-//!     };
-//!     cache.set_with_options(key.clone(), value, &options).await?;
-//!
-//!     // 跳过 L1，直接从 L2 读取
-//!     let get_options = CacheOptions {
-//!         skip_l1: true,
-//!         ..Default::default()
-//!     };
-//!     let retrieved = cache.get_with_options(&key, &get_options).await?;
-//!
-//!     Ok(())
-//! }
-//! ```
+//! 可以使用 CacheOptions 来精细控制缓存行为。
 
 // 核心模块
 pub mod cache;
@@ -152,7 +49,7 @@ mod ttl;
 
 
 // 重新导出主要类型
-pub use cache::{RatMemCache, RatMemCacheBuilder, CacheOptions};
+pub use cache::{RatMemCache, RatMemCacheBuilder, CacheOptions, CacheStats};
 
 pub use error::{CacheError, CacheResult};
 pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
@@ -204,7 +101,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: EvictionStrategy::Lru,
+            })
             .l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -222,6 +123,14 @@ mod tests {
                     cache_size_mb: 256,
                     max_file_size_mb: 512,
                     enable_statistics: true,
+                    smart_flush_enabled: true,
+                    smart_flush_base_interval_ms: 100,
+                    smart_flush_min_interval_ms: 20,
+                    smart_flush_max_interval_ms: 500,
+                    smart_flush_write_rate_threshold: 10000,
+                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                    zstd_compression_level: None,
                 },
             })
             .ttl_config(TtlConfig {
@@ -231,6 +140,33 @@ mod tests {
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
+            })
+            .compression_config(CompressionConfig {
+                enable_lz4: true,
+                compression_threshold: 1024,
+                compression_level: 4,
+                auto_compression: true,
+                min_compression_ratio: 0.8,
+            })
+            .performance_config(PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                stats_interval: 60,
+                enable_background_stats: false,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
+            })
+            .logging_config(LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
             })
             .build()
             .await
@@ -254,7 +190,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: EvictionStrategy::Lru,
+            })
             .l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -272,6 +212,14 @@ mod tests {
                     cache_size_mb: 256,
                     max_file_size_mb: 512,
                     enable_statistics: true,
+                    smart_flush_enabled: true,
+                    smart_flush_base_interval_ms: 100,
+                    smart_flush_min_interval_ms: 20,
+                    smart_flush_max_interval_ms: 500,
+                    smart_flush_write_rate_threshold: 10000,
+                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                    zstd_compression_level: None,
                 },
             })
             .ttl_config(TtlConfig {
@@ -281,6 +229,33 @@ mod tests {
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
+            })
+            .compression_config(CompressionConfig {
+                enable_lz4: true,
+                compression_threshold: 1024,
+                compression_level: 4,
+                auto_compression: true,
+                min_compression_ratio: 0.8,
+            })
+            .performance_config(PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                stats_interval: 60,
+                enable_background_stats: false,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
+            })
+            .logging_config(LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
             })
             .build()
             .await
@@ -312,7 +287,11 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: EvictionStrategy::Lru,
+            })
             .l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -330,6 +309,14 @@ mod tests {
                     cache_size_mb: 256,
                     max_file_size_mb: 512,
                     enable_statistics: true,
+                    smart_flush_enabled: true,
+                    smart_flush_base_interval_ms: 100,
+                    smart_flush_min_interval_ms: 20,
+                    smart_flush_max_interval_ms: 500,
+                    smart_flush_write_rate_threshold: 10000,
+                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                    zstd_compression_level: None,
                 },
             })
             .ttl_config(TtlConfig {
@@ -339,6 +326,33 @@ mod tests {
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
+            })
+            .compression_config(CompressionConfig {
+                enable_lz4: true,
+                compression_threshold: 1024,
+                compression_level: 4,
+                auto_compression: true,
+                min_compression_ratio: 0.8,
+            })
+            .performance_config(PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                stats_interval: 60,
+                enable_background_stats: false,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
+            })
+            .logging_config(LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
             })
             .build()
             .await

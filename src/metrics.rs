@@ -456,12 +456,15 @@ mod tests {
     #[tokio::test]
     async fn test_metrics_snapshot() {
         let collector = MetricsCollector::new().await.unwrap();
-        
+
         collector.increment_read_metric("test.metric", 42).await;
-        
+
+        // 等待一小段时间确保 uptime > 0
+        tokio::time::sleep(tokio::time::Duration::from_millis(2)).await;
+
         let snapshot = collector.get_metrics_snapshot().await;
         assert_eq!(snapshot.get_metric("test.metric", true), 42);
-        assert!(snapshot.uptime.as_millis() > 0);
+        assert!(snapshot.uptime.as_millis() > 0, "uptime should be > 0, but got: {:?}", snapshot.uptime);
     }
 
     #[tokio::test]

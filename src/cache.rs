@@ -62,6 +62,19 @@ pub struct CacheOptions {
     pub enable_compression: Option<bool>,
 }
 
+/// 整体缓存统计信息
+#[derive(Debug, Clone)]
+pub struct CacheStats {
+    /// L1 缓存统计
+    pub l1_stats: L1CacheStats,
+    /// L2 缓存统计
+    pub l2_stats: L2CacheStats,
+    /// 总内存使用量（字节）
+    pub total_memory_usage: usize,
+    /// 总条目数
+    pub total_entries: usize,
+}
+
 impl Default for CacheOptions {
     fn default() -> Self {
         Self {
@@ -118,48 +131,7 @@ impl RatMemCacheBuilder {
         self
     }
 
-    /// 使用开发环境预设
-    pub fn development_preset(mut self) -> CacheResult<Self> {
-        self.config_builder = CacheConfigBuilder::new();
-        // 使用开发环境预设配置
-        let config = CacheConfig::development()?;
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(config.l1)
-            .with_compression_config(config.compression)
-            .with_ttl_config(config.ttl)
-            .with_performance_config(config.performance)
-            .with_logging_config(config.logging);
-
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(config.l2);
-        }
-
-        self.config_builder = builder;
-        Ok(self)
-    }
-
-    /// 使用生产环境预设
-    pub fn production_preset(mut self) -> CacheResult<Self> {
-        self.config_builder = CacheConfigBuilder::new();
-        // 使用生产环境预设配置
-        let config = CacheConfig::production()?;
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(config.l1)
-            .with_compression_config(config.compression)
-            .with_ttl_config(config.ttl)
-            .with_performance_config(config.performance)
-            .with_logging_config(config.logging);
-
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(config.l2);
-        }
-
-        self.config_builder = builder;
-        Ok(self)
-    }
-
+    
     /// 构建缓存实例
     pub async fn build(self) -> CacheResult<RatMemCache> {
         let config = self.config_builder.build()?;
@@ -524,6 +496,42 @@ impl RatMemCache {
         }
     }
 
+    /// 获取整体缓存统计信息
+    pub async fn get_cache_stats(&self) -> CacheStats {
+        let l1_stats = self.get_l1_stats().await;
+
+        #[cfg(feature = "melange-storage")]
+        let l2_stats = self.get_l2_stats().await;
+        #[cfg(not(feature = "melange-storage"))]
+        let l2_stats = L2CacheStats::default();
+
+        CacheStats {
+            l1_stats: l1_stats.clone(),
+            l2_stats: l2_stats.clone(),
+            total_memory_usage: l1_stats.memory_usage + l2_stats.estimated_disk_usage as usize,
+            total_entries: l1_stats.entry_count + l2_stats.entry_count as usize,
+        }
+    }
+
+    /// 获取缓存命中率（基于L2统计）
+    #[cfg(feature = "melange-storage")]
+    pub async fn get_hit_rate(&self) -> Option<f64> {
+        let l2_stats = self.get_l2_stats().await;
+        let total_requests = l2_stats.hits + l2_stats.misses;
+        if total_requests > 0 {
+            Some((l2_stats.hits as f64 / total_requests as f64) * 100.0)
+        } else {
+            None
+        }
+    }
+
+    /// 获取缓存命中率（非melange版本）
+    #[cfg(not(feature = "melange-storage"))]
+    pub async fn get_hit_rate(&self) -> Option<f64> {
+        // 在没有L2的情况下，无法直接获取命中率统计
+        None
+    }
+
     /// 压缩 L2 缓存
     #[cfg(feature = "melange-storage")]
     pub async fn compact(&self) -> CacheResult<()> {
@@ -541,9 +549,8 @@ impl RatMemCache {
     }
 
     /// 获取剩余 TTL
-    pub async fn get_ttl(&self, _key: &str) -> Option<u64> {
-        // 获取剩余 TTL（简化实现）
-        None
+    pub async fn get_ttl(&self, key: &str) -> Option<u64> {
+        self.ttl_manager.get_ttl(key).await
     }
 
     /// 设置 TTL
@@ -634,32 +641,34 @@ impl RatMemCache {
 
     /// 记录操作统计
     async fn record_operation(&self, operation: CacheOperation, duration: std::time::Duration) {
-        // 使用指标系统记录操作
-        self.metrics.record_cache_operation(operation).await;
-        self.metrics.record_operation_latency(operation, duration).await;
+        // 仅在启用统计时记录指标
+        if self.config.performance.enable_background_stats {
+            self.metrics.record_cache_operation(operation).await;
+            self.metrics.record_operation_latency(operation, duration).await;
+        }
     }
 
     /// 启动后台任务
     async fn start_background_tasks(&self) {
-        // 启动统计更新任务
+        // 启动统计更新任务（仅在启用统计时）
         if self.config.performance.enable_background_stats {
             let cache = Arc::new(self.clone());
             let stats_interval = cache.config.performance.stats_interval;
             tokio::spawn(async move {
                 let mut interval = interval(Duration::from_secs(stats_interval));
-                
+
                 loop {
                     interval.tick().await;
-                    
+
                     let running = {
                         let running = cache.is_running.read().await;
                         *running
                     };
-                    
+
                     if !running {
                         break;
                     }
-                    
+
                     // 更新统计信息
                     if let Err(e) = cache.update_background_stats().await {
                         cache_log!(cache.config.logging, warn, "更新后台统计失败: {}", e);
@@ -762,9 +771,13 @@ mod tests {
 
     async fn create_test_cache() -> (RatMemCache, TempDir) {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(crate::config::L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: crate::EvictionStrategy::Lru,
+            })
             .l2_config(crate::config::L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -782,6 +795,14 @@ mod tests {
                     cache_size_mb: 256,
                     max_file_size_mb: 512,
                     enable_statistics: true,
+                    smart_flush_enabled: true,
+                    smart_flush_base_interval_ms: 100,
+                    smart_flush_min_interval_ms: 20,
+                    smart_flush_max_interval_ms: 500,
+                    smart_flush_write_rate_threshold: 10000,
+                    smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                    cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                    zstd_compression_level: None,
                 },
             })
             .ttl_config(crate::config::TtlConfig {
@@ -791,6 +812,33 @@ mod tests {
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false, // 测试中禁用主动过期
+            })
+            .compression_config(crate::config::CompressionConfig {
+                enable_lz4: true,
+                compression_threshold: 1024,
+                compression_level: 4,
+                auto_compression: true,
+                min_compression_ratio: 0.8,
+            })
+            .performance_config(crate::config::PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                stats_interval: 60,
+                enable_background_stats: false,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
+            })
+            .logging_config(crate::config::LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
             })
             .build()
             .await

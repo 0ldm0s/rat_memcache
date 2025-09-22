@@ -72,6 +72,26 @@ pub struct L2Config {
     pub melange_config: MelangeSpecificConfig,
 }
 
+#[cfg(feature = "melange-storage")]
+impl Default for L2Config {
+    fn default() -> Self {
+        Self {
+            enable_l2_cache: false,
+            data_dir: None,
+            clear_on_startup: false,
+            max_disk_size: 1024 * 1024 * 1024, // 1GB
+            write_buffer_size: 64 * 1024 * 1024, // 64MB
+            max_write_buffer_number: 3,
+            block_cache_size: 32 * 1024 * 1024, // 32MB
+            enable_compression: true,
+            compression_level: 6,
+            background_threads: 2,
+            database_engine: default_database_engine(),
+            melange_config: default_melange_config(),
+        }
+    }
+}
+
 /// 数据库引擎类型
 #[cfg(feature = "melange-storage")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -274,9 +294,7 @@ impl CacheConfigBuilder {
         })?;
         
           #[cfg(feature = "melange-storage")]
-        let l2_config = self.l2_config.ok_or_else(|| {
-            CacheError::config_error("L2 配置未设置")
-        })?;
+        let l2_config = self.l2_config.unwrap_or_else(L2Config::default);
         
         let compression_config = self.compression_config.ok_or_else(|| {
             CacheError::config_error("压缩配置未设置")
@@ -673,233 +691,4 @@ fn default_melange_smart_flush_bytes_threshold() -> usize {
 #[cfg(feature = "melange-storage")]
 fn default_melange_warmup_strategy() -> CacheWarmupStrategy {
     CacheWarmupStrategy::Recent
-}
-
-/// 预设配置模板
-impl CacheConfig {
-    /// 开发环境配置
-    pub fn development() -> CacheResult<Self> {
-        let system_info = SystemInfo::get();
-        let cache_dir = PathUtils::default_cache_dir()?;
-
-        let l1_memory = if system_info.available_memory > 0 {
-            system_info.recommended_l1_memory().max(16 * 1024 * 1024)
-        } else {
-            16 * 1024 * 1024
-        };
-
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(L1Config {
-                max_memory: l1_memory,
-                max_entries: 10_000,
-                eviction_strategy: EvictionStrategy::Lru,
-            });
-
-        // TODO: Fix L2 config syntax error
-        /*
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(L2Config {
-                enable_l2_cache: true,
-                data_dir: Some(cache_dir.clone()),
-                clear_on_startup: false,
-                max_disk_size: 1024 * 1024 * 1024,
-                write_buffer_size: 64 * 1024 * 1024,
-                max_write_buffer_number: 3,
-                block_cache_size: 32 * 1024 * 1024,
-                enable_compression: true,
-                compression_level: 6,
-                background_threads: ((system_info.cpu_count / 2).max(2) as i32),
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                });
-        }
-        */
-
-        let config = builder.with_compression_config(CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 1024,
-                compression_level: 4,
-                auto_compression: true,
-                min_compression_ratio: 0.8,
-            })
-            .with_ttl_config(TtlConfig {
-                default_ttl: Some(3600),
-                max_ttl: 86400,
-                cleanup_interval: 300,
-                max_cleanup_entries: 1000,
-                lazy_expiration: true,
-                active_expiration: true,
-            })
-            .with_performance_config(PerformanceConfig {
-                worker_threads: (system_info.recommended_worker_threads() / 2).max(4),
-                enable_concurrency: true,
-                read_write_separation: true,
-                batch_size: 100,
-                enable_warmup: false,
-                stats_interval: 60,
-                enable_background_stats: true,
-                l2_write_strategy: "adaptive".to_string(),
-                l2_write_threshold: 4096,
-                l2_write_ttl_threshold: 300,
-            })
-            .with_logging_config(LoggingConfig {
-                level: "debug".to_string(),
-                enable_colors: true,
-                show_timestamp: true,
-                enable_performance_logs: true,
-                enable_audit_logs: false,
-                enable_cache_logs: true,
-            })
-            .build()?;
-
-        Ok(config)
-    }
-
-    /// 生产环境配置
-    pub fn production() -> CacheResult<Self> {
-        let system_info = SystemInfo::get();
-        let cache_dir = PathUtils::default_cache_dir()?;
-        
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(L1Config {
-                max_memory: (system_info.recommended_l1_memory() / 2), // 最少 512MB
-                max_entries: 100_000,
-                eviction_strategy: EvictionStrategy::LruLfu,
-            });
-
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(L2Config {
-                enable_l2_cache: true,
-                data_dir: Some(cache_dir),
-                clear_on_startup: false, // 生产环境默认不清空缓存
-                max_disk_size: 10 * 1024 * 1024 * 1024, // 10GB
-                write_buffer_size: 128 * 1024 * 1024, // 128MB
-                max_write_buffer_number: 6,
-                block_cache_size: 256 * 1024 * 1024, // 256MB
-                enable_compression: true,
-                compression_level: 9,
-                background_threads: (system_info.cpu_count.max(8) as i32),
-                #[cfg(feature = "melange-storage")]
-                database_engine: default_database_engine(),
-                #[cfg(feature = "melange-storage")]
-                melange_config: default_melange_config(),
-            });
-        }
-
-        let config = builder.with_compression_config(CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 512, // 512B
-                compression_level: 6,
-                auto_compression: true,
-                min_compression_ratio: 0.7,
-        })
-            .with_ttl_config(TtlConfig {
-                default_ttl: Some(7200), // 2小时
-                max_ttl: 604800, // 7天
-                cleanup_interval: 60, // 1分钟
-                max_cleanup_entries: 5000,
-                lazy_expiration: true,
-                active_expiration: true,
-            })
-            .with_performance_config(PerformanceConfig {
-                worker_threads: system_info.recommended_worker_threads(),
-                enable_concurrency: true,
-                read_write_separation: true,
-                batch_size: 500,
-                enable_warmup: true,
-                stats_interval: 30,
-                enable_background_stats: true,
-                l2_write_strategy: "adaptive".to_string(),
-                l2_write_threshold: 2048,
-                l2_write_ttl_threshold: 600,
-            })
-            .with_logging_config(LoggingConfig {
-                level: "info".to_string(),
-                enable_colors: false,
-                show_timestamp: true,
-                enable_performance_logs: true,
-                enable_audit_logs: true,
-                enable_cache_logs: true,
-            })
-            .build()?;
-
-        Ok(config)
-    }
-
-    /// 高速通讯配置（禁用 L2 缓存和压缩）
-    pub fn high_speed_communication() -> CacheResult<Self> {
-        let system_info = SystemInfo::get();
-
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(L1Config {
-                max_memory: system_info.recommended_l1_memory(),
-                max_entries: 500_000,
-                eviction_strategy: EvictionStrategy::Lru,
-            });
-
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(L2Config {
-                enable_l2_cache: false, // 禁用 L2 缓存
-                data_dir: None,
-                clear_on_startup: false, // L2缓存禁用时此选项无效
-                max_disk_size: 0,
-                write_buffer_size: 0,
-                max_write_buffer_number: 0,
-                block_cache_size: 0,
-                enable_compression: false,
-                compression_level: 0,
-                background_threads: 0,
-                #[cfg(feature = "melange-storage")]
-                database_engine: default_database_engine(),
-                #[cfg(feature = "melange-storage")]
-                melange_config: default_melange_config(),
-            });
-        }
-
-        let config = builder.with_compression_config(CompressionConfig {
-                enable_lz4: false, // 禁用压缩
-                compression_threshold: 0,
-                compression_level: 1, // 最低有效级别，但不会使用
-                auto_compression: false,
-                min_compression_ratio: 1.0,
-        })
-            .with_ttl_config(TtlConfig {
-                default_ttl: Some(300), // 5分钟
-                max_ttl: 3600, // 1小时
-                cleanup_interval: 30, // 30秒
-                max_cleanup_entries: 10000,
-                lazy_expiration: true,
-                active_expiration: true,
-            })
-            .with_performance_config(PerformanceConfig {
-                worker_threads: system_info.recommended_worker_threads() * 2, // 高速模式使用更多线程
-                enable_concurrency: true,
-                read_write_separation: true,
-                batch_size: 1000,
-                enable_warmup: false,
-                stats_interval: 10,
-                enable_background_stats: true,
-                l2_write_strategy: "disabled".to_string(),
-                l2_write_threshold: 0,
-                l2_write_ttl_threshold: 0,
-            })
-            .with_logging_config(LoggingConfig {
-                level: "info".to_string(),
-                enable_colors: false,
-                show_timestamp: true,
-                enable_performance_logs: true,
-                enable_audit_logs: false,
-                enable_cache_logs: false,
-            })
-            .build()?;
-
-        Ok(config)
-    }
 }

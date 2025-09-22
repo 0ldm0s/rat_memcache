@@ -1,0 +1,45 @@
+🚀 RatMemcached - 高性能 Memcached 协议兼容服务器
+📦 基于 rat_memcache (MelangeDB存储后端)
+⚡ 支持完整的 Memcached 协议
+🧠 使用 mimalloc 高性能内存分配器
+⚙️ 服务器配置:
+  - 绑定地址: 127.0.0.1:11211
+  - 预设配置: Some("high_speed_communication")
+  - 配置文件: cache_config.toml
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m🚀 初始化 RatMemcached 服务器[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m📍 绑定地址: 127.0.0.1:11211[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m📊 缓存配置详情:[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m  🎯 L1 内存缓存:[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 最大内存: 1024.00 MB[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 最大条目: 100000[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 淘汰策略: Lru[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m  💾 L2 MelangeDB 持久化缓存:[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 启用状态: 是[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 数据目录: ./rat_memcache_data[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 最大磁盘空间: 1024.00 MB[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 块缓存大小: 32.00 MB[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 写缓冲区: 64.00 MB[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 压缩: 启用[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - MelangeDB 压缩算法: Lz4[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 缓存大小: 512 MB[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 最大文件大小: 1024 MB[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 智能Flush: 启用[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - Flush间隔: 20-500ms (基础: 100ms)[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 缓存预热策略: Recent[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 统计信息: 启用[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m  ⏰ TTL 配置:[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 默认TTL: 3600秒[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 最大TTL: 86400秒[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 清理间隔: 300秒[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m  🗜️  压缩配置:[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - LZ4压缩: 启用[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 压缩阈值: 1024 bytes[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 压缩级别: 6[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m  ⚡ 性能配置:[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 工作线程: 4[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 并发支持: 启用[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m    - 读写分离: 启用[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m  🧠 内存分配器: mimalloc (高性能优化)[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m[TTL] TTL 管理器已启动[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m[TTL] TTL 清理任务已启动，间隔: 300秒[0m
+[[92mINFO [0m] [90m06:31:50.099[0m [RAT-CACHE] [97m✅ 缓存实例创建成功[0m
