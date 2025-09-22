@@ -36,6 +36,7 @@ pub mod types;
 
 // 公开模块
 pub mod logging;
+pub mod streaming_protocol;
 
 // 内部模块
 mod compression;
