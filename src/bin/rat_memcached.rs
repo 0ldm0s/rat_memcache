@@ -536,7 +536,7 @@ impl MemcachedServer {
                                 let response = Self::execute_command(cmd, &cache, start_time).await;
                                 let response_data = Self::format_response(response);
 
-                                if let Err(e) = stream.write_all(response_data.as_bytes()).await {
+                                if let Err(e) = stream.write_all(&response_data).await {
                                     error!("发送响应失败: {}", e);
                                     consecutive_errors += 1;
                                     if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
@@ -596,7 +596,7 @@ impl MemcachedServer {
                                     let response =
                                         Self::execute_command(command, &cache, start_time).await;
                                     let response_data = Self::format_response(response);
-                                    let _ = stream.write_all(response_data.as_bytes()).await;
+                                    let _ = stream.write_all(&response_data).await;
                                     break;
                                 } else {
                                     // 立即执行的命令
@@ -604,7 +604,7 @@ impl MemcachedServer {
                                         Self::execute_command(command, &cache, start_time).await;
                                     let response_data = Self::format_response(response);
 
-                                    if let Err(e) = stream.write_all(response_data.as_bytes()).await
+                                    if let Err(e) = stream.write_all(&response_data).await
                                     {
                                         error!("发送响应失败: {}", e);
                                         consecutive_errors += 1;
@@ -649,7 +649,7 @@ impl MemcachedServer {
     }
 
     /// 格式化响应
-    fn format_response(response: MemcachedResponse) -> String {
+    fn format_response(response: MemcachedResponse) -> Vec<u8> {
         match response {
             MemcachedResponse::Value {
                 key,
@@ -657,33 +657,32 @@ impl MemcachedServer {
                 bytes,
                 data,
             } => {
-                format!(
-                    "VALUE {} {} {}\r\n{}\r\nEND\r\n",
-                    key,
-                    flags,
-                    bytes,
-                    String::from_utf8_lossy(&data)
-                )
+                let header = format!("VALUE {} {} {}\r\n", key, flags, bytes);
+                let mut response_data = Vec::new();
+                response_data.extend_from_slice(header.as_bytes());
+                response_data.extend_from_slice(&data);
+                response_data.extend_from_slice(b"\r\nEND\r\n");
+                response_data
             }
-            MemcachedResponse::End => "END\r\n".to_string(),
-            MemcachedResponse::Stored => "STORED\r\n".to_string(),
-            MemcachedResponse::NotStored => "NOT_STORED\r\n".to_string(),
-            MemcachedResponse::Deleted => "DELETED\r\n".to_string(),
-            MemcachedResponse::NotFound => "NOT_FOUND\r\n".to_string(),
-            MemcachedResponse::Ok => "OK\r\n".to_string(),
-            MemcachedResponse::Error(msg) => format!("ERROR {}\r\n", msg),
-            MemcachedResponse::ServerError(msg) => format!("SERVER_ERROR {}\r\n", msg),
-            MemcachedResponse::ClientError(msg) => format!("CLIENT_ERROR {}\r\n", msg),
+            MemcachedResponse::End => b"END\r\n".to_vec(),
+            MemcachedResponse::Stored => b"STORED\r\n".to_vec(),
+            MemcachedResponse::NotStored => b"NOT_STORED\r\n".to_vec(),
+            MemcachedResponse::Deleted => b"DELETED\r\n".to_vec(),
+            MemcachedResponse::NotFound => b"NOT_FOUND\r\n".to_vec(),
+            MemcachedResponse::Ok => b"OK\r\n".to_vec(),
+            MemcachedResponse::Error(msg) => format!("ERROR {}\r\n", msg).into_bytes(),
+            MemcachedResponse::ServerError(msg) => format!("SERVER_ERROR {}\r\n", msg).into_bytes(),
+            MemcachedResponse::ClientError(msg) => format!("CLIENT_ERROR {}\r\n", msg).into_bytes(),
             MemcachedResponse::Stats(stats) => {
-                let mut result = String::new();
+                let mut result = Vec::new();
                 for (key, value) in stats {
-                    result.push_str(&format!("STAT {} {}\r\n", key, value));
+                    result.extend_from_slice(format!("STAT {} {}\r\n", key, value).as_bytes());
                 }
-                result.push_str("END\r\n");
+                result.extend_from_slice(b"END\r\n");
                 result
             }
-            MemcachedResponse::Version(version) => format!("VERSION {}\r\n", version),
-            _ => "ERROR\r\n".to_string(),
+            MemcachedResponse::Version(version) => format!("VERSION {}\r\n", version).into_bytes(),
+            _ => b"ERROR\r\n".to_vec(),
         }
     }
 
