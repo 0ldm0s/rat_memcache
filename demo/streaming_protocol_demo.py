@@ -127,8 +127,9 @@ class StreamingProtocolDemo:
             end_time = time.time()
             sock.close()
 
-            print(f"\n✅ 传统GET意外成功完成! 耗时: {end_time - start_time:.1f}秒")
-            return received_data, end_time - start_time
+            elapsed_ms = (end_time - start_time) * 1000
+            print(f"\n✅ 传统GET意外成功完成! 耗时: {elapsed_ms:.2f}毫秒")
+            return received_data, elapsed_ms / 1000
 
         except socket.timeout:
             print(f"\n⏰ 传统GET超时! (设置了 {timeout_seconds} 秒超时限制)")
@@ -180,7 +181,7 @@ class StreamingProtocolDemo:
         """生成测试数据"""
         size_bytes = size_kb * 1024
         if content_pattern is None:
-            content_pattern = f"RatMemCache流式协议演示数据_{size_kb}KB_"
+            content_pattern = f"RatMemCache_{size_kb}KB_test_data_"
 
         pattern = content_pattern.encode('utf-8')
         repeat_count = size_bytes // len(pattern)
@@ -229,7 +230,7 @@ class StreamingProtocolDemo:
         """小数据演示（两种方式都正常工作）"""
         self.print_section("📊 小数据测试 (1KB)")
 
-        content_pattern = "RatMemCache_1KB测试数据_"
+        content_pattern = "RatMemCache_1KB_test_data_"
         print("🔧 测试1KB数据的传输...")
         test_data, actual_size, pattern = self.generate_test_data(1, content_pattern)
         test_key = "small_test_data"
@@ -261,7 +262,8 @@ class StreamingProtocolDemo:
         print("\n🌊 流式GET测试...")
         streaming_info, streaming_time = self.streaming_get(test_key, chunk_size=512)
         if streaming_info:
-            print(f"✅ 流式GET成功")
+            elapsed_ms = streaming_time * 1000
+            print(f"✅ 流式GET成功! 耗时: {elapsed_ms:.2f}毫秒")
             print(f"⏱️  流式GET响应时间: {streaming_time:.3f}秒")
             print(f"📊 流信息:")
             print(f"   - 键: {streaming_info['key']}")
@@ -277,7 +279,7 @@ class StreamingProtocolDemo:
         """中等数据演示（传统方式开始吃力）"""
         self.print_section("📊 中等数据测试 (50KB)")
 
-        content_pattern = "RatMemCache_50KB中等数据演示_"
+        content_pattern = "RatMemCache_50KB_medium_data_"
         print("🔧 测试50KB数据的传输...")
         test_data, actual_size, pattern = self.generate_test_data(50, content_pattern)
         test_key = "medium_test_data"
@@ -307,7 +309,8 @@ class StreamingProtocolDemo:
         print("\n🌊 流式GET测试...")
         streaming_info, streaming_time = self.streaming_get(test_key, chunk_size=8192)
         if streaming_info:
-            print(f"✅ 流式GET成功")
+            elapsed_ms = streaming_time * 1000
+            print(f"✅ 流式GET成功! 耗时: {elapsed_ms:.2f}毫秒")
             print(f"⏱️  流式GET响应时间: {streaming_time:.3f}秒")
             print(f"📊 流信息:")
             print(f"   - 总大小: {streaming_info['total_size']} bytes")
@@ -326,7 +329,7 @@ class StreamingProtocolDemo:
         """大数据演示（传统方式超时，流式方式正常）"""
         self.print_section("📊 大数据测试 (200KB)")
 
-        content_pattern = "RatMemCache_200KB大数据流式协议演示_"
+        content_pattern = "RatMemCache_200KB_large_data_"
         print("🔧 测试200KB数据的传输...")
         test_data, actual_size, pattern = self.generate_test_data(200, content_pattern)
         test_key = "large_test_data"
@@ -357,7 +360,8 @@ class StreamingProtocolDemo:
         print("\n🌊 流式GET测试...")
         streaming_info, streaming_time = self.streaming_get(test_key, chunk_size=16384)
         if streaming_info:
-            print(f"✅ 流式GET成功")
+            elapsed_ms = streaming_time * 1000
+            print(f"✅ 流式GET成功! 耗时: {elapsed_ms:.2f}毫秒")
             print(f"⏱️  流式GET响应时间: {streaming_time:.3f}秒")
             print(f"📊 流信息:")
             print(f"   - 总大小: {streaming_info['total_size']} bytes")

@@ -89,9 +89,10 @@ class FinalDemo:
 
                     if data_end > data_start and (data_end - data_start) >= data_length:
                         received_data = full_response[data_start:data_end]
-                        print(f"✅ 传统GET成功! 耗时: {time.time() - start_time:.3f}秒")
+                        elapsed_ms = (time.time() - start_time) * 1000
+                        print(f"✅ 传统GET成功! 耗时: {elapsed_ms:.2f}毫秒")
                         sock.close()
-                        return received_data, time.time() - start_time
+                        return received_data, elapsed_ms / 1000
                     else:
                         print(f"⏰ 传统GET失败! (数据长度不匹配，期望{data_length}，实际{data_end - data_start})")
                         sock.close()
@@ -151,7 +152,8 @@ class FinalDemo:
                 'response_time': end_time - start_time
             }
 
-            print(f"✅ 流式GET成功! 耗时: {end_time - start_time:.3f}秒")
+            elapsed_ms = (end_time - start_time) * 1000
+            print(f"✅ 流式GET成功! 耗时: {elapsed_ms:.2f}毫秒")
             return stream_info, end_time - start_time
 
         except Exception as e:
@@ -209,8 +211,14 @@ class FinalDemo:
 
             # 性能对比
             if traditional_time > 0 and streaming_time > 0:
-                speedup = traditional_time / streaming_time
-                print(f"\n🚀 流式协议速度提升: {speedup:.1f}倍")
+                traditional_ms = traditional_time * 1000
+                streaming_ms = streaming_time * 1000
+                if streaming_ms > 0:
+                    speedup = traditional_ms / streaming_ms
+                    print(f"\n🚀 流式协议速度提升: {speedup:.1f}倍")
+                    print(f"   (传统: {traditional_ms:.2f}ms vs 流式: {streaming_ms:.2f}ms)")
+                else:
+                    print(f"\n🚀 流式协议速度极快 (传统: {traditional_ms:.2f}ms vs 流式: <0.01ms)")
 
             print("\n" + "=" * 60)
 
