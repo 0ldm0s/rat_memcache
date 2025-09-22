@@ -49,20 +49,26 @@ RatMemCache 是一个基于 Rust 实现的高性能缓存系统，提供了以�
 
 ### 作为库使用
 
+RatMemCache 可以作为 Rust 库集成到你的项目中，提供高性能的双层缓存功能。
+
+#### 基本集成
+
 ```toml
 [dependencies]
 rat_memcache = { version = "0.2.0", features = ["cache-lib"] }
+tokio = { version = "1.0", features = ["full"] }
 ```
 
+#### 快速开始
+
 ```rust
-use rat_memcache::{RatMemCacheBuilder, CacheConfig};
+use rat_memcache::{RatMemCacheBuilder, CacheOptions};
 use bytes::Bytes;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 创建缓存实例
+    // 创建缓存实例 - 使用默认配置
     let cache = RatMemCacheBuilder::new()
-        .with_config(CacheConfig::default())
         .build()
         .await?;
 
@@ -78,10 +84,154 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Retrieved: {:?}", retrieved);
     }
 
-    // 关闭缓存
+    // 设置带 TTL 的缓存（60秒过期）
+    cache.set_with_ttl("temp_key".to_string(), Bytes::from("temp_value"), 60).await?;
+
+    // 检查缓存是否存在
+    let exists = cache.contains_key("temp_key").await?;
+    println!("Key exists: {}", exists);
+
+    // 获取缓存键列表
+    let keys = cache.keys().await?;
+    println!("Cache keys: {:?}", keys);
+
+    // 条件删除
+    let deleted = cache.delete("temp_key").await?;
+    println!("Key deleted: {}", deleted);
+
+    // 优雅关闭
     cache.shutdown().await?;
 
     Ok(())
+}
+```
+
+#### 高级配置
+
+```rust
+use rat_memcache::{RatMemCacheBuilder, EvictionStrategy};
+use rat_memcache::config::{L1Config, L2Config, TtlConfig};
+use std::path::PathBuf;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 自定义 L1 配置（2GB 内存限制）
+    let l1_config = L1Config {
+        max_memory: 2 * 1024 * 1024 * 1024,  // 2GB in bytes
+        max_entries: 1_000_000,             // 100万条记录
+        eviction_strategy: EvictionStrategy::Lru,
+    };
+
+    // 自定义 L2 配置（10GB 磁盘空间）
+    let l2_config = L2Config {
+        enable_l2_cache: true,
+        data_dir: Some(PathBuf::from("./cache_data")),
+        clear_on_startup: false,
+        max_disk_size: 10 * 1024 * 1024 * 1024,  // 10GB in bytes
+        write_buffer_size: 64 * 1024 * 1024,     // 64MB
+        max_write_buffer_number: 3,
+        block_cache_size: 32 * 1024 * 1024,      // 32MB
+        enable_compression: true,
+        compression_level: 6,
+        background_threads: 2,
+        database_engine: Default::default(),
+        melange_config: Default::default(),
+    };
+
+    // TTL 配置
+    let ttl_config = TtlConfig {
+        default_ttl: Some(3600),     // 默认1小时
+        max_ttl: 86400,              // 最大24小时
+        cleanup_interval: 300,       // 5分钟清理一次
+        ..Default::default()
+    };
+
+    let cache = RatMemCacheBuilder::new()
+        .l1_config(l1_config)
+        .l2_config(l2_config)
+        .ttl_config(ttl_config)
+        .build()
+        .await?;
+
+    // 使用缓存...
+
+    Ok(())
+}
+```
+
+#### 生产环境最佳实践
+
+```rust
+use rat_memcache::{RatMemCacheBuilder, EvictionStrategy};
+use rat_memcache::config::{L1Config, L2Config, PerformanceConfig};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // 生产环境配置 - 默认关闭统计以获得最佳性能
+    let cache = RatMemCacheBuilder::new()
+        .l1_config(L1Config {
+            max_memory: 4 * 1024 * 1024 * 1024,  // 4GB
+            max_entries: 2_000_000,
+            eviction_strategy: EvictionStrategy::Lru,
+        })
+        .l2_config(L2Config {
+            enable_l2_cache: true,
+            max_disk_size: 50 * 1024 * 1024 * 1024,  // 50GB
+            enable_compression: true,
+            background_threads: 4,
+            ..Default::default()
+        })
+        .performance_config(PerformanceConfig {
+            // 根据需要启用统计（会影响性能）
+            enable_background_stats: false,  // 生产环境建议关闭
+            stats_interval: 60,               // 统计收集间隔
+            ..Default::default()
+        })
+        .build()
+        .await?;
+
+    // 应用程序主逻辑...
+
+    // 在需要时获取统计信息（例如：监控端点、定期报告、调试等）
+    if let Some(stats) = get_cache_stats_for_monitoring(&cache).await {
+        println!("缓存状态: {} MB 使用, 命中率: {:.1}%",
+                 stats.total_memory_usage / 1024 / 1024,
+                 stats.hit_rate.unwrap_or(0.0));
+    }
+
+    Ok(())
+}
+
+/// 示例：监控函数 - 可以集成到你的监控系统中
+async fn get_cache_stats_for_monitoring(cache: &rat_memcache::RatMemCache) -> Option<CacheStats> {
+    // 仅在需要时获取统计信息，避免频繁调用影响性能
+    let stats = cache.get_cache_stats().await;
+    let hit_rate = cache.get_hit_rate().await;
+
+    // 返回统计信息用于监控系统
+    Some(CacheStats {
+        l1_stats: stats.l1_stats,
+        l2_stats: stats.l2_stats,
+        total_memory_usage: stats.total_memory_usage,
+        total_entries: stats.total_entries,
+        hit_rate,
+    })
+}
+
+/// 用于 Prometheus/Grafana 等监控系统的指标导出示例
+async fn export_metrics(cache: &rat_memcache::RatMemCache) -> String {
+    let stats = cache.get_cache_stats().await;
+
+    format!(
+        "rat_memcache_memory_usage_bytes {}\n\
+         rat_memcache_total_entries {}\n\
+         rat_memcache_l1_entries {}\n\
+         rat_memcache_l2_entries {}\n",
+        stats.total_memory_usage,
+        stats.total_entries,
+        stats.l1_stats.entry_count,
+        stats.l2_stats.entry_count
+    )
 }
 ```
 
