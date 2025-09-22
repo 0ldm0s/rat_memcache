@@ -477,10 +477,12 @@ impl MemcachedServer {
                     empty_read_count = 0;
 
                     info!("📨 接收到 {} 字节数据", bytes_read);
+                    println!("🔧 [DEBUG] 原始数据片段 (前100字节): {:?}", &buffer[..bytes_read.min(100)]);
 
                     // 将新数据添加到累积缓冲区
                     let new_data = String::from_utf8_lossy(&buffer[..bytes_read]);
                     buffer_accumulator.push_str(&new_data);
+                    println!("🔧 [DEBUG] 累积缓冲区长度: {} chars", buffer_accumulator.len());
 
                     // 处理累积的数据
                     let mut should_quit = false;
@@ -536,12 +538,16 @@ impl MemcachedServer {
                                 let response = Self::execute_command(cmd, &cache, start_time).await;
                                 let response_data = Self::format_response(response);
 
+                                println!("🔧 [DEBUG] 发送响应: {} bytes", response_data.len());
                                 if let Err(e) = stream.write_all(&response_data).await {
+                                    println!("🔧 [DEBUG] 发送响应失败: {} (size: {} bytes)", e, response_data.len());
                                     error!("发送响应失败: {}", e);
                                     consecutive_errors += 1;
                                     if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
                                         return Ok(());
                                     }
+                                } else {
+                                    println!("🔧 [DEBUG] 响应发送成功!");
                                 }
 
                                 pending_command = None;
@@ -600,17 +606,22 @@ impl MemcachedServer {
                                     break;
                                 } else {
                                     // 立即执行的命令
+                                    println!("🔧 [DEBUG] 立即执行命令路径...");
                                     let response =
                                         Self::execute_command(command, &cache, start_time).await;
                                     let response_data = Self::format_response(response);
+                                    println!("🔧 [DEBUG] 立即执行路径: 发送响应: {} bytes", response_data.len());
 
                                     if let Err(e) = stream.write_all(&response_data).await
                                     {
+                                        println!("🔧 [DEBUG] 立即执行路径: 发送响应失败: {} (size: {} bytes)", e, response_data.len());
                                         error!("发送响应失败: {}", e);
                                         consecutive_errors += 1;
                                         if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
                                             return Ok(());
                                         }
+                                    } else {
+                                        println!("🔧 [DEBUG] 立即执行路径: 响应发送成功!");
                                     }
                                 }
                             } else {
@@ -657,11 +668,14 @@ impl MemcachedServer {
                 bytes,
                 data,
             } => {
+                println!("🔧 [DEBUG] format_response: 准备发送大值响应 - key: {}, data_size: {} bytes", key, data.len());
                 let header = format!("VALUE {} {} {}\r\n", key, flags, bytes);
                 let mut response_data = Vec::new();
                 response_data.extend_from_slice(header.as_bytes());
                 response_data.extend_from_slice(&data);
                 response_data.extend_from_slice(b"\r\nEND\r\n");
+                println!("🔧 [DEBUG] format_response: 响应总大小: {} bytes (header: {} + data: {} + trailer: {})",
+                    response_data.len(), header.len(), data.len(), 7); // 7 = \r\nEND\r\n
                 response_data
             }
             MemcachedResponse::End => b"END\r\n".to_vec(),
@@ -801,6 +815,7 @@ impl MemcachedServer {
                     match cache.get(key).await {
                         Ok(Some(data)) => {
                             info!("GET 命中: {} ({} bytes)", key, data.len());
+                            println!("🔧 [DEBUG] execute_command: 返回Value响应，数据大小: {} bytes", data.len());
                             MemcachedResponse::Value {
                                 key: key.clone(),
                                 flags: 0,
