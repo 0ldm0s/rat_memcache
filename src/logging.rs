@@ -53,6 +53,11 @@ impl LogManager {
 
     /// 初始化日志系统
     pub fn initialize(&self) -> CacheResult<()> {
+        // 如果完全禁用日志，直接返回
+        if !self.config.enable_logging {
+            return Ok(());
+        }
+
         // 使用正确的TermConfig配置
         use rat_logger::handler::term::TermConfig;
 
@@ -94,9 +99,24 @@ impl LogManager {
 
         let level_filter = convert_log_level(&self.config.level);
 
-        let builder = LoggerBuilder::new()
-            .with_level(level_filter)
-            .add_terminal_with_config(term_config);
+        let mut builder = LoggerBuilder::new()
+            .with_level(level_filter);
+
+        // 配置异步模式和批量处理
+        if self.config.enable_async {
+            builder = builder.with_async_mode(true);
+
+            // 设置批量配置
+            let batch_config = rat_logger::producer_consumer::BatchConfig {
+                batch_size: self.config.batch_size,
+                batch_interval_ms: self.config.batch_interval_ms,
+                buffer_size: self.config.buffer_size,
+            };
+            builder = builder.with_batch_config(batch_config);
+        }
+
+        // 添加终端处理器
+        builder = builder.add_terminal_with_config(term_config);
 
         // 初始化日志器
         builder.init().map_err(|e| {
@@ -127,6 +147,11 @@ pub fn init_default_logger() -> CacheResult<()> {
         enable_performance_logs: true,
         enable_audit_logs: true,
         enable_cache_logs: true,
+        enable_logging: true,
+        enable_async: false,
+        batch_size: 2048,
+        batch_interval_ms: 25,
+        buffer_size: 16 * 1024,
     };
     init_logger(config)
 }
