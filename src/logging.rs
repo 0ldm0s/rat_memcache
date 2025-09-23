@@ -138,6 +138,25 @@ pub fn init_logger(config: LoggingConfig) -> CacheResult<()> {
     manager.initialize()
 }
 
+/// 强制刷新日志（仅在异步模式下有效）
+///
+/// 在异步模式下，日志会被缓冲批量处理，调用此函数可立即输出所有缓冲的日志
+/// 在同步模式下或日志禁用时，此函数无效果
+pub fn flush_logs() {
+    rat_logger::flush_logs!();
+}
+
+/// 条件性强制刷新日志
+///
+/// 根据配置决定是否强制刷新日志：
+/// - 只有在异步模式且启用日志时才会刷新
+/// - 同步模式或禁用日志时不执行任何操作
+pub fn flush_logs_if_async(config: &LoggingConfig) {
+    if config.enable_logging && config.enable_async {
+        rat_logger::flush_logs!();
+    }
+}
+
 /// 使用默认配置初始化
 pub fn init_default_logger() -> CacheResult<()> {
     let config = LoggingConfig {

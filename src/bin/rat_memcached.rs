@@ -25,7 +25,7 @@ use tokio::net::{TcpListener as TokioTcpListener, TcpStream};
 use rat_memcache::{
     config::CacheConfig,
     error::{CacheError, CacheResult},
-    logging::LogManager,
+    logging::{LogManager, flush_logs_if_async},
     RatMemCache,
 };
 
@@ -494,6 +494,9 @@ impl MemcachedServer {
 
         // 显示配置详情
         Self::print_configuration_details(&cache_config);
+
+        // 如果是异步日志模式，强制刷新启动时的配置信息
+        flush_logs_if_async(&cache_config.logging);
 
         // 创建缓存实例
         let cache = Arc::new(RatMemCache::new(cache_config).await?);
