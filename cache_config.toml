@@ -77,3 +77,15 @@ show_timestamp = true
 enable_performance_logs = true
 enable_audit_logs = true
 enable_cache_logs = true
+
+# === 新的高级日志配置 ===
+# 是否完全禁用日志系统（设置为false可获得最高性能）
+enable_logging = true
+
+# 是否启用异步模式（异步模式可提高性能，但可能在程序崩溃时丢失日志）
+enable_async = false
+
+# 异步模式的批量配置（仅在enable_async=true时生效）
+batch_size = 2048        # 2KB
+batch_interval_ms = 25  # 25ms
+buffer_size = 16384     # 16KB

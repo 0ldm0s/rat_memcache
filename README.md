@@ -267,25 +267,95 @@ memcached-cli --server 127.0.0.1:11211
 
 项目使用 TOML 格式配置文件，支持灵活的配置选项：
 
-```toml
-[cache]
-max_memory_mb = 1024
-max_entries = 100000
-eviction_strategy = "lru"
+### 基本配置
 
-[melange_db]
+```toml
+[l1]
+max_memory = 1073741824  # 1GB
+max_entries = 100000
+eviction_strategy = "Lru"
+
+[l2]
+enable_l2_cache = true
 data_dir = "./rat_memcache_data"
-max_disk_size_mb = 1024
+max_disk_size = 1073741824  # 1GB
 enable_compression = true
 
+[compression]
+enable_lz4 = true
+compression_threshold = 1024
+compression_level = 6
+
 [ttl]
-default_ttl_seconds = 3600
-cleanup_interval_seconds = 300
+default_ttl = 3600  # 1小时
+cleanup_interval = 300  # 5分钟
 
 [performance]
 worker_threads = 4
-enable_async = true
+enable_concurrency = true
+read_write_separation = true
+large_value_threshold = 10240  # 10KB
 ```
+
+### 高级日志配置
+
+RatMemCache 基于 rat_logger 提供了灵活的日志配置，支持性能调优：
+
+```toml
+[logging]
+# 基本日志配置
+level = "INFO"                    # 日志级别: trace, debug, info, warn, error, off
+enable_colors = true               # 启用彩色输出
+show_timestamp = true              # 显示时间戳
+enable_performance_logs = true      # 启用性能日志
+enable_audit_logs = true           # 启用操作审计日志
+enable_cache_logs = true           # 启用缓存操作日志
+
+# 高级日志配置（性能调优）
+enable_logging = true               # 是否完全禁用日志系统（设置为false可获得最高性能）
+enable_async = false               # 是否启用异步模式（异步模式可提高性能，但可能在程序崩溃时丢失日志）
+
+# 异步模式的批量配置（仅在enable_async=true时生效）
+batch_size = 2048                  # 批量大小（字节）
+batch_interval_ms = 25             # 批量时间间隔（毫秒）
+buffer_size = 16384                # 缓冲区大小（字节）
+```
+
+#### 日志性能调优建议
+
+1. **最高性能模式**（适合生产环境）：
+   ```toml
+   [logging]
+   enable_logging = false
+   ```
+
+2. **异步高性能模式**（适合高负载场景）：
+   ```toml
+   [logging]
+   enable_logging = true
+   enable_async = true
+   batch_size = 4096
+   batch_interval_ms = 50
+   buffer_size = 32768
+   ```
+
+3. **调试模式**（开发环境）：
+   ```toml
+   [logging]
+   enable_logging = true
+   enable_async = false
+   level = "DEBUG"
+   enable_performance_logs = true
+   enable_cache_logs = true
+   ```
+
+#### 配置说明
+
+- **enable_logging**: 完全禁用日志系统的开关，设置为false时所有日志功能将被禁用，提供最高性能
+- **enable_async**: 异步模式开关，异步模式可以提高性能但可能在程序崩溃时丢失日志
+- **batch_size**: 异步模式下的批量大小，影响日志处理效率
+- **batch_interval_ms**: 异步模式下的批量时间间隔，影响日志实时性
+- **buffer_size**: 异步模式下的缓冲区大小，影响内存使用量
 
 ## 构建和测试
 

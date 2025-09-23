@@ -217,17 +217,43 @@ pub struct PerformanceConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoggingConfig {
     /// 日志级别
+    #[serde(default = "default_log_level")]
     pub level: String,
     /// 启用彩色输出
+    #[serde(default = "default_true")]
     pub enable_colors: bool,
     /// 显示时间戳
+    #[serde(default = "default_true")]
     pub show_timestamp: bool,
     /// 启用性能日志
+    #[serde(default = "default_true")]
     pub enable_performance_logs: bool,
     /// 启用操作审计日志
+    #[serde(default = "default_true")]
     pub enable_audit_logs: bool,
     /// 启用缓存操作日志
+    #[serde(default = "default_true")]
     pub enable_cache_logs: bool,
+
+    /// 是否完全禁用日志系统
+    #[serde(default = "default_true")]
+    pub enable_logging: bool,
+
+    /// 是否启用异步模式
+    #[serde(default = "default_false")]
+    pub enable_async: bool,
+
+    /// 异步模式的批量大小（字节）
+    #[serde(default = "default_batch_size")]
+    pub batch_size: usize,
+
+    /// 异步模式的批量时间间隔（毫秒）
+    #[serde(default = "default_batch_interval_ms")]
+    pub batch_interval_ms: u64,
+
+    /// 异步模式的缓冲区大小（字节）
+    #[serde(default = "default_buffer_size")]
+    pub buffer_size: usize,
 }
 
 /// 配置构建器
@@ -661,4 +687,29 @@ fn default_melange_smart_flush_bytes_threshold() -> usize {
 #[cfg(feature = "melange-storage")]
 fn default_melange_warmup_strategy() -> CacheWarmupStrategy {
     CacheWarmupStrategy::Recent
+}
+
+// 日志配置的默认值函数
+fn default_log_level() -> String {
+    "info".to_string()
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_false() -> bool {
+    false
+}
+
+fn default_batch_size() -> usize {
+    2048
+}
+
+fn default_batch_interval_ms() -> u64 {
+    25
+}
+
+fn default_buffer_size() -> usize {
+    16 * 1024
 }
