@@ -240,13 +240,8 @@ impl RatMemCache {
             compressor,
             is_running: Arc::new(RwLock::new(true)),
         };
-        
-        // 启动后台任务
-        cache_log!(config.logging, debug, "启动后台任务");
-        cache.start_background_tasks().await;
-        
+
         let elapsed = start_time.elapsed();
-        cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
         cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
         
         cache_log!(config.logging, debug, "返回 RatMemCache 实例");
@@ -318,12 +313,7 @@ impl RatMemCache {
     pub async fn set_with_options(&self, key: String, value: Bytes, options: &CacheOptions) -> CacheResult<()> {
         let start_time = Instant::now();
         
-        // 验证 TTL
-        if let Some(ttl) = options.ttl_seconds {
-            if ttl > self.config.ttl.max_ttl {
-                return Err(CacheError::invalid_ttl(ttl as i64));
-            }
-        }
+        // TTL 验证逻辑已简化，移除最大值检查
         
         // 大值处理：检查是否超过大值阈值
         let threshold = self.config.performance.large_value_threshold;
@@ -546,10 +536,6 @@ impl RatMemCache {
 
     /// 设置 TTL
     pub async fn set_ttl(&self, key: &str, ttl_seconds: u64) -> CacheResult<()> {
-        if ttl_seconds > self.config.ttl.max_ttl {
-            return Err(CacheError::invalid_ttl(ttl_seconds as i64));
-        }
-        
         let _ = self.ttl_manager.add_key(key.to_string(), Some(ttl_seconds)).await;
         Ok(())
     }
@@ -614,113 +600,20 @@ impl RatMemCache {
         }
         
         // 根据配置的写入策略决定
-        match self.config.performance.l2_write_strategy.as_str() {
+        match self.config.l2.l2_write_strategy.as_str() {
             "always" => true,
             "never" => false,
-            "size_based" => value.len() >= self.config.performance.l2_write_threshold,
-            "ttl_based" => options.ttl_seconds.unwrap_or(0) >= self.config.performance.l2_write_ttl_threshold,
+            "size_based" => value.len() >= self.config.l2.l2_write_threshold,
+            "ttl_based" => options.ttl_seconds.unwrap_or(0) >= self.config.l2.l2_write_ttl_threshold,
             "adaptive" => {
                 // 自适应策略：基于 L1 使用率和数据大小
                 let l1_stats = self.l1_cache.get_stats().await;
                 let l1_usage_ratio = l1_stats.memory_usage as f64 / self.config.l1.max_memory as f64;
-                
-                l1_usage_ratio > 0.8 || value.len() >= self.config.performance.l2_write_threshold
+
+                l1_usage_ratio > 0.8 || value.len() >= self.config.l2.l2_write_threshold
             },
             _ => false,
         }
-    }
-
-    
-    /// 启动后台任务
-    async fn start_background_tasks(&self) {
-        // 启动统计更新任务（仅在启用统计时）
-        if self.config.performance.enable_background_stats {
-            let cache = Arc::new(self.clone());
-            let stats_interval = cache.config.performance.stats_interval;
-            tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(stats_interval));
-
-                loop {
-                    interval.tick().await;
-
-                    let running = {
-                        let running = cache.is_running.read().await;
-                        *running
-                    };
-
-                    if !running {
-                        break;
-                    }
-
-                    // 更新统计信息
-                    if let Err(e) = cache.update_background_stats().await {
-                        cache_log!(cache.config.logging, warn, "更新后台统计失败: {}", e);
-                    }
-                }
-            });
-        }
-        
-        // 启动性能监控任务
-        if self.config.logging.enable_performance_logs {
-            let cache = Arc::new(self.clone());
-            tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(60)); // 每分钟记录一次
-                
-                loop {
-                    interval.tick().await;
-                    
-                    let running = {
-                        let running = cache.is_running.read().await;
-                        *running
-                    };
-                    
-                    if !running {
-                        break;
-                    }
-                    
-                    // 记录性能日志
-                    let l1_stats = cache.get_l1_stats().await;
-                    #[cfg(feature = "melange-storage")]
-                    let l2_stats = cache.get_l2_stats().await;
-
-                    #[cfg(feature = "melange-storage")]
-                    perf_log!(cache.config.logging, debug,
-                        "缓存性能统计 - L1内存使用: {}MB, L2磁盘使用: {}MB, L2命中: {}, L2未命中: {}",
-                        l1_stats.memory_usage / 1024 / 1024,
-                        l2_stats.estimated_disk_usage / 1024 / 1024,
-                        l2_stats.hits,
-                        l2_stats.misses
-                    );
-                    #[cfg(not(feature = "melange-storage"))]
-                    perf_log!(cache.config.logging, debug,
-                        "缓存性能统计 - L1内存使用: {}MB",
-                        l1_stats.memory_usage / 1024 / 1024
-                    );
-                }
-            });
-        }
-    }
-
-    /// 更新后台统计
-    async fn update_background_stats(&self) -> CacheResult<()> {
-        // 更新内存使用统计
-        let l1_stats = self.l1_cache.get_stats().await;
-
-        
-        #[cfg(feature = "melange-storage")]
-        {
-            let l2_stats = if let Some(l2_cache) = &self.l2_cache {
-                l2_cache.get_stats().await
-            } else {
-                L2CacheStats::default()
-            };
-                    }
-
-        #[cfg(not(feature = "melange-storage"))]
-        {
-                    }
-
-        Ok(())
     }
 }
 

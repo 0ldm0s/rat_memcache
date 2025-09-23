@@ -30,7 +30,7 @@ RatMemCache 是一个基于 Rust 实现的高性能缓存系统，提供了以�
 - ⏰ **TTL 支持**: 灵活的过期时间管理
 - 🐘 **大值处理优化**: 超过阈值的大值直接下沉到L2存储，避免内存耗尽
 - 🗜️ **数据压缩**: LZ4 压缩算法，节省存储空间
-- 📊 **高性能指标**: 读写分离指标系统
+- 🚀 **高性能**: 基于异步运行时，支持高并发访问
 - 🎨 **结构化日志**: 基于 rat_logger 的高性能日志系统
 - 🔧 **灵活配置**: 支持多种预设配置和自定义配置
 
@@ -168,7 +168,7 @@ use rat_memcache::config::{L1Config, L2Config, PerformanceConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 生产环境配置 - 默认关闭统计以获得最佳性能
+    // 生产环境配置 - 优化性能配置
     let cache = RatMemCacheBuilder::new()
         .l1_config(L1Config {
             max_memory: 4 * 1024 * 1024 * 1024,  // 4GB
@@ -183,9 +183,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             ..Default::default()
         })
         .performance_config(PerformanceConfig {
-            // 根据需要启用统计（会影响性能）
-            enable_background_stats: false,  // 生产环境建议关闭
-            stats_interval: 60,               // 统计收集间隔
             ..Default::default()
         })
         .build()
@@ -193,47 +190,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 应用程序主逻辑...
 
-    // 在需要时获取统计信息（例如：监控端点、定期报告、调试等）
-    if let Some(stats) = get_cache_stats_for_monitoring(&cache).await {
-        println!("缓存状态: {} MB 使用, 命中率: {:.1}%",
-                 stats.total_memory_usage / 1024 / 1024,
-                 stats.hit_rate.unwrap_or(0.0));
-    }
-
     Ok(())
 }
 
-/// 示例：监控函数 - 可以集成到你的监控系统中
-async fn get_cache_stats_for_monitoring(cache: &rat_memcache::RatMemCache) -> Option<CacheStats> {
-    // 仅在需要时获取统计信息，避免频繁调用影响性能
-    let stats = cache.get_cache_stats().await;
-    let hit_rate = cache.get_hit_rate().await;
-
-    // 返回统计信息用于监控系统
-    Some(CacheStats {
-        l1_stats: stats.l1_stats,
-        l2_stats: stats.l2_stats,
-        total_memory_usage: stats.total_memory_usage,
-        total_entries: stats.total_entries,
-        hit_rate,
-    })
-}
-
-/// 用于 Prometheus/Grafana 等监控系统的指标导出示例
-async fn export_metrics(cache: &rat_memcache::RatMemCache) -> String {
-    let stats = cache.get_cache_stats().await;
-
-    format!(
-        "rat_memcache_memory_usage_bytes {}\n\
-         rat_memcache_total_entries {}\n\
-         rat_memcache_l1_entries {}\n\
-         rat_memcache_l2_entries {}\n",
-        stats.total_memory_usage,
-        stats.total_entries,
-        stats.l1_stats.entry_count,
-        stats.l2_stats.entry_count
-    )
-}
 ```
 
 ### 作为独立服务器使用
@@ -291,7 +250,6 @@ RatMemCache 完全兼容 Memcached 协议，支持以下命令：
 - `set` / `add` / `replace` / `append` / `prepend` / `cas` - 设置数据
 - `delete` - 删除数据
 - `incr` / `decr` - 增减数值
-- `stats` - 获取统计信息
 - `flush_all` - 清空所有数据
 - `version` - 获取版本信息
 
@@ -372,7 +330,7 @@ cargo clippy
 - ✅ 读写分离
 - ✅ 内存池管理
 - ✅ 智能缓存预热
-- ✅ 性能指标收集
+- ✅ 高性能异步设计
 
 ### 可靠性
 - ✅ 数据持久化
@@ -392,7 +350,7 @@ cargo clippy
 ├─────────────────┴───────────────────────────────────────┤
 │                     核心层                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐    │
-│  │   L1缓存    │  │   TTL管理   │  │  指标收集    │    │
+│  │   L1缓存    │  │   TTL管理   │  │  流式传输    │    │
 │  │   (内存)    │  │            │  │             │    │
 │  └─────────────┘  └─────────────┘  └─────────────┘    │
 ├─────────────────────────────────────────────────────────┤
@@ -491,7 +449,6 @@ streaming_get large_key 16384  # 16KB块大小
 - [ ] 添加更多驱逐策略
 - [ ] 支持 Redis 协议
 - [ ] Web 管理界面
-- [ ] 更多监控指标
 
 ## 许可证细节
 

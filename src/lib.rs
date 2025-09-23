@@ -45,7 +45,6 @@ mod l1_cache;
 mod l2_cache;
 #[cfg(feature = "melange-storage")]
 mod melange_adapter;
-mod metrics;
 mod ttl;
 
 
@@ -129,11 +128,13 @@ mod tests {
                 smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
                 cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
                 zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
-                max_ttl: 3600,
-                cleanup_interval: 60,
+                                cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
@@ -151,11 +152,6 @@ mod tests {
                 read_write_separation: true,
                 batch_size: 100,
                 enable_warmup: false,
-                stats_interval: 60,
-                enable_background_stats: false,
-                l2_write_strategy: "write_through".to_string(),
-                l2_write_threshold: 1024,
-                l2_write_ttl_threshold: 300,
                 large_value_threshold: 10240, // 10KB
             })
             .logging_config(LoggingConfig {
@@ -215,11 +211,13 @@ mod tests {
                 smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
                 cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
                 zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
-                max_ttl: 3600,
-                cleanup_interval: 60,
+                                cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
@@ -237,11 +235,6 @@ mod tests {
                 read_write_separation: true,
                 batch_size: 100,
                 enable_warmup: false,
-                stats_interval: 60,
-                enable_background_stats: false,
-                l2_write_strategy: "write_through".to_string(),
-                l2_write_threshold: 1024,
-                l2_write_ttl_threshold: 300,
                 large_value_threshold: 10240, // 10KB
             })
             .logging_config(LoggingConfig {
@@ -309,11 +302,13 @@ mod tests {
                 smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
                 cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
                 zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
                 default_ttl: Some(60),
-                max_ttl: 3600,
-                cleanup_interval: 60,
+                                cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
@@ -331,11 +326,6 @@ mod tests {
                 read_write_separation: true,
                 batch_size: 100,
                 enable_warmup: false,
-                stats_interval: 60,
-                enable_background_stats: false,
-                l2_write_strategy: "write_through".to_string(),
-                l2_write_threshold: 1024,
-                l2_write_ttl_threshold: 300,
                 large_value_threshold: 10240, // 10KB
             })
             .logging_config(LoggingConfig {

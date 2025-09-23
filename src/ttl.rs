@@ -85,20 +85,16 @@ impl TtlManager {
     }
 
     /// 添加键的过期时间
-    pub async fn add_key(&self, key: String, ttl_seconds: Option<u64>) -> CacheResult<u64> {
-        let expire_time = if let Some(ttl) = ttl_seconds {
-            if ttl > self.config.max_ttl {
-                return Err(CacheError::invalid_ttl(ttl as i64));
-            }
-            if ttl == 0 {
-                // TTL 为 0 表示永不过期
+    pub async fn add_key(&self, key: String, _ttl_seconds: Option<u64>) -> CacheResult<u64> {
+        let expire_time = if let Some(expire) = self.config.expire_seconds {
+            // 使用配置中设置的过期时间
+            if expire == 0 {
+                // 配置为0表示永不过期
                 return Ok(0);
             }
-            current_timestamp() + ttl
-        } else if let Some(default_ttl) = self.config.default_ttl {
-            current_timestamp() + default_ttl
+            current_timestamp() + expire
         } else {
-            // 永不过期
+            // 配置中没有设置过期时间，永不过期
             return Ok(0);
         };
 
