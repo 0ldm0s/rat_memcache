@@ -3,11 +3,10 @@
 //! 基于 rat_logger 库实现高性能日志系统
 
 use crate::config::LoggingConfig;
-use crate::error::CacheResult;
-use std::sync::Once;
+use crate::error::{CacheError, CacheResult};
 use std::io::Write;
 use chrono::Local;
-use rat_logger::{LoggerBuilder, Level, LevelFilter};
+use rat_logger::{LoggerBuilder, Level, LevelFilter, Logger};
 use rat_logger::config::{Record, Metadata};
 use rat_logger::handler::term::TermConfig;
 use rat_logger::{FormatConfig, LevelStyle, ColorConfig};
@@ -16,14 +15,23 @@ use rat_logger::{FormatConfig, LevelStyle, ColorConfig};
 pub use rat_logger::{debug, error, info, trace, warn};
 
 /// 日志管理器
-#[derive(Debug)]
 pub struct LogManager {
     config: LoggingConfig,
+    logger: Option<Box<dyn Logger>>,
+}
+
+impl std::fmt::Debug for LogManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LogManager")
+            .field("config", &self.config)
+            .field("logger", &self.logger.is_some())
+            .finish()
+    }
 }
 
 /// 日志级别转换
 fn convert_log_level(level: &str) -> LevelFilter {
-    match level.to_lowercase().as_str() {
+    let level_filter = match level.to_lowercase().as_str() {
         "trace" => LevelFilter::Trace,
         "debug" => LevelFilter::Debug,
         "info" => LevelFilter::Info,
@@ -31,77 +39,69 @@ fn convert_log_level(level: &str) -> LevelFilter {
         "error" => LevelFilter::Error,
         "off" => LevelFilter::Off,
         _ => LevelFilter::Info, // 默认级别
-    }
+    };
+
+    
+    level_filter
 }
-
-/// 全局日志初始化标志
-static INIT: Once = Once::new();
-
 
 impl LogManager {
     /// 创建新的日志管理器
     pub fn new(config: LoggingConfig) -> Self {
-        Self { config }
+        Self { config, logger: None }
     }
 
     /// 初始化日志系统
     pub fn initialize(&self) -> CacheResult<()> {
-        let config = &self.config;
-        
-        INIT.call_once(|| {
-            let mut builder = LoggerBuilder::new();
-            builder = builder.with_level(convert_log_level(&config.level));
+        // 使用正确的TermConfig配置
+        use rat_logger::handler::term::TermConfig;
 
-            // 创建RAT缓存主题格式配置
-            let format_config = FormatConfig {
-                timestamp_format: "%H:%M:%S%.3f".to_string(),
-                level_style: LevelStyle {
-                    error: "ERROR".to_string(),
-                    warn: "WARN ".to_string(),
-                    info: "INFO ".to_string(),
-                    debug: "DEBUG".to_string(),
-                    trace: "TRACE".to_string(),
-                },
-                format_template: "[{level}] {timestamp} [RAT-CACHE] {message}".to_string(),
-            };
+        // 创建RAT缓存主题格式配置
+        let format_config = rat_logger::FormatConfig {
+            timestamp_format: "%H:%M:%S%.3f".to_string(),
+            level_style: rat_logger::LevelStyle {
+                error: "ERROR".to_string(),
+                warn: "WARN ".to_string(),
+                info: "INFO ".to_string(),
+                debug: "DEBUG".to_string(),
+                trace: "TRACE".to_string(),
+            },
+            format_template: "{timestamp} [{level}] {target}:{line} - {message}".to_string(),
+        };
 
-            // 创建颜色配置（如果启用颜色）
-            let color_config = if config.enable_colors {
-                Some(ColorConfig {
-                    error: "\x1b[91m".to_string(),      // 亮红色
-                    warn: "\x1b[93m".to_string(),       // 亮黄色
-                    info: "\x1b[92m".to_string(),       // 亮绿色
-                    debug: "\x1b[96m".to_string(),      // 亮青色
-                    trace: "\x1b[95m".to_string(),      // 亮紫色
-                    timestamp: "\x1b[90m".to_string(),   // 深灰色
-                    target: "\x1b[94m".to_string(),      // 亮蓝色
-                    file: "\x1b[95m".to_string(),       // 亮紫色
-                    message: "\x1b[97m".to_string(),      // 亮白色
-                })
-            } else {
-                None
-            };
+        // 创建颜色配置（如果启用颜色）
+        let color_config = if self.config.enable_colors {
+            Some(rat_logger::ColorConfig {
+                error: "\x1b[91m".to_string(),      // 亮红色
+                warn: "\x1b[93m".to_string(),       // 亮黄色
+                info: "\x1b[92m".to_string(),       // 亮绿色
+                debug: "\x1b[96m".to_string(),      // 亮青色
+                trace: "\x1b[95m".to_string(),      // 亮紫色
+                timestamp: "\x1b[90m".to_string(),   // 深灰色
+                target: "\x1b[94m".to_string(),      // 亮蓝色
+                file: "\x1b[95m".to_string(),       // 亮紫色
+                message: "\x1b[97m".to_string(),      // 亮白色
+            })
+        } else {
+            None
+        };
 
-            // 创建终端配置
-            let term_config = TermConfig {
-                format: Some(format_config),
-                color: color_config,
-                ..Default::default()
-            };
+        let term_config = TermConfig {
+            enable_color: self.config.enable_colors,
+            format: Some(format_config),
+            color: color_config,
+        };
 
-            // 添加带配置的终端处理器
-            builder = builder.add_terminal_with_config(term_config);
+        let level_filter = convert_log_level(&self.config.level);
 
-            // 尝试初始化日志器
-            match builder.init() {
-                Ok(_) => {},
-                Err(e) => {
-                    // 如果已经初始化过了，这是正常的
-                    use std::io::{self, Write};
-                    let _ = writeln!(io::stderr(), "Logger init warning: {}", e);
-                }
-            }
-        });
+        let builder = LoggerBuilder::new()
+            .with_level(level_filter)
+            .add_terminal_with_config(term_config);
+
+        // 初始化日志器
+        builder.init().map_err(|e| {
+            CacheError::config_error(&format!("日志初始化失败: {}", e))
+        })?;
 
         Ok(())
     }

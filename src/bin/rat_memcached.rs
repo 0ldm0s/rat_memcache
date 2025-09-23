@@ -42,16 +42,13 @@ struct ServerConfig {
     bind_addr: String,
     /// 缓存配置文件路径
     cache_config_path: Option<String>,
-    /// 预设配置类型
-    preset: Option<String>,
-}
+    }
 
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             bind_addr: "127.0.0.1:11211".to_string(),
             cache_config_path: None,
-            preset: Some("high_speed_communication".to_string()),
         }
     }
 }
@@ -567,8 +564,7 @@ impl MemcachedServer {
 
         // TTL 配置
         info!("  ⏰ TTL 配置:");
-        info!("    - 默认TTL: {}秒", cache_config.ttl.default_ttl.unwrap_or(0));
-        info!("    - 最大TTL: {}秒", cache_config.ttl.max_ttl);
+        info!("    - 过期时间: {}秒", cache_config.ttl.expire_seconds.unwrap_or(0));
         info!("    - 清理间隔: {}秒", cache_config.ttl.cleanup_interval);
 
         // 压缩配置
@@ -1560,14 +1556,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("FILE")
                 .help("缓存配置文件路径"),
         )
-        .arg(
-            Arg::new("preset")
-                .short('p')
-                .long("preset")
-                .value_name("PRESET")
-                .help("预设配置类型 (development, production, high_speed_communication)")
-                .default_value("high_speed_communication"),
-        )
         .get_matches();
 
     // 启动前的美观输出
@@ -1581,7 +1569,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = ServerConfig {
         bind_addr: matches.get_one::<String>("bind").unwrap().clone(),
         cache_config_path: matches.get_one::<String>("config").map(|s| s.clone()),
-        preset: Some(matches.get_one::<String>("preset").unwrap().clone()),
     };
 
     // 如果没有指定配置文件，尝试从默认配置文件加载
@@ -1595,7 +1582,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("⚙️ 服务器配置:");
     println!("  - 绑定地址: {}", config.bind_addr);
-    println!("  - 预设配置: {:?}", config.preset);
     if let Some(ref config_path) = config.cache_config_path {
         println!("  - 配置文件: {}", config_path);
     }

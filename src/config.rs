@@ -49,38 +49,66 @@ pub struct L2Config {
     /// 数据目录（可选，None 时使用临时目录）
     pub data_dir: Option<PathBuf>,
     /// 启动时清空缓存目录
+    #[serde(default)]
     pub clear_on_startup: bool,
     /// 最大磁盘使用量（字节）
+    #[serde(default)]
     pub max_disk_size: u64,
     /// 写缓冲区大小
+    #[serde(default)]
     pub write_buffer_size: usize,
     /// 最大写缓冲区数量
+    #[serde(default)]
     pub max_write_buffer_number: i32,
     /// 块缓存大小
+    #[serde(default)]
     pub block_cache_size: usize,
     /// 启用压缩
+    #[serde(default)]
     pub enable_compression: bool,
     /// 压缩级别
+    #[serde(default)]
     pub compression_level: i32,
     /// 后台线程数
+    #[serde(default)]
     pub background_threads: i32,
     /// MelangeDB 压缩算法
+    #[serde(default)]
     pub compression_algorithm: CompressionAlgorithm,
     /// MelangeDB 缓存大小（MB）
+    #[serde(default)]
     pub cache_size_mb: usize,
     /// 最大文件大小（MB）
+    #[serde(default)]
     pub max_file_size_mb: usize,
     /// 智能flush配置
+    #[serde(default)]
     pub smart_flush_enabled: bool,
+    #[serde(default)]
     pub smart_flush_base_interval_ms: usize,
+    #[serde(default)]
     pub smart_flush_min_interval_ms: usize,
+    #[serde(default)]
     pub smart_flush_max_interval_ms: usize,
+    #[serde(default)]
     pub smart_flush_write_rate_threshold: usize,
+    #[serde(default)]
     pub smart_flush_accumulated_bytes_threshold: usize,
     /// 缓存预热策略
+    #[serde(default)]
     pub cache_warmup_strategy: CacheWarmupStrategy,
     /// ZSTD压缩级别（仅当使用ZSTD压缩时有效）
+    #[serde(default)]
     pub zstd_compression_level: Option<i32>,
+    /// L2 写入策略
+    #[serde(default)]
+    pub l2_write_strategy: String,
+    /// L2 写入阈值
+    #[serde(default)]
+    pub l2_write_threshold: usize,
+    /// L2 写入 TTL 阈值
+    #[serde(default)]
+    pub l2_write_ttl_threshold: u64,
 }
 
 #[cfg(feature = "melange-storage")]
@@ -108,6 +136,9 @@ impl Default for L2Config {
             smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024, // 4MB
             cache_warmup_strategy: CacheWarmupStrategy::Recent,
             zstd_compression_level: None,
+            l2_write_strategy: "write_through".to_string(),
+            l2_write_threshold: 1024,
+            l2_write_ttl_threshold: 300,
         }
     }
 }
@@ -125,6 +156,13 @@ pub enum CacheWarmupStrategy {
     Hot,
     /// 全部预热
     Full,
+}
+
+#[cfg(feature = "melange-storage")]
+impl Default for CacheWarmupStrategy {
+    fn default() -> Self {
+        CacheWarmupStrategy::Recent
+    }
 }
 
 
@@ -146,10 +184,8 @@ pub struct CompressionConfig {
 /// TTL 配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TtlConfig {
-    /// 默认 TTL（秒），None 表示永不过期
-    pub default_ttl: Option<u64>,
-    /// 最大 TTL（秒）
-    pub max_ttl: u64,
+    /// 数据过期时间（秒），None 表示永不过期
+    pub expire_seconds: Option<u64>,
     /// TTL 检查间隔（秒）
     pub cleanup_interval: u64,
     /// 每次清理的最大条目数
@@ -173,16 +209,6 @@ pub struct PerformanceConfig {
     pub batch_size: usize,
     /// 是否启用预热
     pub enable_warmup: bool,
-    /// 统计间隔（秒）
-    pub stats_interval: u64,
-    /// 是否启用后台统计
-    pub enable_background_stats: bool,
-    /// L2 写入策略
-    pub l2_write_strategy: String,
-    /// L2 写入阈值
-    pub l2_write_threshold: usize,
-    /// L2 写入 TTL 阈值
-    pub l2_write_ttl_threshold: u64,
     /// 大值阈值（字节），超过此值的数据直接写入L2或抛弃
     pub large_value_threshold: usize,
 }
@@ -345,7 +371,16 @@ impl CacheConfigBuilder {
             if l2_config.background_threads <= 0 {
                 return Err(CacheError::config_error("后台线程数必须大于 0"));
             }
-            
+
+            // 验证 L2 写入策略
+            let valid_strategies = ["always", "never", "size_based", "ttl_based", "adaptive", "write_through"];
+            if !valid_strategies.contains(&l2_config.l2_write_strategy.as_str()) {
+                return Err(CacheError::config_error(&format!(
+                    "无效的 L2 写入策略: {}，有效值: {:?}",
+                    l2_config.l2_write_strategy, valid_strategies
+                )));
+            }
+
             // 验证 L2 路径（如果指定了路径）
             if let Some(ref data_dir) = l2_config.data_dir {
                 PathUtils::validate_writable_path(data_dir)?;
@@ -361,19 +396,11 @@ impl CacheConfigBuilder {
         }
 
         // 验证 TTL 配置
-        if ttl_config.max_ttl == 0 {
-            return Err(CacheError::config_error("最大 TTL 不能为 0"));
-        }
         if ttl_config.cleanup_interval == 0 {
             return Err(CacheError::config_error("清理间隔不能为 0"));
         }
         if ttl_config.max_cleanup_entries == 0 {
             return Err(CacheError::config_error("最大清理条目数不能为 0"));
-        }
-        if let Some(default_ttl) = ttl_config.default_ttl {
-            if default_ttl > ttl_config.max_ttl {
-                return Err(CacheError::config_error("默认 TTL 不能大于最大 TTL"));
-            }
         }
         
         // 验证性能配置
@@ -383,10 +410,7 @@ impl CacheConfigBuilder {
         if performance_config.batch_size == 0 {
             return Err(CacheError::config_error("批处理大小不能为 0"));
         }
-        if performance_config.stats_interval == 0 {
-            return Err(CacheError::config_error("统计间隔不能为 0"));
-        }
-
+        
         Ok(())
     }
 
@@ -415,19 +439,11 @@ impl CacheConfigBuilder {
         }
 
         // 验证 TTL 配置
-        if ttl_config.max_ttl == 0 {
-            return Err(CacheError::config_error("最大 TTL 不能为 0"));
-        }
         if ttl_config.cleanup_interval == 0 {
             return Err(CacheError::config_error("清理间隔不能为 0"));
         }
         if ttl_config.max_cleanup_entries == 0 {
             return Err(CacheError::config_error("最大清理条目数不能为 0"));
-        }
-        if let Some(default_ttl) = ttl_config.default_ttl {
-            if default_ttl > ttl_config.max_ttl {
-                return Err(CacheError::config_error("默认 TTL 不能大于最大 TTL"));
-            }
         }
 
         // 验证性能配置
@@ -437,10 +453,7 @@ impl CacheConfigBuilder {
         if performance_config.batch_size == 0 {
             return Err(CacheError::config_error("批处理大小不能为 0"));
         }
-        if performance_config.stats_interval == 0 {
-            return Err(CacheError::config_error("统计间隔不能为 0"));
-        }
-
+        
         Ok(())
     }
 
