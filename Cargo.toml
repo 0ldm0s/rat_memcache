@@ -9,7 +9,7 @@ license = "LGPL-3.0-or-later"
 readme = "README.md"
 homepage = "https://github.com/0ldm0s/rat_memcache"
 documentation = "https://docs.rs/rat_memcache"
-keywords = ["memcached", "cache", "server", "database", "performance", "rust", "protocol"]
+keywords = ["memcached", "cache", "server", "database", "performance"]
 categories = ["caching", "database", "network-programming", "memory-management"]
 
 [[bin]]
