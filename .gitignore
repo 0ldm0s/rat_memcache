@@ -2,3 +2,4 @@
 /Cargo.lock
 /dist*
 /rat_memcache_data
+.claude/
