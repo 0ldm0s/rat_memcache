@@ -2,6 +2,18 @@
 
 高性能 Memcached 协议兼容服务器，支持双层缓存和 **melange_db** 持久化存储
 
+[![Crates.io](https://img.shields.io/crates/v/rat_memcache.svg)](https://crates.io/crates/rat_memcache)
+[![Documentation](https://docs.rs/rat_memcache/badge.svg)](https://docs.rs/rat_memcache)
+[![License](https://img.shields.io/crates/l/rat_memcache.svg)](https://crates.io/crates/rat_memcache)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/0ldm0s/rat_memcache/rust.yml?branch=master)](https://github.com/0ldm0s/rat_memcache/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/0ldm0s/rat_memcache)](https://codecov.io/gh/0ldm0s/rat_memcache)
+[![Downloads](https://img.shields.io/crates/d/rat_memcache.svg)](https://crates.io/crates/rat_memcache)
+[![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://rust-lang.org)
+
+---
+
+🇨🇳 [中文](README.md) | 🇺🇸 [English](README_EN.md) | 🇯🇵 [日本語](README_JA.md)
+
 ## 项目描述
 
 RatMemCache 是一个基于 Rust 实现的高性能缓存系统，提供了以下两种使用模式：
