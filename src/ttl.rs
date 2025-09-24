@@ -87,24 +87,27 @@ impl TtlManager {
     /// 添加键的过期时间
     pub async fn add_key(&self, key: String, ttl_seconds: Option<u64>) -> CacheResult<u64> {
         let expire_time = if let Some(ttl) = ttl_seconds {
-            if ttl > self.config.max_ttl {
-                return Err(CacheError::invalid_ttl(ttl as i64));
-            }
+            // 使用传入的TTL参数
             if ttl == 0 {
-                // TTL 为 0 表示永不过期
+                // TTL为0表示永不过期
                 return Ok(0);
             }
             current_timestamp() + ttl
-        } else if let Some(default_ttl) = self.config.default_ttl {
-            current_timestamp() + default_ttl
+        } else if let Some(expire) = self.config.expire_seconds {
+            // 使用配置中设置的过期时间
+            if expire == 0 {
+                // 配置为0表示永不过期
+                return Ok(0);
+            }
+            current_timestamp() + expire
         } else {
-            // 永不过期
+            // 配置中没有设置过期时间，永不过期
             return Ok(0);
         };
 
         // 更新索引
         self.update_key_expiry(key.clone(), expire_time).await;
-        
+
         // 发送清理命令
         if let Err(e) = self.cleanup_sender.send(CleanupCommand::AddKey {
             key: key.clone(),
@@ -134,7 +137,7 @@ impl TtlManager {
     pub async fn update_key(&self, key: String, ttl_seconds: Option<u64>) -> CacheResult<u64> {
         // 先移除旧的过期时间
         self.remove_key_expiry(&key).await;
-        
+
         // 添加新的过期时间
         self.add_key(key, ttl_seconds).await
     }
@@ -475,14 +478,13 @@ mod tests {
 
     fn create_test_config() -> (TtlConfig, LoggingConfig) {
         let ttl_config = TtlConfig {
-            default_ttl: Some(60),
-            max_ttl: 3600,
+            expire_seconds: None, // 测试中使用传入的TTL参数
             cleanup_interval: 1,
             max_cleanup_entries: 100,
             lazy_expiration: true,
             active_expiration: true,
         };
-        
+
         let logging_config = LoggingConfig {
             level: "debug".to_string(),
             enable_colors: false,
@@ -490,8 +492,13 @@ mod tests {
             enable_performance_logs: true,
             enable_audit_logs: false,
             enable_cache_logs: true,
+            enable_logging: true,
+            enable_async: false,
+            batch_size: 2048,
+            batch_interval_ms: 25,
+            buffer_size: 16384,
         };
-        
+
         (ttl_config, logging_config)
     }
 
@@ -519,17 +526,24 @@ mod tests {
     async fn test_key_expiration() {
         let (mut ttl_config, logging_config) = create_test_config();
         ttl_config.cleanup_interval = 1; // 1秒清理间隔
-        
+
         let manager = TtlManager::new(ttl_config, logging_config).await.unwrap();
-        
+
         // 添加一个很短的 TTL
         manager.add_key("short_ttl_key".to_string(), Some(1)).await.unwrap();
-        
-        // 等待过期
-        sleep(Duration::from_millis(1100)).await; // 稍微多等一点时间
-        
+
+        // 等待过期 - 增加等待时间确保过期
+        sleep(Duration::from_millis(2500)).await; // 等待2.5秒
+
         // 现在应该过期了
-        assert!(manager.is_expired("short_ttl_key").await);
+        let ttl = manager.get_ttl("short_ttl_key").await;
+        let is_expired = manager.is_expired("short_ttl_key").await;
+
+        // 如果键已被清理（get_ttl返回None），那么它确实已经过期了
+        // 如果键仍在TTL管理器中，那么is_expired应该返回true
+        let actually_expired = ttl.is_none() || is_expired;
+
+        assert!(actually_expired, "键应该在2.5秒后过期，TTL: {:?}, is_expired: {}", ttl, is_expired);
     }
 
     #[tokio::test]

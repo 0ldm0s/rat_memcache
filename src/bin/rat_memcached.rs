@@ -25,12 +25,15 @@ use tokio::net::{TcpListener as TokioTcpListener, TcpStream};
 use rat_memcache::{
     config::CacheConfig,
     error::{CacheError, CacheResult},
-    logging::LogManager,
+    logging::{LogManager, flush_logs_if_async},
     RatMemCache,
 };
 
 // 使用 rat_logger 日志宏
 use rat_logger::{debug, error, info, warn};
+
+// 引入流式协议支持
+use rat_memcache::streaming_protocol::{StreamingCommand, StreamingResponse, StreamingParser, StreamingFormatter};
 
 /// 服务器配置
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -39,16 +42,13 @@ struct ServerConfig {
     bind_addr: String,
     /// 缓存配置文件路径
     cache_config_path: Option<String>,
-    /// 预设配置类型
-    preset: Option<String>,
-}
+    }
 
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             bind_addr: "127.0.0.1:11211".to_string(),
             cache_config_path: None,
-            preset: Some("high_speed_communication".to_string()),
         }
     }
 }
@@ -91,6 +91,26 @@ enum MemcachedCommand {
         key: String,
         value: u64,
     },
+    // 流式协议命令
+    StreamingGet {
+        key: String,
+        chunk_size: Option<usize>,
+    },
+    SetBegin {
+        key: String,
+        total_size: usize,
+        chunk_count: usize,
+        flags: u32,
+        exptime: u32,
+    },
+    SetData {
+        key: String,
+        chunk_number: usize,
+        data: Bytes,
+    },
+    SetEnd {
+        key: String,
+    },
     Stats,
     Flush,
     Version,
@@ -120,6 +140,21 @@ enum MemcachedResponse {
     ServerError(String),
     Stats(HashMap<String, String>),
     Version(String),
+    // 流式协议响应
+    StreamBegin {
+        key: String,
+        total_size: usize,
+        chunk_count: usize,
+    },
+    StreamData {
+        key: String,
+        chunk_number: usize,
+        data: Bytes,
+    },
+    StreamEnd {
+        key: String,
+    },
+    StreamError(String),
 }
 
 /// Memcached 服务器
@@ -130,9 +165,316 @@ pub struct MemcachedServer {
     start_time: Instant,
     listener: Option<TokioTcpListener>,
     shutdown_notify: Arc<Notify>,
+    streaming_parser: StreamingParser,
+    // 流式传输状态管理
+    streaming_state: Arc<tokio::sync::RwLock<HashMap<String, StreamingSession>>>,
+    // 分块SET状态管理
+    chunked_set_state: Arc<tokio::sync::RwLock<HashMap<String, ChunkedSetSession>>>,
+}
+
+/// 流式传输会话状态
+#[derive(Debug, Clone)]
+struct StreamingSession {
+    /// 当前正在传输的键
+    key: String,
+    /// 总数据大小
+    total_size: usize,
+    /// 块大小
+    chunk_size: usize,
+    /// 当前块索引
+    current_chunk: usize,
+    /// 总块数
+    total_chunks: usize,
+    /// 完整数据
+    data: Bytes,
+    /// 创建时间
+    created_at: Instant,
+}
+
+/// 分块SET会话状态
+#[derive(Debug, Clone)]
+struct ChunkedSetSession {
+    /// 键名
+    key: String,
+    /// 总大小
+    total_size: usize,
+    /// 块数量
+    chunk_count: usize,
+    /// 标志
+    flags: u32,
+    /// 过期时间
+    exptime: u32,
+    /// 已接收的数据块
+    received_chunks: HashMap<usize, Bytes>,
+    /// 创建时间
+    created_at: Instant,
+}
+
+impl ChunkedSetSession {
+    pub fn new(key: String, total_size: usize, chunk_count: usize, flags: u32, exptime: u32) -> Self {
+        Self {
+            key,
+            total_size,
+            chunk_count,
+            flags,
+            exptime,
+            received_chunks: HashMap::new(),
+            created_at: Instant::now(),
+        }
+    }
+
+    /// 添加数据块
+    pub fn add_chunk(&mut self, chunk_number: usize, data: Bytes) -> bool {
+        if chunk_number >= self.chunk_count {
+            return false;
+        }
+
+        self.received_chunks.insert(chunk_number, data);
+        true
+    }
+
+    /// 检查是否所有块都已接收
+    pub fn is_complete(&self) -> bool {
+        self.received_chunks.len() == self.chunk_count
+    }
+
+    /// 组装完整数据
+    pub fn assemble_data(&self) -> Option<Vec<u8>> {
+        if !self.is_complete() {
+            return None;
+        }
+
+        let mut assembled_data = Vec::with_capacity(self.total_size);
+        for i in 0..self.chunk_count {
+            if let Some(chunk) = self.received_chunks.get(&i) {
+                assembled_data.extend_from_slice(chunk);
+            } else {
+                return None; // 缺少数据块
+            }
+        }
+
+        Some(assembled_data)
+    }
+
+    /// 获取接收进度
+    pub fn progress(&self) -> (usize, usize) {
+        (self.received_chunks.len(), self.chunk_count)
+    }
+}
+
+impl StreamingSession {
+    pub fn new(key: String, data: Bytes, chunk_size: usize) -> Self {
+        let total_size = data.len();
+        let total_chunks = (total_size + chunk_size - 1) / chunk_size;
+
+        Self {
+            key,
+            total_size,
+            chunk_size,
+            current_chunk: 0,
+            total_chunks,
+            data,
+            created_at: Instant::now(),
+        }
+    }
+
+    /// 获取下一个数据块
+    pub fn next_chunk(&mut self) -> Option<Bytes> {
+        if self.current_chunk >= self.total_chunks {
+            return None;
+        }
+
+        let start = self.current_chunk * self.chunk_size;
+        let end = std::cmp::min(start + self.chunk_size, self.total_size);
+        let chunk_data = self.data.slice(start..end);
+
+        self.current_chunk += 1;
+        Some(chunk_data)
+    }
+
+    /// 检查是否还有更多数据块
+    pub fn has_more_chunks(&self) -> bool {
+        self.current_chunk < self.total_chunks
+    }
+
+    /// 获取进度信息
+    pub fn progress(&self) -> (usize, usize) {
+        (self.current_chunk, self.total_chunks)
+    }
 }
 
 impl MemcachedServer {
+    /// 处理流式GET命令
+    async fn handle_streaming_get(
+        &self,
+        key: String,
+        chunk_size: Option<usize>,
+    ) -> CacheResult<Vec<MemcachedResponse>> {
+        let chunk_size = chunk_size.unwrap_or(4096);
+
+        match self.cache.get(&key).await {
+            Ok(Some(data)) => {
+                info!("流式GET命中: {} ({} bytes)", key, data.len());
+
+                // 创建流式会话
+                let session = StreamingSession::new(key.clone(), data.clone(), chunk_size);
+
+                // 存储会话状态
+                {
+                    let mut state = self.streaming_state.write().await;
+                    state.insert(key.clone(), session);
+                }
+
+                // 生成响应序列
+                let mut responses = Vec::new();
+
+                // 添加流开始响应
+                responses.push(MemcachedResponse::StreamBegin {
+                    key: key.clone(),
+                    total_size: data.len(),
+                    chunk_count: (data.len() + chunk_size - 1) / chunk_size,
+                });
+
+                Ok(responses)
+            }
+            Ok(None) => {
+                info!("流式GET未命中: {}", key);
+                Ok(vec![MemcachedResponse::StreamError("键不存在".to_string())])
+            }
+            Err(e) => {
+                error!("流式GET失败: {}", e);
+                Ok(vec![MemcachedResponse::StreamError(format!("获取失败: {}", e))])
+            }
+        }
+    }
+
+    /// 获取下一个数据块
+    async fn get_next_stream_chunk(&self, key: &str) -> Option<MemcachedResponse> {
+        let mut state = self.streaming_state.write().await;
+
+        if let Some(session) = state.get_mut(key) {
+            if let Some(chunk_data) = session.next_chunk() {
+                let (current, total) = session.progress();
+                let response = MemcachedResponse::StreamData {
+                    key: key.to_string(),
+                    chunk_number: current - 1,
+                    data: chunk_data,
+                };
+
+                // 如果这是最后一个块，添加流结束响应
+                if !session.has_more_chunks() {
+                    state.remove(key); // 清理会话
+                }
+
+                Some(response)
+            } else {
+                // 没有更多数据，发送流结束响应
+                state.remove(key); // 清理会话
+                Some(MemcachedResponse::StreamEnd {
+                    key: key.to_string(),
+                })
+            }
+        } else {
+            None
+        }
+    }
+
+    /// 处理分块SET开始命令
+    async fn handle_set_begin(
+        &self,
+        key: String,
+        total_size: usize,
+        chunk_count: usize,
+        flags: u32,
+        exptime: u32,
+    ) -> CacheResult<MemcachedResponse> {
+        info!("处理SET开始: {} ({} bytes, {} chunks)", key, total_size, chunk_count);
+
+        // 创建分块SET会话
+        let session = ChunkedSetSession::new(key.clone(), total_size, chunk_count, flags, exptime);
+
+        // 存储会话状态
+        {
+            let mut state = self.chunked_set_state.write().await;
+            state.insert(key.clone(), session);
+        }
+
+        Ok(MemcachedResponse::Stored)
+    }
+
+    /// 处理分块SET数据命令
+    async fn handle_set_data(
+        &self,
+        key: String,
+        chunk_number: usize,
+        data: Bytes,
+    ) -> CacheResult<MemcachedResponse> {
+        info!("处理SET数据: {} (chunk {}, {} bytes)", key, chunk_number, data.len());
+
+        let mut state = self.chunked_set_state.write().await;
+
+        if let Some(session) = state.get_mut(&key) {
+            if session.add_chunk(chunk_number, data) {
+                let (received, total) = session.progress();
+                info!("SET数据进度: {}/{}", received, total);
+
+                // 如果已接收所有块，组装数据并存储
+                if session.is_complete() {
+                    if let Some(assembled_data) = session.assemble_data() {
+                        let ttl = if session.exptime > 0 { session.exptime as u64 } else { 0 };
+                        match self.cache.set_with_ttl(key.clone(), Bytes::from(assembled_data), ttl).await {
+                            Ok(_) => {
+                                info!("分块SET完成: {}", key);
+                                state.remove(&key); // 清理会话
+                                Ok(MemcachedResponse::Stored)
+                            }
+                            Err(e) => {
+                                error!("分块SET存储失败: {}", e);
+                                state.remove(&key); // 清理会话
+                                Ok(MemcachedResponse::ServerError(format!("存储失败: {}", e)))
+                            }
+                        }
+                    } else {
+                        error!("分块SET数据组装失败: {}", key);
+                        state.remove(&key);
+                        Ok(MemcachedResponse::ServerError("数据组装失败".to_string()))
+                    }
+                } else {
+                    Ok(MemcachedResponse::Stored)
+                }
+            } else {
+                error!("分块SET数据块无效: {} (chunk {})", key, chunk_number);
+                Ok(MemcachedResponse::ClientError("无效的数据块".to_string()))
+            }
+        } else {
+            warn!("分块SET会话不存在: {}", key);
+            Ok(MemcachedResponse::ClientError("会话不存在".to_string()))
+        }
+    }
+
+    /// 处理分块SET结束命令
+    async fn handle_set_end(&self, key: String) -> CacheResult<MemcachedResponse> {
+        info!("处理SET结束: {}", key);
+
+        let mut state = self.chunked_set_state.write().await;
+
+        if let Some(session) = state.get(&key) {
+            if session.is_complete() {
+                // 数据已经在handle_set_data中处理完成
+                state.remove(&key);
+                Ok(MemcachedResponse::Stored)
+            } else {
+                let (received, total) = session.progress();
+                warn!("分块SET未完成: {} ({}/{})", key, received, total);
+                state.remove(&key);
+                Ok(MemcachedResponse::ClientError("数据不完整".to_string()))
+            }
+        } else {
+            warn!("分块SET会话不存在: {}", key);
+            Ok(MemcachedResponse::ClientError("会话不存在".to_string()))
+        }
+    }
+
     /// 创建新的 Memcached 服务器
     pub async fn new(config: ServerConfig) -> CacheResult<Self> {
         let bind_addr: SocketAddr = config
@@ -153,6 +495,9 @@ impl MemcachedServer {
         // 显示配置详情
         Self::print_configuration_details(&cache_config);
 
+        // 如果是异步日志模式，强制刷新启动时的配置信息
+        flush_logs_if_async(&cache_config.logging);
+
         // 创建缓存实例
         let cache = Arc::new(RatMemCache::new(cache_config).await?);
         info!("✅ 缓存实例创建成功");
@@ -167,6 +512,9 @@ impl MemcachedServer {
             start_time: Instant::now(),
             listener,
             shutdown_notify: Arc::new(Notify::new()),
+            streaming_parser: StreamingParser::new(),
+            streaming_state: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
+            chunked_set_state: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         })
     }
 
@@ -180,9 +528,8 @@ impl MemcachedServer {
         info!("    - 最大条目: {}", cache_config.l1.max_entries);
         info!("    - 淘汰策略: {:?}", cache_config.l1.eviction_strategy);
 
-        #[cfg(feature = "melange-storage")]
-        {
-            let l2_config = &cache_config.l2;
+        // L2 缓存配置显示
+        if let Some(l2_config) = &cache_config.l2 {
             if l2_config.enable_l2_cache {
                 info!("  💾 L2 MelangeDB 持久化缓存:");
                 info!("    - 启用状态: 是");
@@ -192,49 +539,50 @@ impl MemcachedServer {
                 info!("    - 最大磁盘空间: {:.2} MB", l2_config.max_disk_size as f64 / 1024.0 / 1024.0);
                 info!("    - 块缓存大小: {:.2} MB", l2_config.block_cache_size as f64 / 1024.0 / 1024.0);
                 info!("    - 写缓冲区: {:.2} MB", l2_config.write_buffer_size as f64 / 1024.0 / 1024.0);
-                info!("    - 压缩: {}", if l2_config.enable_compression { "启用" } else { "禁用" });
+                info!("    - 压缩: {}", if l2_config.enable_lz4 { "启用" } else { "禁用" });
 
                 // MelangeDB 特定配置
-                let melange_config = &l2_config.melange_config;
-                info!("    - MelangeDB 压缩算法: {:?}", melange_config.compression_algorithm);
-                info!("    - 缓存大小: {} MB", melange_config.cache_size_mb);
-                info!("    - 最大文件大小: {} MB", melange_config.max_file_size_mb);
-                info!("    - 智能Flush: {}", if melange_config.smart_flush_enabled { "启用" } else { "禁用" });
-                if melange_config.smart_flush_enabled {
+                info!("    - MelangeDB 压缩算法: {:?}", if l2_config.enable_lz4 { "LZ4" } else { "None" });
+                info!("    - 缓存大小: {} MB", l2_config.cache_size_mb);
+                info!("    - 最大文件大小: {} MB", l2_config.max_file_size_mb);
+                info!("    - 智能Flush: {}", if l2_config.smart_flush_enabled { "启用" } else { "禁用" });
+                if l2_config.smart_flush_enabled {
                     info!("    - Flush间隔: {}-{}ms (基础: {}ms)",
-                          melange_config.smart_flush_min_interval_ms,
-                          melange_config.smart_flush_max_interval_ms,
-                          melange_config.smart_flush_base_interval_ms);
+                          l2_config.smart_flush_min_interval_ms,
+                          l2_config.smart_flush_max_interval_ms,
+                          l2_config.smart_flush_base_interval_ms);
                 }
-                info!("    - 缓存预热策略: {:?}", melange_config.cache_warmup_strategy);
-                info!("    - 统计信息: {}", if melange_config.enable_statistics { "启用" } else { "禁用" });
+                info!("    - 缓存预热策略: {:?}", l2_config.cache_warmup_strategy);
+                info!("    - 统计信息: {}", if true { "启用" } else { "禁用" });
             } else {
-                info!("  💾 L2 MelangeDB 持久化缓存: 禁用");
+                info!("  💾 L2 MelangeDB 持久化缓存: 禁用 (通过配置)");
             }
-        }
-
-        #[cfg(not(feature = "melange-storage"))]
-        {
-            info!("  💾 L2 MelangeDB 持久化缓存: 未编译支持");
+        } else {
+            info!("  💾 L2 MelangeDB 持久化缓存: 禁用 (未配置)");
         }
 
         // TTL 配置
         info!("  ⏰ TTL 配置:");
-        info!("    - 默认TTL: {}秒", cache_config.ttl.default_ttl.unwrap_or(0));
-        info!("    - 最大TTL: {}秒", cache_config.ttl.max_ttl);
+        info!("    - 过期时间: {}秒", cache_config.ttl.expire_seconds.unwrap_or(0));
         info!("    - 清理间隔: {}秒", cache_config.ttl.cleanup_interval);
 
-        // 压缩配置
+        // 压缩配置（现在在L2配置中）
         info!("  🗜️  压缩配置:");
-        info!("    - LZ4压缩: {}", if cache_config.compression.enable_lz4 { "启用" } else { "禁用" });
-        info!("    - 压缩阈值: {} bytes", cache_config.compression.compression_threshold);
-        info!("    - 压缩级别: {}", cache_config.compression.compression_level);
+        if let Some(l2_config) = &cache_config.l2 {
+            info!("    - LZ4压缩: {}", if l2_config.enable_lz4 { "启用" } else { "禁用" });
+            info!("    - 压缩阈值: {} bytes", l2_config.compression_threshold);
+            info!("    - 最大压缩阈值: {} bytes", l2_config.compression_max_threshold);
+            info!("    - 压缩级别: {}", l2_config.compression_level);
+        } else {
+            info!("    - LZ4压缩: 禁用 (未配置L2缓存)");
+        }
 
         // 性能配置
         info!("  ⚡ 性能配置:");
         info!("    - 工作线程: {}", cache_config.performance.worker_threads);
         info!("    - 并发支持: {}", if cache_config.performance.enable_concurrency { "启用" } else { "禁用" });
         info!("    - 读写分离: {}", if cache_config.performance.read_write_separation { "启用" } else { "禁用" });
+        info!("    - 大值阈值: {} bytes ({}KB)", cache_config.performance.large_value_threshold, cache_config.performance.large_value_threshold / 1024);
 
         #[cfg(feature = "mimalloc-allocator")]
         info!("  🧠 内存分配器: mimalloc (高性能优化)");
@@ -256,18 +604,10 @@ impl MemcachedServer {
 
             Ok(cache_config)
         } else {
-            // 使用预设配置
-            match config.preset.as_deref() {
-                Some("development") => CacheConfig::development(),
-                Some("production") => CacheConfig::production(),
-                Some("high_speed_communication") | None => CacheConfig::high_speed_communication(),
-                Some(preset) => {
-                    return Err(CacheError::config_error(&format!(
-                        "未知的预设配置: {}",
-                        preset
-                    )));
-                }
-            }
+            // 预设配置功能已移除，必须使用配置文件
+            return Err(CacheError::config_error(
+                "预设配置功能已移除，必须通过配置文件进行详细配置。请使用 --config 参数指定配置文件路径。"
+            ));
         }
     }
 
@@ -544,7 +884,7 @@ impl MemcachedServer {
                                 let response = Self::execute_command(cmd, &cache, start_time).await;
                                 let response_data = Self::format_response(response);
 
-                                if let Err(e) = stream.write_all(response_data.as_bytes()).await {
+                                if let Err(e) = stream.write_all(&response_data).await {
                                     error!("发送响应失败: {}", e);
                                     consecutive_errors += 1;
                                     if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
@@ -604,7 +944,7 @@ impl MemcachedServer {
                                     let response =
                                         Self::execute_command(command, &cache, start_time).await;
                                     let response_data = Self::format_response(response);
-                                    let _ = stream.write_all(response_data.as_bytes()).await;
+                                    let _ = stream.write_all(&response_data).await;
                                     break;
                                 } else {
                                     // 立即执行的命令
@@ -612,7 +952,7 @@ impl MemcachedServer {
                                         Self::execute_command(command, &cache, start_time).await;
                                     let response_data = Self::format_response(response);
 
-                                    if let Err(e) = stream.write_all(response_data.as_bytes()).await
+                                    if let Err(e) = stream.write_all(&response_data).await
                                     {
                                         error!("发送响应失败: {}", e);
                                         consecutive_errors += 1;
@@ -657,7 +997,7 @@ impl MemcachedServer {
     }
 
     /// 格式化响应
-    fn format_response(response: MemcachedResponse) -> String {
+    fn format_response(response: MemcachedResponse) -> Vec<u8> {
         match response {
             MemcachedResponse::Value {
                 key,
@@ -665,33 +1005,45 @@ impl MemcachedServer {
                 bytes,
                 data,
             } => {
-                format!(
-                    "VALUE {} {} {}\r\n{}\r\nEND\r\n",
-                    key,
-                    flags,
-                    bytes,
-                    String::from_utf8_lossy(&data)
-                )
+                let header = format!("VALUE {} {} {}\r\n", key, flags, bytes);
+                let mut response_data = Vec::new();
+                response_data.extend_from_slice(header.as_bytes());
+                response_data.extend_from_slice(&data);
+                response_data.extend_from_slice(b"\r\nEND\r\n");
+                response_data
             }
-            MemcachedResponse::End => "END\r\n".to_string(),
-            MemcachedResponse::Stored => "STORED\r\n".to_string(),
-            MemcachedResponse::NotStored => "NOT_STORED\r\n".to_string(),
-            MemcachedResponse::Deleted => "DELETED\r\n".to_string(),
-            MemcachedResponse::NotFound => "NOT_FOUND\r\n".to_string(),
-            MemcachedResponse::Ok => "OK\r\n".to_string(),
-            MemcachedResponse::Error(msg) => format!("ERROR {}\r\n", msg),
-            MemcachedResponse::ServerError(msg) => format!("SERVER_ERROR {}\r\n", msg),
-            MemcachedResponse::ClientError(msg) => format!("CLIENT_ERROR {}\r\n", msg),
+            MemcachedResponse::End => b"END\r\n".to_vec(),
+            MemcachedResponse::Stored => b"STORED\r\n".to_vec(),
+            MemcachedResponse::NotStored => b"NOT_STORED\r\n".to_vec(),
+            MemcachedResponse::Deleted => b"DELETED\r\n".to_vec(),
+            MemcachedResponse::NotFound => b"NOT_FOUND\r\n".to_vec(),
+            MemcachedResponse::Ok => b"OK\r\n".to_vec(),
+            MemcachedResponse::Error(msg) => format!("ERROR {}\r\n", msg).into_bytes(),
+            MemcachedResponse::ServerError(msg) => format!("SERVER_ERROR {}\r\n", msg).into_bytes(),
+            MemcachedResponse::ClientError(msg) => format!("CLIENT_ERROR {}\r\n", msg).into_bytes(),
             MemcachedResponse::Stats(stats) => {
-                let mut result = String::new();
+                let mut result = Vec::new();
                 for (key, value) in stats {
-                    result.push_str(&format!("STAT {} {}\r\n", key, value));
+                    result.extend_from_slice(format!("STAT {} {}\r\n", key, value).as_bytes());
                 }
-                result.push_str("END\r\n");
+                result.extend_from_slice(b"END\r\n");
                 result
             }
-            MemcachedResponse::Version(version) => format!("VERSION {}\r\n", version),
-            _ => "ERROR\r\n".to_string(),
+            MemcachedResponse::Version(version) => format!("VERSION {}\r\n", version).into_bytes(),
+            // 流式协议响应处理
+            MemcachedResponse::StreamBegin { key, total_size, chunk_count } => {
+                StreamingFormatter::format_stream_begin(&key, total_size, chunk_count)
+            }
+            MemcachedResponse::StreamData { key, chunk_number, data } => {
+                StreamingFormatter::format_stream_data(&key, chunk_number, &data)
+            }
+            MemcachedResponse::StreamEnd { key } => {
+                StreamingFormatter::format_stream_end(&key)
+            }
+            MemcachedResponse::StreamError(msg) => {
+                StreamingFormatter::format_error(&msg)
+            }
+            _ => b"ERROR\r\n".to_vec(),
         }
     }
 
@@ -783,6 +1135,45 @@ impl MemcachedServer {
                     let key = parts[1].to_string();
                     let value = parts[2].parse().unwrap_or(1);
                     MemcachedCommand::Decr { key, value }
+                } else {
+                    MemcachedCommand::Unknown(line.to_string())
+                }
+            }
+            // 流式协议命令
+            "streaming_get" | "sget" => {
+                if parts.len() >= 2 {
+                    let key = parts[1].to_string();
+                    let chunk_size = parts.get(2).and_then(|s| s.parse().ok());
+                    MemcachedCommand::StreamingGet { key, chunk_size }
+                } else {
+                    MemcachedCommand::Unknown(line.to_string())
+                }
+            }
+            "set_begin" => {
+                if parts.len() >= 5 {
+                    let key = parts[1].to_string();
+                    let total_size = parts[2].parse().unwrap_or(0);
+                    let chunk_count = parts[3].parse().unwrap_or(0);
+                    let flags = parts[4].parse().unwrap_or(0);
+                    let exptime = parts.get(5).and_then(|s| s.parse().ok()).unwrap_or(0);
+                    MemcachedCommand::SetBegin { key, total_size, chunk_count, flags, exptime }
+                } else {
+                    MemcachedCommand::Unknown(line.to_string())
+                }
+            }
+            "set_data" => {
+                if parts.len() >= 3 {
+                    let key = parts[1].to_string();
+                    let chunk_number = parts[2].parse().unwrap_or(0);
+                    MemcachedCommand::SetData { key, chunk_number, data: Bytes::new() } // 数据将在后续处理
+                } else {
+                    MemcachedCommand::Unknown(line.to_string())
+                }
+            }
+            "set_end" => {
+                if parts.len() >= 2 {
+                    let key = parts[1].to_string();
+                    MemcachedCommand::SetEnd { key }
                 } else {
                     MemcachedCommand::Unknown(line.to_string())
                 }
@@ -1087,6 +1478,50 @@ impl MemcachedServer {
                 debug!("执行 QUIT 命令");
                 MemcachedResponse::Ok
             }
+            // 流式协议命令处理
+            MemcachedCommand::StreamingGet { key, chunk_size } => {
+                info!("执行流式GET命令: {} (chunk_size: {:?})", key, chunk_size);
+                // 这里简化处理，直接返回流开始响应
+                // 实际的流式数据传输需要在连接处理中实现
+                match cache.get(&key).await {
+                    Ok(Some(data)) => {
+                        info!("流式GET命中: {} ({} bytes)", key, data.len());
+                        let chunk_size = chunk_size.unwrap_or(4096);
+                        let total_size = data.len();
+                        let chunk_count = (total_size + chunk_size - 1) / chunk_size;
+
+                        MemcachedResponse::StreamBegin {
+                            key: key.clone(),
+                            total_size,
+                            chunk_count,
+                        }
+                    }
+                    Ok(None) => {
+                        info!("流式GET未命中: {}", key);
+                        MemcachedResponse::StreamError("键不存在".to_string())
+                    }
+                    Err(e) => {
+                        error!("流式GET失败: {}", e);
+                        MemcachedResponse::StreamError(format!("获取失败: {}", e))
+                    }
+                }
+            }
+            MemcachedCommand::SetBegin { key, total_size, chunk_count, flags, exptime } => {
+                info!("执行SET开始命令: {} (total: {} bytes, chunks: {})", key, total_size, chunk_count);
+                // 初始化流式SET操作
+                // 这里需要在服务器中维护状态，暂时简化处理
+                MemcachedResponse::Stored
+            }
+            MemcachedCommand::SetData { key, chunk_number, data } => {
+                info!("执行SET数据命令: {} (chunk: {}, size: {} bytes)", key, chunk_number, data.len());
+                // 处理数据块
+                MemcachedResponse::Stored
+            }
+            MemcachedCommand::SetEnd { key } => {
+                info!("执行SET结束命令: {}", key);
+                // 完成流式SET操作
+                MemcachedResponse::Stored
+            }
             MemcachedCommand::Unknown(cmd) => {
                 warn!("未知命令: {}", cmd);
                 MemcachedResponse::Error("未知命令".to_string())
@@ -1125,14 +1560,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("FILE")
                 .help("缓存配置文件路径"),
         )
-        .arg(
-            Arg::new("preset")
-                .short('p')
-                .long("preset")
-                .value_name("PRESET")
-                .help("预设配置类型 (development, production, high_speed_communication)")
-                .default_value("high_speed_communication"),
-        )
         .get_matches();
 
     // 启动前的美观输出
@@ -1146,7 +1573,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut config = ServerConfig {
         bind_addr: matches.get_one::<String>("bind").unwrap().clone(),
         cache_config_path: matches.get_one::<String>("config").map(|s| s.clone()),
-        preset: Some(matches.get_one::<String>("preset").unwrap().clone()),
     };
 
     // 如果没有指定配置文件，尝试从默认配置文件加载
@@ -1160,7 +1586,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("⚙️ 服务器配置:");
     println!("  - 绑定地址: {}", config.bind_addr);
-    println!("  - 预设配置: {:?}", config.preset);
     if let Some(ref config_path) = config.cache_config_path {
         println!("  - 配置文件: {}", config_path);
     }
