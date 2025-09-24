@@ -691,13 +691,6 @@ mod tests {
                 lazy_expiration: true,
                 active_expiration: false, // 测试中禁用主动过期
             })
-            .compression_config(crate::config::CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 1024,
-                compression_level: 4,
-                auto_compression: true,
-                min_compression_ratio: 0.8,
-            })
             .performance_config(crate::config::PerformanceConfig {
                 worker_threads: 4,
                 enable_concurrency: true,

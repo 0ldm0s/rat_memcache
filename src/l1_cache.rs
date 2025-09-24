@@ -519,7 +519,7 @@ impl L1CacheStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{L1Config, LoggingConfig, CompressionConfig, TtlConfig};
+    use crate::config::{L1Config, LoggingConfig, TtlConfig};
     use crate::compression::Compressor;
     use crate::ttl::TtlManager;
         use bytes::Bytes;
@@ -540,14 +540,6 @@ mod tests {
             enable_cache_logs: true,
         };
         
-        let compression_config = CompressionConfig {
-            enable_lz4: true,
-            compression_threshold: 100,
-            compression_level: 4,
-            auto_compression: true,
-            min_compression_ratio: 0.8,
-        };
-        
         let ttl_config = TtlConfig {
             default_ttl: Some(60),
             max_ttl: 3600,
@@ -557,9 +549,9 @@ mod tests {
             active_expiration: true,
         };
         
-        let compressor = Compressor::new(compression_config);
+        let compressor = Compressor::new_disabled();
         let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
-                
+
         L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap()
     }
 
@@ -631,14 +623,6 @@ mod tests {
             enable_cache_logs: true,
         };
         
-        let compression_config = CompressionConfig {
-            enable_lz4: false, // 禁用压缩以便测试
-            compression_threshold: 1000,
-            compression_level: 4,
-            auto_compression: false,
-            min_compression_ratio: 0.8,
-        };
-        
         let ttl_config = TtlConfig {
             default_ttl: None,
             max_ttl: 3600,
@@ -648,9 +632,9 @@ mod tests {
             active_expiration: false,
         };
         
-        let compressor = Compressor::new(compression_config);
+        let compressor = Compressor::new_disabled();
         let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
-                
+
         let cache = L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap();
         
         // 插入超过限制的条目
