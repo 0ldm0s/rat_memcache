@@ -644,7 +644,7 @@ impl Clone for RatMemCache {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "melange-storage"))]
 mod tests {
     use super::*;
     use crate::config::CacheConfigBuilder;
@@ -667,11 +667,12 @@ mod tests {
                 write_buffer_size: 1024 * 1024,  // 1MB
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,    // 512KB
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
                 cache_size_mb: 256,
                 max_file_size_mb: 512,
                 smart_flush_enabled: true,
@@ -682,10 +683,12 @@ mod tests {
                 smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
                 cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
                 zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(crate::config::TtlConfig {
-                default_ttl: Some(60),
-                max_ttl: 3600,
+                expire_seconds: Some(60),
                 cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
@@ -697,11 +700,6 @@ mod tests {
                 read_write_separation: true,
                 batch_size: 100,
                 enable_warmup: false,
-                stats_interval: 60,
-                enable_background_stats: false,
-                l2_write_strategy: "write_through".to_string(),
-                l2_write_threshold: 1024,
-                l2_write_ttl_threshold: 300,
                 large_value_threshold: 10240, // 10KB
             })
             .logging_config(crate::config::LoggingConfig {
@@ -711,6 +709,11 @@ mod tests {
                 enable_performance_logs: true,
                 enable_audit_logs: false,
                 enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
             })
             .build()
             .await

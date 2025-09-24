@@ -6,7 +6,7 @@
 //! 3. 未初始化日志时静默失败
 
 use rat_memcache::{RatMemCacheBuilder, cache_log, cache_debug, EvictionStrategy};
-use rat_memcache::config::{LoggingConfig, L1Config, CompressionConfig, TtlConfig, PerformanceConfig};
+use rat_memcache::config::{LoggingConfig, L1Config, TtlConfig, PerformanceConfig};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

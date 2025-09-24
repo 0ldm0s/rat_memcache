@@ -1,9 +1,0 @@
-🚀 RatMemcached - 高性能 Memcached 协议兼容服务器
-📦 基于 rat_memcache (MelangeDB存储后端)
-⚡ 支持完整的 Memcached 协议
-🧠 使用 mimalloc 高性能内存分配器
-⚙️ 服务器配置:
-  - 绑定地址: 127.0.0.1:11211
-  - 预设配置: Some("high_speed_communication")
-  - 配置文件: cache_config.toml
-Error: ConfigError { message: "解析配置文件失败: TOML parse error at line 58, column 1\n   |\n58 | [performance]\n   | ^^^^^^^^^^^^^\nmissing field `large_value_threshold`\n" }
