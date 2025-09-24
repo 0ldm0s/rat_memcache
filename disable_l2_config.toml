@@ -1,0 +1,36 @@
+[l1]
+max_memory = 1073741824  # 1GB
+max_entries = 100000
+eviction_strategy = "Lru"
+
+[l2]
+enable_l2_cache = false  # 禁用L2缓存
+data_dir = "./rat_memcache_data"
+max_disk_size = 1073741824  # 1GB
+
+[ttl]
+cleanup_interval = 300
+max_cleanup_entries = 1000
+lazy_expiration = true
+active_expiration = true
+
+[performance]
+worker_threads = 4
+enable_concurrency = true
+read_write_separation = true
+batch_size = 1024
+enable_warmup = false
+large_value_threshold = 10240
+
+[logging]
+level = "info"
+enable_colors = true
+show_timestamp = true
+enable_performance_logs = true
+enable_audit_logs = true
+enable_cache_logs = true
+enable_logging = true
+enable_async = false
+batch_size = 2048
+batch_interval_ms = 25
+buffer_size = 16384
