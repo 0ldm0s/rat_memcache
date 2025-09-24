@@ -57,7 +57,7 @@ pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
 // 重新导出配置类型
 pub use config::{
     CacheConfig, CacheConfigBuilder,
-    L1Config, CompressionConfig, TtlConfig,
+    L1Config, TtlConfig,
     PerformanceConfig, LoggingConfig
 };
 #[cfg(feature = "melange-storage")]
@@ -139,14 +139,7 @@ mod tests {
                 lazy_expiration: true,
                 active_expiration: false,
             })
-            .compression_config(CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 1024,
-                compression_level: 4,
-                auto_compression: true,
-                min_compression_ratio: 0.8,
-            })
-            .performance_config(PerformanceConfig {
+                        .performance_config(PerformanceConfig {
                 worker_threads: 4,
                 enable_concurrency: true,
                 read_write_separation: true,
@@ -222,14 +215,7 @@ mod tests {
                 lazy_expiration: true,
                 active_expiration: false,
             })
-            .compression_config(CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 1024,
-                compression_level: 4,
-                auto_compression: true,
-                min_compression_ratio: 0.8,
-            })
-            .performance_config(PerformanceConfig {
+                        .performance_config(PerformanceConfig {
                 worker_threads: 4,
                 enable_concurrency: true,
                 read_write_separation: true,
@@ -313,14 +299,7 @@ mod tests {
                 lazy_expiration: true,
                 active_expiration: false,
             })
-            .compression_config(CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 1024,
-                compression_level: 4,
-                auto_compression: true,
-                min_compression_ratio: 0.8,
-            })
-            .performance_config(PerformanceConfig {
+                        .performance_config(PerformanceConfig {
                 worker_threads: 4,
                 enable_concurrency: true,
                 read_write_separation: true,

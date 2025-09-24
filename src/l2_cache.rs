@@ -163,8 +163,14 @@ impl L2Cache {
         }
 
         // 创建 MelangeDB 配置
+        let compression_alg = if config.enable_lz4 {
+            CompressionAlgorithm::Lz4
+        } else {
+            CompressionAlgorithm::None
+        };
+
         let melange_config = MelangeConfig::balanced()
-            .with_compression(config.compression_algorithm)
+            .with_compression(compression_alg)
             .with_cache_size(config.cache_size_mb)
             .with_max_file_size(config.max_file_size_mb)
             .with_statistics(true)
@@ -666,7 +672,7 @@ mod tests {
             compression_level: 6,
             background_threads: 2,
             clear_on_startup: false,
-            compression_algorithm: CompressionAlgorithm::Lz4,
+            enable_lz4: true,
             cache_size_mb: 256,
             max_file_size_mb: 512,
             smart_flush_enabled: true,
@@ -822,7 +828,7 @@ mod tests {
     async fn test_compression_algorithms() {
         let temp_dir = TempDir::new().unwrap();
 
-        for compression in [CompressionAlgorithm::None, CompressionAlgorithm::Lz4] {
+        for (enable_lz4, compression) in [(false, CompressionAlgorithm::None), (true, CompressionAlgorithm::Lz4)] {
             let l2_config = L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -834,7 +840,7 @@ mod tests {
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                compression_algorithm: compression,
+                enable_lz4,
                 cache_size_mb: 256,
                 max_file_size_mb: 512,
                 smart_flush_enabled: true,

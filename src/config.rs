@@ -16,8 +16,6 @@ pub struct CacheConfig {
     pub l1: L1Config,
     /// L2 缓存配置
     pub l2: Option<L2Config>,
-    /// 压缩配置
-    pub compression: CompressionConfig,
     /// TTL 配置
     pub ttl: TtlConfig,
     /// 性能配置
@@ -59,18 +57,21 @@ pub struct L2Config {
     /// 块缓存大小
     #[serde(default)]
     pub block_cache_size: usize,
-    /// 启用压缩
-    #[serde(default)]
-    pub enable_compression: bool,
-    /// 压缩级别
-    #[serde(default)]
-    pub compression_level: i32,
     /// 后台线程数
     #[serde(default)]
     pub background_threads: i32,
-    /// 是否启用LZ4压缩
+    /// 启用 LZ4 压缩
     #[serde(default = "default_true")]
     pub enable_lz4: bool,
+    /// 最小压缩阈值（字节），小于此值的数据不压缩
+    #[serde(default = "default_compression_threshold")]
+    pub compression_threshold: usize,
+    /// 最大压缩阈值（字节），大于此值的数据不压缩
+    #[serde(default = "default_compression_max_threshold")]
+    pub compression_max_threshold: usize,
+    /// 压缩级别（1-12，数字越大压缩率越高但速度越慢）
+    #[serde(default)]
+    pub compression_level: i32,
     /// MelangeDB 缓存大小（MB）
     #[serde(default)]
     pub cache_size_mb: usize,
@@ -118,10 +119,11 @@ impl Default for L2Config {
             write_buffer_size: 64 * 1024 * 1024, // 64MB
             max_write_buffer_number: 3,
             block_cache_size: 32 * 1024 * 1024, // 32MB
-            enable_compression: true,
-            compression_level: 6,
             background_threads: 2,
             enable_lz4: true,
+            compression_threshold: 128,
+            compression_max_threshold: 1024 * 1024,
+            compression_level: 6,
             cache_size_mb: 512,
             max_file_size_mb: 1024,
             smart_flush_enabled: true,
@@ -161,20 +163,6 @@ impl Default for CacheWarmupStrategy {
 
 
 
-/// 压缩配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CompressionConfig {
-    /// 启用 LZ4 压缩
-    pub enable_lz4: bool,
-    /// 压缩阈值（字节），小于此值的数据不压缩
-    pub compression_threshold: usize,
-    /// 压缩级别（1-12，数字越大压缩率越高但速度越慢）
-    pub compression_level: i32,
-    /// 自动压缩检测
-    pub auto_compression: bool,
-    /// 压缩比率阈值，低于此比率的数据不存储压缩版本
-    pub min_compression_ratio: f64,
-}
 
 /// TTL 配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -256,7 +244,6 @@ pub struct LoggingConfig {
 pub struct CacheConfigBuilder {
     l1_config: Option<L1Config>,
     l2_config: Option<L2Config>,
-    compression_config: Option<CompressionConfig>,
     ttl_config: Option<TtlConfig>,
     performance_config: Option<PerformanceConfig>,
     logging_config: Option<LoggingConfig>,
@@ -268,7 +255,6 @@ impl CacheConfigBuilder {
         Self {
             l1_config: None,
             l2_config: None,
-            compression_config: None,
             ttl_config: None,
             performance_config: None,
             logging_config: None,
@@ -285,12 +271,6 @@ impl CacheConfigBuilder {
     #[cfg(feature = "melange-storage")]
     pub fn with_l2_config(mut self, config: L2Config) -> Self {
         self.l2_config = Some(config);
-        self
-    }
-
-    /// 设置压缩配置
-    pub fn with_compression_config(mut self, config: CompressionConfig) -> Self {
-        self.compression_config = Some(config);
         self
     }
 
@@ -329,22 +309,7 @@ impl CacheConfigBuilder {
             None
         };
 
-        // 压缩配置：根据特性决定处理方式
-        let compression_config = if cfg!(feature = "melange-storage") {
-            self.compression_config.ok_or_else(|| {
-                CacheError::config_error("压缩配置未设置")
-            })?
-        } else {
-            // 不启用L2时，压缩配置使用默认值
-            CompressionConfig {
-                enable_lz4: false,
-                compression_threshold: 0,
-                compression_level: 1,
-                auto_compression: false,
-                min_compression_ratio: 0.0,
-            }
-        };
-        
+                
         let ttl_config = self.ttl_config.ok_or_else(|| {
             CacheError::config_error("TTL 配置未设置")
         })?;
@@ -359,14 +324,15 @@ impl CacheConfigBuilder {
 
             // 强制验证配置的合法性
         #[cfg(feature = "melange-storage")]
-        Self::validate_config(&l1_config, &l2_config, &compression_config, &ttl_config, &performance_config)?;
+        if let Some(ref l2_config) = l2_config {
+            Self::validate_config(&l1_config, l2_config, &ttl_config, &performance_config)?;
+        }
         #[cfg(not(feature = "melange-storage"))]
-        Self::validate_config(&l1_config, &compression_config, &ttl_config, &performance_config)?;
+        Self::validate_config(&l1_config, &ttl_config, &performance_config)?;
 
         let config = CacheConfig {
             l1: l1_config,
             l2: l2_config,
-            compression: compression_config,
             ttl: ttl_config,
             performance: performance_config,
             logging: logging_config,
@@ -383,7 +349,6 @@ impl CacheConfigBuilder {
     fn validate_config(
         l1_config: &L1Config,
         l2_config: &L2Config,
-        compression_config: &CompressionConfig,
         ttl_config: &TtlConfig,
         performance_config: &PerformanceConfig,
     ) -> CacheResult<()> {
@@ -423,14 +388,16 @@ impl CacheConfigBuilder {
             if let Some(ref data_dir) = l2_config.data_dir {
                 PathUtils::validate_writable_path(data_dir)?;
             }
-        }
 
-        // 验证压缩配置
-        if compression_config.compression_level < 1 || compression_config.compression_level > 12 {
-            return Err(CacheError::config_error("压缩级别必须在 1-12 之间"));
-        }
-        if compression_config.min_compression_ratio < 0.0 || compression_config.min_compression_ratio > 1.0 {
-            return Err(CacheError::config_error("最小压缩比率必须在 0.0-1.0 之间"));
+            // 验证 L2 压缩配置
+            if l2_config.enable_lz4 {
+                if l2_config.compression_level < 1 || l2_config.compression_level > 12 {
+                    return Err(CacheError::config_error("压缩级别必须在 1-12 之间"));
+                }
+                if l2_config.compression_threshold >= l2_config.compression_max_threshold {
+                    return Err(CacheError::config_error("压缩最小阈值必须小于最大阈值"));
+                }
+            }
         }
 
         // 验证 TTL 配置
@@ -456,7 +423,6 @@ impl CacheConfigBuilder {
     #[cfg(not(feature = "melange-storage"))]
     fn validate_config(
         l1_config: &L1Config,
-        compression_config: &CompressionConfig,
         ttl_config: &TtlConfig,
         performance_config: &PerformanceConfig,
     ) -> CacheResult<()> {
@@ -466,14 +432,6 @@ impl CacheConfigBuilder {
         }
         if l1_config.max_entries == 0 {
             return Err(CacheError::config_error("L1 最大条目数不能为 0"));
-        }
-
-        // 验证压缩配置
-        if compression_config.compression_level < 1 || compression_config.compression_level > 12 {
-            return Err(CacheError::config_error("压缩级别必须在 1-12 之间"));
-        }
-        if compression_config.min_compression_ratio < 0.0 || compression_config.min_compression_ratio > 1.0 {
-            return Err(CacheError::config_error("最小压缩比率必须在 0.0-1.0 之间"));
         }
 
         // 验证 TTL 配置
@@ -491,7 +449,7 @@ impl CacheConfigBuilder {
         if performance_config.batch_size == 0 {
             return Err(CacheError::config_error("批处理大小不能为 0"));
         }
-        
+
         Ok(())
     }
 
@@ -525,12 +483,16 @@ impl CacheConfigBuilder {
             )));
         }
         
-        // 检查 L2 和压缩配置的一致性
+        // 检查 L2 配置的压缩阈值是否合理
         #[cfg(feature = "melange-storage")]
-        if config.l2.enable_l2_cache && config.l2.enable_compression && !config.compression.enable_lz4 {
-            return Err(CacheError::config_error(
-                "L2 缓存启用了压缩，但全局压缩配置未启用 LZ4"
-            ));
+        if let Some(ref l2_config) = config.l2 {
+            if l2_config.enable_l2_cache && l2_config.enable_lz4 {
+                if l2_config.compression_threshold >= l2_config.compression_max_threshold {
+                    return Err(CacheError::config_error(
+                        "L2 缓存压缩最小阈值必须小于最大阈值"
+                    ));
+                }
+            }
         }
         
         Ok(())
@@ -724,4 +686,12 @@ fn default_batch_interval_ms() -> u64 {
 
 fn default_buffer_size() -> usize {
     16 * 1024
+}
+
+fn default_compression_threshold() -> usize {
+    128  // 128字节，小于此值不压缩
+}
+
+fn default_compression_max_threshold() -> usize {
+    1024 * 1024  // 1MB，大于此值不压缩
 }
