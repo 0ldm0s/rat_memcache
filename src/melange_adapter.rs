@@ -15,6 +15,12 @@ pub enum CompressionAlgorithm {
     Zstd,
 }
 
+impl Default for CompressionAlgorithm {
+    fn default() -> Self {
+        CompressionAlgorithm::Lz4
+    }
+}
+
 /// 缓存预热策略
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum CacheWarmupStrategy {
@@ -26,6 +32,12 @@ pub enum CacheWarmupStrategy {
     Hot,
     /// 全部预热
     Full,
+}
+
+impl Default for CacheWarmupStrategy {
+    fn default() -> Self {
+        CacheWarmupStrategy::Recent
+    }
 }
 
 /// MelangeDB 适配器配置

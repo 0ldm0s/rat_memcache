@@ -527,4 +527,48 @@ macro_rules! cache_error {
     };
 }
 
+/// TTL相关日志
+#[macro_export]
+macro_rules! ttl_log {
+    (debug, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::debug!("[TTL] $($arg)*);
+    };
+    (info, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::info!("[TTL] $($arg)*);
+    };
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[TTL] $($arg)*);
+    };
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[TTL] $($arg)*);
+    };
+}
 
+/// 压缩相关日志
+#[macro_export]
+macro_rules! compression_log {
+    (debug, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::debug!("[COMPRESSION] $($arg)*);
+    };
+    (info, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::info!("[COMPRESSION] $($arg)*);
+    };
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[COMPRESSION] $($arg)*);
+    };
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[COMPRESSION] $($arg)*);
+    };
+}
+
+/// 性能日志 - 始终保留用于监控
+#[macro_export]
+macro_rules! perf_log {
+    ($($arg:tt)*) => {
+        rat_logger::info!("[PERF] $($arg)*);
+    };
+}

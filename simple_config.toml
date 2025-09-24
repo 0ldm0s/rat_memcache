@@ -1,0 +1,31 @@
+[l1]
+max_memory = 536870912
+max_entries = 50000
+eviction_strategy = "Lru"
+
+[l2]
+enable_l2_cache = false
+
+
+[ttl]
+expire_seconds = 3600
+cleanup_interval = 300
+max_cleanup_entries = 1000
+lazy_expiration = true
+active_expiration = false
+
+[performance]
+worker_threads = 2
+enable_concurrency = true
+read_write_separation = true
+batch_size = 100
+enable_warmup = false
+large_value_threshold = 10240
+
+[logging]
+level = "debug"
+enable_colors = true
+show_timestamp = true
+enable_performance_logs = false
+enable_audit_logs = false
+enable_cache_logs = true

@@ -3,7 +3,7 @@
 //! 提供基于 LZ4 的高性能数据压缩和解压缩功能
 
 use crate::error::{CacheError, CacheResult};
-use crate::config::CompressionConfig;
+use crate::config::L2Config;
 use bytes::Bytes;
 use lz4::{Decoder, EncoderBuilder};
 use std::io::{Read, Write};
@@ -12,7 +12,7 @@ use std::sync::Arc;
 /// 压缩器
 #[derive(Debug, Clone)]
 pub struct Compressor {
-    config: Arc<CompressionConfig>,
+    l2_config: Arc<L2Config>,
 }
 
 /// 压缩结果
@@ -40,10 +40,44 @@ pub struct DecompressionResult {
 }
 
 impl Compressor {
-    /// 创建新的压缩器
-    pub fn new(config: CompressionConfig) -> Self {
+    /// 从 L2 配置创建压缩器
+    pub fn new_from_l2_config(l2_config: &L2Config) -> Self {
         Self {
-            config: Arc::new(config),
+            l2_config: Arc::new(l2_config.clone()),
+        }
+    }
+
+    /// 创建禁用压缩的压缩器
+    pub fn new_disabled() -> Self {
+        let disabled_config = L2Config {
+            enable_l2_cache: false,
+            data_dir: None,
+            clear_on_startup: false,
+            max_disk_size: 0,
+            write_buffer_size: 0,
+            max_write_buffer_number: 0,
+            block_cache_size: 0,
+            background_threads: 0,
+            enable_lz4: false,
+            compression_threshold: 0,
+            compression_max_threshold: 0,
+            compression_level: 1,
+            cache_size_mb: 0,
+            max_file_size_mb: 0,
+            smart_flush_enabled: false,
+            smart_flush_base_interval_ms: 0,
+            smart_flush_min_interval_ms: 0,
+            smart_flush_max_interval_ms: 0,
+            smart_flush_write_rate_threshold: 0,
+            smart_flush_accumulated_bytes_threshold: 0,
+            cache_warmup_strategy: crate::config::CacheWarmupStrategy::None,
+            zstd_compression_level: None,
+            l2_write_strategy: "never".to_string(),
+            l2_write_threshold: 0,
+            l2_write_ttl_threshold: 0,
+        };
+        Self {
+            l2_config: Arc::new(disabled_config),
         }
     }
 
@@ -68,7 +102,7 @@ impl Compressor {
         let compression_ratio = compressed_size as f64 / original_size as f64;
 
         // 检查压缩效果
-        if compression_ratio >= self.config.min_compression_ratio {
+        if compression_ratio >= 0.8 {
             // 压缩效果不佳，返回原始数据
             Ok(CompressionResult {
                 compressed_data: Bytes::copy_from_slice(data),
@@ -111,21 +145,21 @@ impl Compressor {
 
     /// 检查是否应该压缩数据
     fn should_compress(&self, data: &[u8]) -> bool {
-        if !self.config.enable_lz4 {
+        if !self.l2_config.enable_lz4 {
             return false;
         }
 
-        // 检查数据大小阈值
-        if data.len() < self.config.compression_threshold {
+        // 检查数据大小范围
+        let data_size = data.len();
+        if data_size < self.l2_config.compression_threshold {
+            return false;
+        }
+        if data_size > self.l2_config.compression_max_threshold {
             return false;
         }
 
-        // 如果启用自动压缩检测，进行简单的熵检测
-        if self.config.auto_compression {
-            self.estimate_compressibility(data)
-        } else {
-            true
-        }
+        // 简单的压缩性检查（总是压缩在范围内的数据）
+        true
     }
 
     /// 估算数据的可压缩性
@@ -159,7 +193,7 @@ impl Compressor {
     /// 执行 LZ4 压缩
     fn compress_lz4(&self, data: &[u8]) -> CacheResult<Vec<u8>> {
         let mut encoder = EncoderBuilder::new()
-            .level(self.config.compression_level as u32)
+            .level(self.l2_config.compression_level as u32)
             .build(Vec::new())
             .map_err(|e| CacheError::compression_error(&format!("创建 LZ4 编码器失败: {}", e)))?;
 
@@ -185,18 +219,18 @@ impl Compressor {
     }
 
     /// 获取压缩配置
-    pub fn config(&self) -> &CompressionConfig {
-        &self.config
+    pub fn config(&self) -> &L2Config {
+        &self.l2_config
     }
 
     /// 估算压缩后的大小（用于内存预分配）
     pub fn estimate_compressed_size(&self, original_size: usize) -> usize {
-        if original_size < self.config.compression_threshold {
+        if original_size < self.l2_config.compression_threshold {
             return original_size;
         }
 
         // 根据压缩级别估算压缩比率
-        let estimated_ratio = match self.config.compression_level {
+        let estimated_ratio = match self.l2_config.compression_level {
             1..=3 => 0.7,   // 快速压缩
             4..=6 => 0.6,   // 平衡压缩
             7..=9 => 0.5,   // 高压缩
@@ -305,17 +339,37 @@ impl CompressionStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::CompressionConfig;
+    use crate::config::L2Config;
 
     fn create_test_compressor() -> Compressor {
-        let config = CompressionConfig {
+        let config = L2Config {
+            enable_l2_cache: true,
+            data_dir: None,
+            clear_on_startup: false,
+            max_disk_size: 1024 * 1024 * 1024,
+            write_buffer_size: 64 * 1024 * 1024,
+            max_write_buffer_number: 3,
+            block_cache_size: 32 * 1024 * 1024,
+            background_threads: 2,
             enable_lz4: true,
             compression_threshold: 100,
+            compression_max_threshold: 1024 * 1024,
             compression_level: 4,
-            auto_compression: true,
-            min_compression_ratio: 0.8,
+            cache_size_mb: 512,
+            max_file_size_mb: 1024,
+            smart_flush_enabled: true,
+            smart_flush_base_interval_ms: 100,
+            smart_flush_min_interval_ms: 20,
+            smart_flush_max_interval_ms: 500,
+            smart_flush_write_rate_threshold: 10000,
+            smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+            cache_warmup_strategy: crate::config::CacheWarmupStrategy::None,
+            zstd_compression_level: None,
+            l2_write_strategy: "write_through".to_string(),
+            l2_write_threshold: 1024,
+            l2_write_ttl_threshold: 300,
         };
-        Compressor::new(config)
+        Compressor::new_from_l2_config(&config)
     }
 
     #[test]
@@ -330,16 +384,36 @@ mod tests {
 
     #[test]
     fn test_compress_large_data() {
-        let mut config = CompressionConfig {
+        let config = L2Config {
+            enable_l2_cache: true,
+            data_dir: None,
+            clear_on_startup: false,
+            max_disk_size: 1024 * 1024 * 1024,
+            write_buffer_size: 64 * 1024 * 1024,
+            max_write_buffer_number: 3,
+            block_cache_size: 32 * 1024 * 1024,
+            background_threads: 2,
             enable_lz4: true,
             compression_threshold: 100,
+            compression_max_threshold: 1024 * 1024,
             compression_level: 4,
-            auto_compression: false, // 禁用自动检测，强制压缩
-            min_compression_ratio: 0.8,
+            cache_size_mb: 512,
+            max_file_size_mb: 1024,
+            smart_flush_enabled: true,
+            smart_flush_base_interval_ms: 100,
+            smart_flush_min_interval_ms: 20,
+            smart_flush_max_interval_ms: 500,
+            smart_flush_write_rate_threshold: 10000,
+            smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+            cache_warmup_strategy: crate::config::CacheWarmupStrategy::None,
+            zstd_compression_level: None,
+            l2_write_strategy: "write_through".to_string(),
+            l2_write_threshold: 1024,
+            l2_write_ttl_threshold: 300,
         };
-        let compressor = Compressor::new(config);
+        let compressor = Compressor::new_from_l2_config(&config);
         let data = b"Hello, World! This is a test string that should be compressed.".repeat(20);
-        
+
         let result = compressor.compress(&data).unwrap();
         assert!(result.is_compressed);
         assert!(result.compressed_size < result.original_size);

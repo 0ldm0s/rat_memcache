@@ -9,7 +9,6 @@ use crate::l1_cache::{L1Cache, L1CacheStats};
 #[cfg(feature = "melange-storage")]
 use crate::l2_cache::{L2Cache, L2CacheStats};
 use crate::logging::LogManager;
-use crate::metrics::MetricsCollector;
 use crate::ttl::TtlManager;
 use crate::types::{CacheLayer, CacheOperation};
 use crate::{cache_log, perf_log, transfer_log};
@@ -33,9 +32,7 @@ pub struct RatMemCache {
     // transfer_router: Arc<SmartTransferRouter>,
     /// TTL 管理器
     ttl_manager: Arc<TtlManager>,
-    /// 指标收集器
-    metrics: Arc<MetricsCollector>,
-    /// 日志管理器
+      /// 日志管理器
     log_manager: Arc<LogManager>,
     /// 压缩器
     compressor: Arc<Compressor>,
@@ -61,6 +58,7 @@ pub struct CacheOptions {
     /// 是否启用压缩
     pub enable_compression: Option<bool>,
 }
+
 
 impl Default for CacheOptions {
     fn default() -> Self {
@@ -94,12 +92,7 @@ impl RatMemCacheBuilder {
         self
     }
 
-    /// 设置压缩配置
-    pub fn compression_config(mut self, config: crate::config::CompressionConfig) -> Self {
-        self.config_builder = self.config_builder.with_compression_config(config);
-        self
-    }
-
+    
     /// 设置 TTL 配置
     pub fn ttl_config(mut self, config: crate::config::TtlConfig) -> Self {
         self.config_builder = self.config_builder.with_ttl_config(config);
@@ -118,48 +111,7 @@ impl RatMemCacheBuilder {
         self
     }
 
-    /// 使用开发环境预设
-    pub fn development_preset(mut self) -> CacheResult<Self> {
-        self.config_builder = CacheConfigBuilder::new();
-        // 使用开发环境预设配置
-        let config = CacheConfig::development()?;
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(config.l1)
-            .with_compression_config(config.compression)
-            .with_ttl_config(config.ttl)
-            .with_performance_config(config.performance)
-            .with_logging_config(config.logging);
-
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(config.l2);
-        }
-
-        self.config_builder = builder;
-        Ok(self)
-    }
-
-    /// 使用生产环境预设
-    pub fn production_preset(mut self) -> CacheResult<Self> {
-        self.config_builder = CacheConfigBuilder::new();
-        // 使用生产环境预设配置
-        let config = CacheConfig::production()?;
-        let mut builder = CacheConfigBuilder::new()
-            .with_l1_config(config.l1)
-            .with_compression_config(config.compression)
-            .with_ttl_config(config.ttl)
-            .with_performance_config(config.performance)
-            .with_logging_config(config.logging);
-
-        #[cfg(feature = "melange-storage")]
-        {
-            builder = builder.with_l2_config(config.l2);
-        }
-
-        self.config_builder = builder;
-        Ok(self)
-    }
-
+    
     /// 构建缓存实例
     pub async fn build(self) -> CacheResult<RatMemCache> {
         let config = self.config_builder.build()?;
@@ -187,21 +139,22 @@ impl RatMemCache {
         
         cache_log!(config.logging, debug, "开始初始化 RatMemCache...");
         
-        // 初始化压缩器
+        // 初始化压缩器（基于 L2 配置）
         cache_log!(config.logging, debug, "初始化压缩器");
-        let compressor = Arc::new(Compressor::new(config.compression.clone()));
+        let compressor = if let Some(ref l2_config) = config.l2 {
+            Arc::new(Compressor::new_from_l2_config(l2_config))
+        } else {
+            // 如果没有 L2 配置，创建一个默认的禁用压缩的压缩器
+            Arc::new(Compressor::new_disabled())
+        };
         
         // 初始化 TTL 管理器
         cache_log!(config.logging, debug, "初始化 TTL 管理器");
         let ttl_manager = Arc::new(TtlManager::new(config.ttl.clone(), config.logging.clone()).await?);
         
-        // 初始化指标收集器
-        cache_log!(config.logging, debug, "初始化指标收集器");
-        let metrics = Arc::new(MetricsCollector::new().await?);
-        
+                
         // 初始化智能传输路由器（已移除）
-        // println!("[DEBUG] 初始化智能传输路由器");
-        
+                
         // 初始化 L1 缓存
         cache_log!(config.logging, debug, "初始化 L1 缓存");
         let l1_cache = Arc::new(
@@ -210,68 +163,71 @@ impl RatMemCache {
                 config.logging.clone(),
                 compressor.as_ref().clone(),
                 Arc::clone(&ttl_manager),
-                Arc::clone(&metrics),
             ).await?
         );
         cache_log!(config.logging, debug, "L1 缓存初始化成功");
         
         // 初始化 L2 缓存（如果启用）
         #[cfg(feature = "melange-storage")]
-        let l2_cache = if config.l2.enable_l2_cache {
-            cache_log!(config.logging, debug, "检查是否启用 L2 缓存: {}", config.l2.enable_l2_cache);
-            cache_log!(config.logging, debug, "L2 缓存配置: {:?}", config.l2);
-            cache_log!(config.logging, debug, "开始初始化 L2 缓存");
-            cache_log!(config.logging, debug, "L2 缓存数据目录: {:?}", config.l2.data_dir);
+        let l2_cache = {
+            let l2_config = config.l2.as_ref().ok_or_else(|| {
+                CacheError::config_error("启用了 melange-storage 特性但未配置 L2")
+            })?;
 
-            // 手动验证 L2 缓存目录是否可写
-            if let Some(dir) = &config.l2.data_dir {
-                cache_log!(config.logging, debug, "手动验证 L2 缓存目录是否可写: {:?}", dir);
-                cache_log!(config.logging, debug, "目录是否存在: {}", dir.exists());
+            if l2_config.enable_l2_cache {
+                cache_log!(config.logging, debug, "检查是否启用 L2 缓存: {}", l2_config.enable_l2_cache);
+                cache_log!(config.logging, debug, "L2 缓存配置: {:?}", l2_config);
+                cache_log!(config.logging, debug, "开始初始化 L2 缓存");
+                cache_log!(config.logging, debug, "L2 缓存数据目录: {:?}", l2_config.data_dir);
 
-                if !dir.exists() {
-                    cache_log!(config.logging, debug, "尝试创建目录: {:?}", dir);
-                    match std::fs::create_dir_all(dir) {
-                        Ok(_) => cache_log!(config.logging, debug, "目录创建成功"),
-                        Err(e) => cache_log!(config.logging, debug, "创建目录失败: {}", e)
-                    }
-                }
+                // 手动验证 L2 缓存目录是否可写
+                if let Some(dir) = &l2_config.data_dir {
+                    cache_log!(config.logging, debug, "手动验证 L2 缓存目录是否可写: {:?}", dir);
+                    cache_log!(config.logging, debug, "目录是否存在: {}", dir.exists());
 
-                // 测试目录是否可写
-                let test_file = dir.join(".cache_write_test");
-                cache_log!(config.logging, debug, "尝试写入测试文件: {:?}", test_file);
-                match std::fs::write(&test_file, b"test") {
-                    Ok(_) => {
-                        cache_log!(config.logging, debug, "测试文件写入成功");
-                        match std::fs::remove_file(&test_file) {
-                            Ok(_) => cache_log!(config.logging, debug, "测试文件删除成功"),
-                            Err(e) => cache_log!(config.logging, debug, "测试文件删除失败: {}", e)
+                    if !dir.exists() {
+                        cache_log!(config.logging, debug, "尝试创建目录: {:?}", dir);
+                        match std::fs::create_dir_all(dir) {
+                            Ok(_) => cache_log!(config.logging, debug, "目录创建成功"),
+                            Err(e) => cache_log!(config.logging, debug, "创建目录失败: {}", e)
                         }
-                    },
-                    Err(e) => cache_log!(config.logging, debug, "测试文件写入失败: {}", e)
+                    }
+
+                    // 测试目录是否可写
+                    let test_file = dir.join(".cache_write_test");
+                    cache_log!(config.logging, debug, "尝试写入测试文件: {:?}", test_file);
+                    match std::fs::write(&test_file, b"test") {
+                        Ok(_) => {
+                            cache_log!(config.logging, debug, "测试文件写入成功");
+                            match std::fs::remove_file(&test_file) {
+                                Ok(_) => cache_log!(config.logging, debug, "测试文件删除成功"),
+                                Err(e) => cache_log!(config.logging, debug, "测试文件删除失败: {}", e)
+                            }
+                        },
+                        Err(e) => cache_log!(config.logging, debug, "测试文件写入失败: {}", e)
+                    }
+                } else {
+                    cache_log!(config.logging, debug, "L2 缓存数据目录未设置");
                 }
+
+                cache_log!(config.logging, debug, "调用 L2Cache::new");
+                let l2_cache_result = L2Cache::new(
+                    l2_config.clone(),
+                    config.logging.clone(),
+                    compressor.as_ref().clone(),
+                    Arc::clone(&ttl_manager),
+                ).await;
+
+                match &l2_cache_result {
+                    Ok(_) => cache_log!(config.logging, debug, "L2Cache::new 调用成功"),
+                    Err(e) => cache_log!(config.logging, debug, "L2Cache::new 调用失败: {}", e)
+                }
+
+                Some(Arc::new(l2_cache_result?))
             } else {
-                cache_log!(config.logging, debug, "L2 缓存数据目录未设置");
+                cache_log!(config.logging, debug, "L2 缓存已禁用，不创建任何实例");
+                None
             }
-
-            cache_log!(config.logging, debug, "调用 L2Cache::new");
-            let l2_cache_result = L2Cache::new(
-                config.l2.clone(),
-                config.logging.clone(),
-                compressor.as_ref().clone(),
-                Arc::clone(&ttl_manager),
-                Arc::clone(&metrics),
-            ).await;
-
-            match &l2_cache_result {
-                Ok(_) => cache_log!(config.logging, debug, "L2Cache::new 调用成功"),
-                Err(e) => cache_log!(config.logging, debug, "L2Cache::new 调用失败: {}", e)
-            }
-
-            Some(Arc::new(l2_cache_result?))
-        } else {
-            cache_log!(config.logging, debug, "L2 缓存已禁用，不创建任何实例");
-            cache_log!(config.logging, debug, "L2 缓存已禁用，跳过初始化");
-            None
         };
 
         #[cfg(not(feature = "melange-storage"))]
@@ -285,18 +241,12 @@ impl RatMemCache {
             l2_cache,
             // transfer_router,
             ttl_manager,
-            metrics,
             log_manager,
             compressor,
             is_running: Arc::new(RwLock::new(true)),
         };
-        
-        // 启动后台任务
-        cache_log!(config.logging, debug, "启动后台任务");
-        cache.start_background_tasks().await;
-        
+
         let elapsed = start_time.elapsed();
-        cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
         cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
         
         cache_log!(config.logging, debug, "返回 RatMemCache 实例");
@@ -315,16 +265,14 @@ impl RatMemCache {
         // 检查 TTL
         if self.ttl_manager.is_expired(key).await {
             self.delete_internal(key).await?;
-            self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-            return Ok(None);
+                        return Ok(None);
         }
         
         // 尝试从 L1 获取（除非跳过）
         if !options.skip_l1 {
             if let Some(value) = self.l1_cache.get(key).await? {
                 transfer_log!(debug, "L1 缓存命中: {}", key);
-                self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-                return Ok(Some(value));
+                                return Ok(Some(value));
             }
         }
         
@@ -342,17 +290,14 @@ impl RatMemCache {
                     }
                 }
 
-                self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-                return Ok(Some(value));
+                                return Ok(Some(value));
             }
         }
         
         // 缓存未命中
-        self.metrics.record_cache_miss().await;
         cache_log!(self.config.logging, debug, "缓存未命中: {}", key);
         
-        self.record_operation(CacheOperation::Get, start_time.elapsed()).await;
-        Ok(None)
+                Ok(None)
     }
 
     /// 设置缓存值
@@ -373,57 +318,87 @@ impl RatMemCache {
     pub async fn set_with_options(&self, key: String, value: Bytes, options: &CacheOptions) -> CacheResult<()> {
         let start_time = Instant::now();
         
-        // 验证 TTL
-        if let Some(ttl) = options.ttl_seconds {
-            if ttl > self.config.ttl.max_ttl {
-                return Err(CacheError::invalid_ttl(ttl as i64));
-            }
-        }
+        // TTL 验证逻辑已简化，移除最大值检查
         
-        // 使用智能传输路由器处理数据（简化处理）
+        // 大值处理：检查是否超过大值阈值
+        let threshold = self.config.performance.large_value_threshold;
+        let is_large_value = value.len() > threshold;
         let processed_value = value.clone();
+
         
-        // 设置到 L1（除非跳过或强制 L2）
-        if !options.skip_l1 && !options.force_l2 {
-            if let Err(e) = self.l1_cache.set(key.clone(), processed_value.clone(), options.ttl_seconds).await {
-                cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
-            }
-        }
-        
-        // 根据策略决定是否写入 L2（仅在存在时）
-        #[cfg(feature = "melange-storage")]
-        let should_write_l2 = if let Some(_l2_cache) = &self.l2_cache {
-            options.force_l2 || self.should_write_to_l2(&key, &processed_value, options).await
-        } else {
-            false
-        };
-        #[cfg(not(feature = "melange-storage"))]
-        let should_write_l2 = false;
-        
-        if should_write_l2 {
+        if is_large_value {
+            // 大值处理策略
+            cache_log!(self.config.logging, debug, "检测到大值: {} ({} bytes)", key, value.len());
+
             #[cfg(feature = "melange-storage")]
-            if let Some(l2_cache) = &self.l2_cache {
-                if let Some(ttl) = options.ttl_seconds {
-                    l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
+            {
+                if let Some(l2_cache) = &self.l2_cache {
+                    // 有 L2 缓存，直接写入 L2
+                    cache_log!(self.config.logging, debug, "大值直接下沉到 L2: {}", key);
+                    if let Some(ttl) = options.ttl_seconds {
+                        l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
+                    } else {
+                        l2_cache.set(key.clone(), processed_value, None).await?;
+                    }
                 } else {
-                    l2_cache.set(key.clone(), processed_value, None).await?;
+                    // 无 L2 缓存，抛弃大值并记录警告
+                    cache_log!(self.config.logging, warn,
+                        "大值被抛弃（无 L2 缓存）: {} ({} bytes > {} bytes)",
+                        key, value.len(), self.config.performance.large_value_threshold);
+                    return Ok(());
+                }
+            }
+
+            #[cfg(not(feature = "melange-storage"))]
+            {
+                // 无 L2 功能，抛弃大值并记录警告
+                cache_log!(self.config.logging, warn,
+                    "大值被抛弃（未启用 L2 功能）: {} ({} bytes > {} bytes)",
+                    key, value.len(), self.config.performance.large_value_threshold);
+                return Ok(());
+            }
+        } else {
+            // 普通值处理
+            // 设置到 L1（除非跳过或强制 L2）
+            if !options.skip_l1 && !options.force_l2 {
+                if let Err(e) = self.l1_cache.set(key.clone(), processed_value.clone(), options.ttl_seconds).await {
+                    cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
+                }
+            }
+
+            // 根据策略决定是否写入 L2（仅在存在时）
+            #[cfg(feature = "melange-storage")]
+            let should_write_l2 = if let Some(_l2_cache) = &self.l2_cache {
+                options.force_l2 || self.should_write_to_l2(&key, &processed_value, options).await
+            } else {
+                false
+            };
+            #[cfg(not(feature = "melange-storage"))]
+            let should_write_l2 = false;
+
+            if should_write_l2 {
+                #[cfg(feature = "melange-storage")]
+                if let Some(l2_cache) = &self.l2_cache {
+                    if let Some(ttl) = options.ttl_seconds {
+                        l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
+                    } else {
+                        l2_cache.set(key.clone(), processed_value, None).await?;
+                    }
                 }
             }
         }
         
-        cache_log!(self.config.logging, debug, "缓存设置完成: {} (L1: {}, L2: {})", 
-            key, !options.skip_l1 && !options.force_l2, should_write_l2);
+        cache_log!(self.config.logging, debug, "缓存设置完成: {} (大值: {}, L1: {}, L2: {})",
+            key, is_large_value, !options.skip_l1 && !options.force_l2 && !is_large_value, is_large_value);
         
-        self.record_operation(CacheOperation::Set, start_time.elapsed()).await;
-        Ok(())
+                Ok(())
     }
 
     /// 删除缓存值
     pub async fn delete(&self, key: &str) -> CacheResult<bool> {
         let start_time = Instant::now();
         let deleted = self.delete_internal(key).await?;
-        self.record_operation(CacheOperation::Delete, start_time.elapsed()).await;
-        Ok(deleted)
+                Ok(deleted)
     }
 
     /// 清空缓存
@@ -441,8 +416,7 @@ impl RatMemCache {
         
         cache_log!(self.config.logging, debug, "缓存已清空");
         
-        self.record_operation(CacheOperation::Clear, start_time.elapsed()).await;
-        Ok(())
+                Ok(())
     }
 
     /// 检查键是否存在
@@ -524,6 +498,26 @@ impl RatMemCache {
         }
     }
 
+    
+    /// 获取缓存命中率（基于L2统计）
+    #[cfg(feature = "melange-storage")]
+    pub async fn get_hit_rate(&self) -> Option<f64> {
+        let l2_stats = self.get_l2_stats().await;
+        let total_requests = l2_stats.hits + l2_stats.misses;
+        if total_requests > 0 {
+            Some((l2_stats.hits as f64 / total_requests as f64) * 100.0)
+        } else {
+            None
+        }
+    }
+
+    /// 获取缓存命中率（非melange版本）
+    #[cfg(not(feature = "melange-storage"))]
+    pub async fn get_hit_rate(&self) -> Option<f64> {
+        // 在没有L2的情况下，无法直接获取命中率统计
+        None
+    }
+
     /// 压缩 L2 缓存
     #[cfg(feature = "melange-storage")]
     pub async fn compact(&self) -> CacheResult<()> {
@@ -541,17 +535,12 @@ impl RatMemCache {
     }
 
     /// 获取剩余 TTL
-    pub async fn get_ttl(&self, _key: &str) -> Option<u64> {
-        // 获取剩余 TTL（简化实现）
-        None
+    pub async fn get_ttl(&self, key: &str) -> Option<u64> {
+        self.ttl_manager.get_ttl(key).await
     }
 
     /// 设置 TTL
     pub async fn set_ttl(&self, key: &str, ttl_seconds: u64) -> CacheResult<()> {
-        if ttl_seconds > self.config.ttl.max_ttl {
-            return Err(CacheError::invalid_ttl(ttl_seconds as i64));
-        }
-        
         let _ = self.ttl_manager.add_key(key.to_string(), Some(ttl_seconds)).await;
         Ok(())
     }
@@ -609,6 +598,7 @@ impl RatMemCache {
     }
 
     /// 判断是否应该写入 L2
+    #[cfg(feature = "melange-storage")]
     async fn should_write_to_l2(&self, _key: &str, value: &Bytes, options: &CacheOptions) -> bool {
         // 如果强制 L2，直接返回 true
         if options.force_l2 {
@@ -616,122 +606,24 @@ impl RatMemCache {
         }
         
         // 根据配置的写入策略决定
-        match self.config.performance.l2_write_strategy.as_str() {
-            "always" => true,
-            "never" => false,
-            "size_based" => value.len() >= self.config.performance.l2_write_threshold,
-            "ttl_based" => options.ttl_seconds.unwrap_or(0) >= self.config.performance.l2_write_ttl_threshold,
-            "adaptive" => {
-                // 自适应策略：基于 L1 使用率和数据大小
-                let l1_stats = self.l1_cache.get_stats().await;
-                let l1_usage_ratio = l1_stats.memory_usage as f64 / self.config.l1.max_memory as f64;
-                
-                l1_usage_ratio > 0.8 || value.len() >= self.config.performance.l2_write_threshold
-            },
-            _ => false,
+        if let Some(l2_config) = &self.config.l2 {
+            match l2_config.l2_write_strategy.as_str() {
+                "always" => true,
+                "never" => false,
+                "size_based" => value.len() >= l2_config.l2_write_threshold,
+                "ttl_based" => options.ttl_seconds.unwrap_or(0) >= l2_config.l2_write_ttl_threshold,
+                "adaptive" => {
+                    // 自适应策略：基于 L1 使用率和数据大小
+                    let l1_stats = self.l1_cache.get_stats().await;
+                    let l1_usage_ratio = l1_stats.memory_usage as f64 / self.config.l1.max_memory as f64;
+
+                    l1_usage_ratio > 0.8 || value.len() >= l2_config.l2_write_threshold
+                },
+                _ => false,
+            }
+        } else {
+            false
         }
-    }
-
-    /// 记录操作统计
-    async fn record_operation(&self, operation: CacheOperation, duration: std::time::Duration) {
-        // 使用指标系统记录操作
-        self.metrics.record_cache_operation(operation).await;
-        self.metrics.record_operation_latency(operation, duration).await;
-    }
-
-    /// 启动后台任务
-    async fn start_background_tasks(&self) {
-        // 启动统计更新任务
-        if self.config.performance.enable_background_stats {
-            let cache = Arc::new(self.clone());
-            let stats_interval = cache.config.performance.stats_interval;
-            tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(stats_interval));
-                
-                loop {
-                    interval.tick().await;
-                    
-                    let running = {
-                        let running = cache.is_running.read().await;
-                        *running
-                    };
-                    
-                    if !running {
-                        break;
-                    }
-                    
-                    // 更新统计信息
-                    if let Err(e) = cache.update_background_stats().await {
-                        cache_log!(cache.config.logging, warn, "更新后台统计失败: {}", e);
-                    }
-                }
-            });
-        }
-        
-        // 启动性能监控任务
-        if self.config.logging.enable_performance_logs {
-            let cache = Arc::new(self.clone());
-            tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(60)); // 每分钟记录一次
-                
-                loop {
-                    interval.tick().await;
-                    
-                    let running = {
-                        let running = cache.is_running.read().await;
-                        *running
-                    };
-                    
-                    if !running {
-                        break;
-                    }
-                    
-                    // 记录性能日志
-                    let l1_stats = cache.get_l1_stats().await;
-                    #[cfg(feature = "melange-storage")]
-                    let l2_stats = cache.get_l2_stats().await;
-
-                    #[cfg(feature = "melange-storage")]
-                    perf_log!(cache.config.logging, debug,
-                        "缓存性能统计 - L1内存使用: {}MB, L2磁盘使用: {}MB, L2命中: {}, L2未命中: {}",
-                        l1_stats.memory_usage / 1024 / 1024,
-                        l2_stats.estimated_disk_usage / 1024 / 1024,
-                        l2_stats.hits,
-                        l2_stats.misses
-                    );
-                    #[cfg(not(feature = "melange-storage"))]
-                    perf_log!(cache.config.logging, debug,
-                        "缓存性能统计 - L1内存使用: {}MB",
-                        l1_stats.memory_usage / 1024 / 1024
-                    );
-                }
-            });
-        }
-    }
-
-    /// 更新后台统计
-    async fn update_background_stats(&self) -> CacheResult<()> {
-        // 更新内存使用统计
-        let l1_stats = self.l1_cache.get_stats().await;
-
-        self.metrics.record_memory_usage(CacheLayer::Memory, l1_stats.memory_usage as u64).await;
-
-        #[cfg(feature = "melange-storage")]
-        {
-            let l2_stats = if let Some(l2_cache) = &self.l2_cache {
-                l2_cache.get_stats().await
-            } else {
-                L2CacheStats::default()
-            };
-            self.metrics.record_memory_usage(CacheLayer::Persistent, l2_stats.estimated_disk_usage as u64).await;
-        }
-
-        #[cfg(not(feature = "melange-storage"))]
-        {
-            self.metrics.record_memory_usage(CacheLayer::Persistent, 0).await;
-        }
-
-        Ok(())
     }
 }
 
@@ -745,7 +637,6 @@ impl Clone for RatMemCache {
             l2_cache: self.l2_cache.as_ref().map(|cache| Arc::clone(cache)),
             // transfer_router: Arc::clone(&self.transfer_router),
             ttl_manager: Arc::clone(&self.ttl_manager),
-            metrics: Arc::clone(&self.metrics),
             log_manager: Arc::clone(&self.log_manager),
             compressor: Arc::clone(&self.compressor),
             is_running: Arc::clone(&self.is_running),
@@ -753,7 +644,7 @@ impl Clone for RatMemCache {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "melange-storage"))]
 mod tests {
     use super::*;
     use crate::config::CacheConfigBuilder;
@@ -762,9 +653,13 @@ mod tests {
 
     async fn create_test_cache() -> (RatMemCache, TempDir) {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(crate::config::L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: crate::EvictionStrategy::Lru,
+            })
             .l2_config(crate::config::L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -772,25 +667,53 @@ mod tests {
                 write_buffer_size: 1024 * 1024,  // 1MB
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,    // 512KB
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: crate::config::DatabaseEngine::MelangeDB,
-                melange_config: crate::config::MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                },
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(crate::config::TtlConfig {
-                default_ttl: Some(60),
-                max_ttl: 3600,
+                expire_seconds: Some(60),
                 cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false, // 测试中禁用主动过期
+            })
+            .performance_config(crate::config::PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                large_value_threshold: 10240, // 10KB
+            })
+            .logging_config(crate::config::LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
             })
             .build()
             .await

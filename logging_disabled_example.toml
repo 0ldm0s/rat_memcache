@@ -1,0 +1,12 @@
+# rat_memcache 禁用日志配置示例
+
+# 完全禁用日志系统（最高性能模式）
+enable_logging = false
+
+# 其他配置将被忽略
+level = "info"
+enable_colors = true
+enable_async = false
+batch_size = 2048
+batch_interval_ms = 25
+buffer_size = 16384

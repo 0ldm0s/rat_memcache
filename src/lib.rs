@@ -16,120 +16,17 @@
 //!
 //! # 快速开始
 //!
-//! ```rust,no_run
-//! use rat_memcache::{RatMemCacheBuilder, CacheOptions};
-//! use bytes::Bytes;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     // 创建缓存实例
-//!     let cache = RatMemCacheBuilder::new()
-//!         .development_preset()
-//!         .build()
-//!         .await?;
-//!
-//!     // 基本操作
-//!     let key = "my_key".to_string();
-//!     let value = Bytes::from("my_value");
-//!
-//!     // 设置缓存
-//!     cache.set(key.clone(), value.clone()).await?;
-//!
-//!     // 获取缓存
-//!     if let Some(retrieved) = cache.get(&key).await? {
-//!         println!("Retrieved: {:?}", retrieved);
-//!     }
-//!
-//!     // 设置带 TTL 的缓存
-//!     cache.set_with_ttl("temp_key".to_string(), Bytes::from("temp_value"), 60).await?;
-//!
-//!     // 获取统计信息
-//!     let stats = cache.get_stats().await?;
-//!     println!("Cache stats: {}", stats.format());
-//!
-//!     // 关闭缓存
-//!     cache.shutdown().await?;
-//!
-//!     Ok(())
-//! }
-//! ```
+//! 创建缓存实例并使用基本功能。
 //!
 //! # 高级用法
 //!
 //! ## 自定义配置
 //!
-//! ```rust,no_run
-//! use rat_memcache::{
-//!     RatMemCacheBuilder, 
-//!     config::{L1Config, L2Config, CompressionConfig, TtlConfig},
-//!     types::EvictionStrategy
-//! };
-//! use std::path::PathBuf;
-//!
-//! #[tokio::main]
-//! async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!     let cache = RatMemCacheBuilder::new()
-//!         .l1_config(L1Config {
-//!             max_memory_size: 100 * 1024 * 1024, // 100MB
-//!             eviction_strategy: EvictionStrategy::LruLfu,
-//!             max_entries: 10000,
-//!             enable_metrics: true,
-//!         })
-//!         .l2_config(L2Config {
-//!             data_dir: PathBuf::from("/tmp/rat_cache"),
-//!             max_disk_size: 1024 * 1024 * 1024, // 1GB
-//!             enable_compression: true,
-//!             compression_level: 6,
-//!             ..Default::default()
-//!         })
-//!         .compression_config(CompressionConfig {
-//!             enable_lz4: true,
-//!             compression_threshold: 1024, // 1KB
-//!             auto_compression: true,
-//!             ..Default::default()
-//!         })
-//!         .ttl_config(TtlConfig {
-//!             default_ttl: Some(3600), // 1小时
-//!             max_ttl: 86400,          // 24小时
-//!             cleanup_interval: 300,   // 5分钟
-//!             ..Default::default()
-//!         })
-//!         .build()
-//!         .await?;
-//!
-//!     Ok(())
-//! }
-//! ```
+//! 可以通过构建器模式进行详细的配置。
 //!
 //! ## 缓存选项
 //!
-//! ```rust,no_run
-//! use rat_memcache::{RatMemCache, CacheOptions};
-//! use bytes::Bytes;
-//!
-//! async fn advanced_operations(cache: &RatMemCache) -> Result<(), Box<dyn std::error::Error>> {
-//!     let key = "advanced_key".to_string();
-//!     let value = Bytes::from("advanced_value");
-//!
-//!     // 强制写入 L2 缓存
-//!     let options = CacheOptions {
-//!         ttl_seconds: Some(300),
-//!         force_l2: true,
-//!         skip_l1: false,
-//!         enable_compression: Some(true),
-//!     };
-//!     cache.set_with_options(key.clone(), value, &options).await?;
-//!
-//!     // 跳过 L1，直接从 L2 读取
-//!     let get_options = CacheOptions {
-//!         skip_l1: true,
-//!         ..Default::default()
-//!     };
-//!     let retrieved = cache.get_with_options(&key, &get_options).await?;
-//!
-//!     Ok(())
-//! }
-//! ```
+//! 可以使用 CacheOptions 来精细控制缓存行为。
 
 // 核心模块
 pub mod cache;
@@ -139,6 +36,7 @@ pub mod types;
 
 // 公开模块
 pub mod logging;
+pub mod streaming_protocol;
 
 // 内部模块
 mod compression;
@@ -147,7 +45,6 @@ mod l1_cache;
 mod l2_cache;
 #[cfg(feature = "melange-storage")]
 mod melange_adapter;
-mod metrics;
 mod ttl;
 
 
@@ -160,11 +57,11 @@ pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
 // 重新导出配置类型
 pub use config::{
     CacheConfig, CacheConfigBuilder,
-    L1Config, CompressionConfig, TtlConfig,
+    L1Config, TtlConfig,
     PerformanceConfig, LoggingConfig
 };
 #[cfg(feature = "melange-storage")]
-pub use config::{L2Config, DatabaseEngine, MelangeSpecificConfig};
+pub use config::{L2Config, CacheWarmupStrategy};
 
 // 重新导出 MelangeDB 相关类型
 #[cfg(feature = "melange-storage")]
@@ -186,10 +83,11 @@ pub fn info() -> String {
     format!("{} v{} - {}", NAME, VERSION, DESCRIPTION)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "melange-storage"))]
 mod tests {
     use super::*;
     use bytes::Bytes;
+    use tokio::time::{sleep, Duration};
     use tempfile::TempDir;
 
     #[tokio::test]
@@ -202,9 +100,13 @@ mod tests {
     #[tokio::test]
     async fn test_basic_usage() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: EvictionStrategy::Lru,
+            })
             .l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -212,30 +114,58 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                },
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
-                default_ttl: Some(60),
-                max_ttl: 3600,
+                expire_seconds: Some(60),
                 cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
             })
+                        .performance_config(PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                large_value_threshold: 10240, // 10KB
+            })
+            .logging_config(LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
+            })
             .build()
             .await
             .unwrap();
-        
+
         // 基本操作测试
         let key = "test_key".to_string();
         let value = Bytes::from("test_value");
@@ -252,9 +182,13 @@ mod tests {
     #[tokio::test]
     async fn test_cache_options() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: EvictionStrategy::Lru,
+            })
             .l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -262,30 +196,58 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                },
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
-                default_ttl: Some(60),
-                max_ttl: 3600,
+                expire_seconds: Some(60),
                 cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
             })
+                        .performance_config(PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                large_value_threshold: 10240, // 10KB
+            })
+            .logging_config(LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
+            })
             .build()
             .await
             .unwrap();
-        
+
         let key = "options_key".to_string();
         let value = Bytes::from("options_value");
         
@@ -308,11 +270,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_handling() {
-        // 测试无效 TTL
+        // 测试错误处理场景
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
-            .development_preset().unwrap()
+            .l1_config(L1Config {
+                max_memory: 1024 * 1024 * 1024, // 1GB
+                max_entries: 100_000,
+                eviction_strategy: EvictionStrategy::Lru,
+            })
             .l2_config(L2Config {
                 enable_l2_cache: true,
                 data_dir: Some(temp_dir.path().to_path_buf()),
@@ -320,43 +286,90 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                database_engine: DatabaseEngine::MelangeDB,
-                melange_config: MelangeSpecificConfig {
-                    compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
-                    cache_size_mb: 256,
-                    max_file_size_mb: 512,
-                    enable_statistics: true,
-                },
+                cache_size_mb: 256,
+                max_file_size_mb: 512,
+                smart_flush_enabled: true,
+                smart_flush_base_interval_ms: 100,
+                smart_flush_min_interval_ms: 20,
+                smart_flush_max_interval_ms: 500,
+                smart_flush_write_rate_threshold: 10000,
+                smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
+                cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
+                zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
-                default_ttl: Some(60),
-                max_ttl: 3600,
+                expire_seconds: Some(60),
                 cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
             })
+                        .performance_config(PerformanceConfig {
+                worker_threads: 4,
+                enable_concurrency: true,
+                read_write_separation: true,
+                batch_size: 100,
+                enable_warmup: false,
+                large_value_threshold: 10240, // 10KB
+            })
+            .logging_config(LoggingConfig {
+                level: "debug".to_string(),
+                enable_colors: false,
+                show_timestamp: false,
+                enable_performance_logs: true,
+                enable_audit_logs: false,
+                enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
+            })
             .build()
             .await
             .unwrap();
-        
+
         let key = "test_key".to_string();
         let value = Bytes::from("test_value");
-        
-        // 尝试设置超过最大 TTL 的值
-        let result = cache.set_with_ttl(key, value, 10000).await;
-        assert!(result.is_err());
-        
-        if let Err(CacheError::InvalidTtl { ttl_seconds: _ }) = result {
-            // 预期的错误类型
-        } else {
-            panic!("Expected InvalidTtl error");
-        }
-        
+
+        // 测试1: 设置一个很大的 TTL 值（现在应该成功，因为没有TTL限制）
+        let result = cache.set_with_ttl(key.clone(), value.clone(), 10000).await;
+        assert!(result.is_ok(), "设置大TTL值应该成功");
+
+        // 验证值确实被设置了
+        let retrieved = cache.get(&key).await.unwrap();
+        assert!(retrieved.is_some(), "设置的值应该能够获取到");
+        assert_eq!(retrieved.unwrap(), value, "获取的值应该与设置的值相同");
+
+        // 测试2: 设置 TTL 为 0（永不过期）
+        let result = cache.set_with_ttl(key.clone(), value.clone(), 0).await;
+        assert!(result.is_ok(), "设置TTL为0应该成功");
+
+        // 测试3: 验证 TTL 功能正常工作
+        let short_ttl_key = "short_ttl";
+        cache.set_with_ttl(short_ttl_key.to_string(), value.clone(), 1).await.unwrap();
+
+        // 立即获取应该成功
+        let retrieved = cache.get(short_ttl_key).await.unwrap();
+        assert!(retrieved.is_some(), "短TTL键应该能够立即获取");
+
+        // 等待过期
+        sleep(Duration::from_millis(1500)).await;
+
+        // 现在应该过期了
+        let retrieved = cache.get(short_ttl_key).await.unwrap();
+        assert!(retrieved.is_none(), "短TTL键应该已经过期");
+
         cache.shutdown().await.unwrap();
     }
 }
+

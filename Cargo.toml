@@ -1,15 +1,15 @@
 [package]
 name = "rat_memcache"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["0ldm0s <oldmos@gmail.com>"]
 description = "高性能 Memcached 协议兼容服务器，支持双层缓存和持久化存储"
-repository = "https://git.sukiyaki.su/0ldm0s/rat_memcache"
+repository = "https://github.com/0ldm0s/rat_memcache"
 license = "LGPL-3.0-or-later"
 readme = "README.md"
-homepage = "https://git.sukiyaki.su/0ldm0s/rat_memcache"
+homepage = "https://github.com/0ldm0s/rat_memcache"
 documentation = "https://docs.rs/rat_memcache"
-keywords = ["memcached", "cache", "server", "database", "performance", "rust", "protocol"]
+keywords = ["memcached", "cache", "server", "database", "performance"]
 categories = ["caching", "database", "network-programming", "memory-management"]
 
 [[bin]]
@@ -23,10 +23,10 @@ required-features = ["server"]
 [dependencies]
 
 # 日志系统
-rat_logger = "0.2.5"
+rat_logger = "0.2.8"
 
 # 持久化存储（可选）
-melange_db = { version = "0.1.3", optional = true }
+melange_db = { version = "0.1.5", optional = true }
 
 # 压缩算法
 lz4 = "1.24"
@@ -79,17 +79,23 @@ windows-sys = { version = "0.52", features = ["Win32_Networking_WinSock"] }
 mimalloc = { version = "0.1", optional = true, default-features = false }
 
 [features]
-default = ["server", "lz4-compression", "ttl-support", "metrics", "melange-storage", "mimalloc-allocator"]
+# 默认只包含基本功能，用户按需选择
+default = ["cache-lib", "ttl-support"]
 
-# 服务器功能（包含二进制）
-server = []
-
-# 库功能
+# 核心库功能 - 纯内存缓存
 cache-lib = []
-lz4-compression = []
+
+# 服务器功能 - 完整的memcached服务器实现
+server = ["full-features"]
+
+# 完整功能 - 包含所有库功能但不包含服务器二进制
+full-features = ["cache-lib", "ttl-support", "metrics", "melange-storage", "lz4-compression", "mimalloc-allocator"]
+
+# 可选功能组件
 ttl-support = []
 metrics = []
 melange-storage = ["melange_db"]
+lz4-compression = []
 mimalloc-allocator = ["mimalloc"]
 
 # 压缩特性（互斥，用于 MelangeDB）
