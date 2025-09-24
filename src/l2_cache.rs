@@ -653,7 +653,7 @@ impl L2CacheStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{L2Config, LoggingConfig, CompressionConfig, TtlConfig};
+    use crate::config::{L2Config, LoggingConfig, TtlConfig};
     use crate::compression::Compressor;
     use crate::ttl::TtlManager;
         use tempfile::TempDir;
@@ -668,11 +668,12 @@ mod tests {
             write_buffer_size: 1024 * 1024,  // 1MB
             max_write_buffer_number: 3,
             block_cache_size: 512 * 1024,    // 512KB
-            enable_compression: true,
-            compression_level: 6,
             background_threads: 2,
             clear_on_startup: false,
             enable_lz4: true,
+            compression_threshold: 128,
+            compression_max_threshold: 1024 * 1024,
+            compression_level: 6,
             cache_size_mb: 256,
             max_file_size_mb: 512,
             smart_flush_enabled: true,
@@ -683,6 +684,9 @@ mod tests {
             smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
             cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
             zstd_compression_level: None,
+            l2_write_strategy: "write_through".to_string(),
+            l2_write_threshold: 1024,
+            l2_write_ttl_threshold: 300,
         };
 
         let logging_config = LoggingConfig {
@@ -694,14 +698,6 @@ mod tests {
             enable_cache_logs: true,
         };
 
-        let compression_config = CompressionConfig {
-            enable_lz4: true,
-            compression_threshold: 100,
-            compression_level: 4,
-            auto_compression: true,
-            min_compression_ratio: 0.8,
-        };
-
         let ttl_config = TtlConfig {
             default_ttl: Some(60),
             max_ttl: 3600,
@@ -711,9 +707,9 @@ mod tests {
             active_expiration: false, // 测试中禁用主动过期
         };
 
-        let compressor = Compressor::new(compression_config);
+        let compressor = Compressor::new_from_l2_config(&l2_config);
         let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
-        
+
         let cache = L2Cache::new(l2_config, logging_config, compressor, ttl_manager).await.unwrap();
 
         (cache, temp_dir)
@@ -836,11 +832,12 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
-                compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                enable_lz4,
+                enable_lz4: enable_lz4,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
+                compression_level: 6,
                 cache_size_mb: 256,
                 max_file_size_mb: 512,
                 smart_flush_enabled: true,
@@ -851,6 +848,9 @@ mod tests {
                 smart_flush_accumulated_bytes_threshold: 4 * 1024 * 1024,
                 cache_warmup_strategy: crate::config::CacheWarmupStrategy::Recent,
                 zstd_compression_level: None,
+                l2_write_strategy: "write_through".to_string(),
+                l2_write_threshold: 1024,
+                l2_write_ttl_threshold: 300,
             };
 
             let logging_config = LoggingConfig {
@@ -862,14 +862,6 @@ mod tests {
                 enable_cache_logs: true,
             };
 
-            let compression_config = CompressionConfig {
-                enable_lz4: true,
-                compression_threshold: 100,
-                compression_level: 4,
-                auto_compression: true,
-                min_compression_ratio: 0.8,
-            };
-
             let ttl_config = TtlConfig {
                 default_ttl: Some(60),
                 max_ttl: 3600,
@@ -879,9 +871,9 @@ mod tests {
                 active_expiration: false,
             };
 
-            let compressor = Compressor::new(compression_config);
+            let compressor = Compressor::new_from_l2_config(&l2_config);
             let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
-            
+
             let cache = L2Cache::new(l2_config, logging_config, compressor, ttl_manager).await.unwrap();
 
             let key = "compression_test";

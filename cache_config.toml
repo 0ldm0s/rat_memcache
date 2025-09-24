@@ -71,7 +71,7 @@ l2_write_ttl_threshold = 3600
 
 [logging]
 # 日志配置
-level = "INFO"
+level = "DEBUG"
 enable_colors = true
 show_timestamp = true
 enable_performance_logs = true

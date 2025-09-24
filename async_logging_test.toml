@@ -1,0 +1,72 @@
+# RatMemcache 异步日志测试配置
+
+[l1]
+max_memory = 1073741824
+max_entries = 100000
+eviction_strategy = "Lru"
+
+[l2]
+enable_l2_cache = true
+data_dir = "./rat_memcache_data_async"
+clear_on_startup = false
+max_disk_size = 1073741824
+write_buffer_size = 67108864
+max_write_buffer_number = 3
+block_cache_size = 33554432
+enable_compression = true
+compression_level = 6
+background_threads = 4
+compression_algorithm = "Lz4"
+cache_size_mb = 512
+max_file_size_mb = 1024
+enable_statistics = true
+cache_warmup_strategy = "Recent"
+smart_flush_enabled = true
+smart_flush_base_interval_ms = 100
+smart_flush_min_interval_ms = 20
+smart_flush_max_interval_ms = 500
+smart_flush_write_rate_threshold = 8000
+smart_flush_accumulated_bytes_threshold = 8388608
+
+[compression]
+enable_lz4 = true
+compression_threshold = 1024
+compression_level = 6
+auto_compression = true
+min_compression_ratio = 0.8
+
+[ttl]
+default_ttl = 3600
+max_ttl = 86400
+cleanup_interval = 300
+max_cleanup_entries = 1000
+lazy_expiration = true
+active_expiration = true
+
+[performance]
+worker_threads = 4
+enable_concurrency = true
+read_write_separation = true
+batch_size = 100
+enable_warmup = true
+stats_interval = 60
+enable_background_stats = true
+l2_write_strategy = "WriteThrough"
+l2_write_threshold = 1024
+large_value_threshold = 10240
+l2_write_ttl_threshold = 3600
+
+[logging]
+level = "INFO"
+enable_colors = true
+show_timestamp = true
+enable_performance_logs = true
+enable_audit_logs = true
+enable_cache_logs = true
+
+# 异步日志配置测试
+enable_logging = true
+enable_async = true
+batch_size = 4096
+batch_interval_ms = 50
+buffer_size = 32768

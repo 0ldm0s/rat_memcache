@@ -1,0 +1,30 @@
+# rat_memcache 日志配置测试示例
+
+# 基本日志配置
+[level]
+# 可选值: trace, debug, info, warn, error, off
+level = "debug"
+
+[colors]
+enable_colors = true
+show_timestamp = true
+
+# 日志类型开关
+[logs]
+enable_performance_logs = true
+enable_audit_logs = true
+enable_cache_logs = true
+
+# === 高级日志配置 ===
+
+# 日志开关
+enable_logging = true
+
+# 异步模式配置
+enable_async = true
+
+# 批量处理配置（仅在异步模式下生效）
+[batch]
+batch_size = 4096        # 4KB
+batch_interval_ms = 50   # 50ms
+buffer_size = 32768      # 32KB

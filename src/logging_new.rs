@@ -1,0 +1,570 @@
+//! 日志模块
+//!
+//! 基于 rat_logger 库实现高性能日志系统
+//!
+//! ## 设计原则
+//!
+//! 作为库使用时：
+//! - 不主动初始化日志系统，由调用者负责
+//! - 提供安全的日志宏，未初始化时静默失败
+//! - 不同级别的日志有不同处理策略
+//!
+//! 作为服务器使用时：
+//! - 在main函数中负责初始化日志系统
+//! - 支持丰富的配置选项
+
+use crate::config::LoggingConfig;
+use crate::error::{CacheError, CacheResult};
+use std::io::Write;
+use chrono::Local;
+use rat_logger::{LoggerBuilder, Level, LevelFilter, Logger};
+use rat_logger::config::{Record, Metadata};
+use rat_logger::handler::term::TermConfig;
+use rat_logger::{FormatConfig, LevelStyle, ColorConfig};
+
+/// 日志管理器
+pub struct LogManager {
+    config: LoggingConfig,
+    logger: Option<Box<dyn Logger>>,
+}
+
+impl std::fmt::Debug for LogManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LogManager")
+            .field("config", &self.config)
+            .field("logger", &self.logger.is_some())
+            .finish()
+    }
+}
+
+/// 日志级别转换
+fn convert_log_level(level: &str) -> LevelFilter {
+    let level_filter = match level.to_lowercase().as_str() {
+        "trace" => LevelFilter::Trace,
+        "debug" => LevelFilter::Debug,
+        "info" => LevelFilter::Info,
+        "warn" | "warning" => LevelFilter::Warn,
+        "error" => LevelFilter::Error,
+        "off" => LevelFilter::Off,
+        _ => LevelFilter::Info, // 默认级别
+    };
+
+    
+    level_filter
+}
+
+impl LogManager {
+    /// 创建新的日志管理器
+    pub fn new(config: LoggingConfig) -> Self {
+        Self { config, logger: None }
+    }
+
+    /// 初始化日志系统
+    pub fn initialize(&self) -> CacheResult<()> {
+        // 如果完全禁用日志，直接返回
+        if !self.config.enable_logging {
+            return Ok(());
+        }
+
+        // 使用正确的TermConfig配置
+        use rat_logger::handler::term::TermConfig;
+
+        // 创建RAT缓存主题格式配置
+        let format_config = rat_logger::FormatConfig {
+            timestamp_format: "%H:%M:%S%.3f".to_string(),
+            level_style: rat_logger::LevelStyle {
+                error: "ERROR".to_string(),
+                warn: "WARN ".to_string(),
+                info: "INFO ".to_string(),
+                debug: "DEBUG".to_string(),
+                trace: "TRACE".to_string(),
+            },
+            format_template: "{timestamp} [{level}] {target}:{line} - {message}".to_string(),
+        };
+
+        // 创建颜色配置（如果启用颜色）
+        let color_config = if self.config.enable_colors {
+            Some(rat_logger::ColorConfig {
+                error: "\x1b[91m".to_string(),      // 亮红色
+                warn: "\x1b[93m".to_string(),       // 亮黄色
+                info: "\x1b[92m".to_string(),       // 亮绿色
+                debug: "\x1b[96m".to_string(),      // 亮青色
+                trace: "\x1b[95m".to_string(),      // 亮紫色
+                timestamp: "\x1b[90m".to_string(),   // 深灰色
+                target: "\x1b[94m".to_string(),      // 亮蓝色
+                file: "\x1b[95m".to_string(),       // 亮紫色
+                message: "\x1b[97m".to_string(),      // 亮白色
+            })
+        } else {
+            None
+        };
+
+        let term_config = TermConfig {
+            enable_color: self.config.enable_colors,
+            format: Some(format_config),
+            color: color_config,
+        };
+
+        let level_filter = convert_log_level(&self.config.level);
+
+        let mut builder = LoggerBuilder::new()
+            .with_level(level_filter);
+
+        // 配置异步模式和批量处理
+        if self.config.enable_async {
+            builder = builder.with_async_mode(true);
+
+            // 设置批量配置
+            let batch_config = rat_logger::producer_consumer::BatchConfig {
+                batch_size: self.config.batch_size,
+                batch_interval_ms: self.config.batch_interval_ms,
+                buffer_size: self.config.buffer_size,
+            };
+            builder = builder.with_batch_config(batch_config);
+        }
+
+        // 添加终端处理器
+        builder = builder.add_terminal_with_config(term_config);
+
+        // 初始化日志器
+        builder.init().map_err(|e| {
+            CacheError::config_error(&format!("日志初始化失败: {}", e))
+        })?;
+
+        Ok(())
+    }
+
+    /// 获取配置
+    pub fn config(&self) -> &LoggingConfig {
+        &self.config
+    }
+}
+
+/// 便捷的初始化函数
+pub fn init_logger(config: LoggingConfig) -> CacheResult<()> {
+    let manager = LogManager::new(config);
+    manager.initialize()
+}
+
+/// 强制刷新日志（仅在异步模式下有效）
+///
+/// 在异步模式下，日志会被缓冲批量处理，调用此函数可立即输出所有缓冲的日志
+/// 在同步模式下或日志禁用时，此函数无效果
+pub fn flush_logs() {
+    rat_logger::flush_logs!();
+}
+
+/// 条件性强制刷新日志
+///
+/// 根据配置决定是否强制刷新日志：
+/// - 只有在异步模式且启用日志时才会刷新
+/// - 同步模式或禁用日志时不执行任何操作
+pub fn flush_logs_if_async(config: &LoggingConfig) {
+    if config.enable_logging && config.enable_async {
+        rat_logger::flush_logs!();
+    }
+}
+
+/// 使用默认配置初始化
+pub fn init_default_logger() -> CacheResult<()> {
+    let config = LoggingConfig {
+        level: "info".to_string(),
+        enable_colors: true,
+        show_timestamp: true,
+        enable_performance_logs: true,
+        enable_audit_logs: true,
+        enable_cache_logs: true,
+        enable_logging: true,
+        enable_async: false,
+        batch_size: 2048,
+        batch_interval_ms: 25,
+        buffer_size: 16 * 1024,
+    };
+    init_logger(config)
+}
+
+/// 性能日志宏
+#[macro_export]
+macro_rules! perf_log {
+    ($config:expr, $level:ident, $($arg:tt)*) => {
+        if $config.enable_performance_logs {
+            rat_logger::$level!("[PERF] {}", format!($($arg)*));
+        }
+    };
+}
+
+/// 审计日志宏
+#[macro_export]
+macro_rules! audit_log {
+    ($config:expr, $level:ident, $($arg:tt)*) => {
+        if $config.enable_audit_logs {
+            rat_logger::$level!("[AUDIT] {}", format!($($arg)*));
+        }
+    };
+}
+
+/// 缓存操作日志宏
+#[macro_export]
+macro_rules! cache_log {
+    ($config:expr, trace, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::trace!("[CACHE] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, debug, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::debug!("[CACHE] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, info, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::info!("[CACHE] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, warn, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::warn!("[CACHE] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, error, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::error!("[CACHE] {}", format!($($arg)*));
+        }
+    };
+}
+
+/// 压缩操作日志宏
+#[macro_export]
+macro_rules! compression_log {
+    (trace, $($arg:tt)*) => {
+        rat_logger::trace!("[COMPRESSION] {}", format!($($arg)*));
+    };
+    (debug, $($arg:tt)*) => {
+        rat_logger::debug!("[COMPRESSION] {}", format!($($arg)*));
+    };
+    (info, $($arg:tt)*) => {
+        rat_logger::info!("[COMPRESSION] {}", format!($($arg)*));
+    };
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[COMPRESSION] {}", format!($($arg)*));
+    };
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[COMPRESSION] {}", format!($($arg)*));
+    };
+}
+
+/// TTL 操作日志宏
+#[macro_export]
+macro_rules! ttl_log {
+    ($config:expr, trace, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::trace!("[TTL] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, debug, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::debug!("[TTL] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, info, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::info!("[TTL] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, warn, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::warn!("[TTL] {}", format!($($arg)*));
+        }
+    };
+    ($config:expr, error, $($arg:tt)*) => {
+        if $config.enable_cache_logs {
+            rat_logger::error!("[TTL] {}", format!($($arg)*));
+        }
+    };
+}
+
+/// 智能传输日志宏
+#[macro_export]
+macro_rules! transfer_log {
+    (trace, $($arg:tt)*) => {
+        rat_logger::trace!("[TRANSFER] {}", format!($($arg)*));
+    };
+    (debug, $($arg:tt)*) => {
+        rat_logger::debug!("[TRANSFER] {}", format!($($arg)*));
+    };
+    (info, $($arg:tt)*) => {
+        rat_logger::info!("[TRANSFER] {}", format!($($arg)*));
+    };
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[TRANSFER] {}", format!($($arg)*));
+    };
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[TRANSFER] {}", format!($($arg)*));
+    };
+}
+
+/// 性能监控日志结构
+#[derive(Debug, Clone)]
+pub struct PerformanceMetrics {
+    pub operation: String,
+    pub duration_ms: f64,
+    pub success: bool,
+    pub details: Option<String>,
+}
+
+impl PerformanceMetrics {
+    /// 创建新的性能指标
+    pub fn new(operation: String, duration_ms: f64, success: bool) -> Self {
+        Self {
+            operation,
+            duration_ms,
+            success,
+            details: None,
+        }
+    }
+
+    /// 添加详细信息
+    pub fn with_details(mut self, details: String) -> Self {
+        self.details = Some(details);
+        self
+    }
+
+    /// 记录性能日志
+    pub fn log(&self, config: &LoggingConfig) {
+        if !config.enable_performance_logs {
+            return;
+        }
+
+        let status = if self.success { "SUCCESS" } else { "FAILED" };
+        let details = self.details.as_deref().unwrap_or("");
+        
+        if self.success {
+            perf_log!(config, info, 
+                "Operation: {} | Duration: {:.2}ms | Status: {} | Details: {}",
+                self.operation, self.duration_ms, status, details
+            );
+        } else {
+            perf_log!(config, warn,
+                "Operation: {} | Duration: {:.2}ms | Status: {} | Details: {}",
+                self.operation, self.duration_ms, status, details
+            );
+        }
+    }
+}
+
+/// 审计日志结构
+#[derive(Debug, Clone)]
+pub struct AuditEvent {
+    pub event_type: String,
+    pub user_id: Option<String>,
+    pub resource: String,
+    pub action: String,
+    pub result: String,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+impl AuditEvent {
+    /// 创建新的审计事件
+    pub fn new(event_type: String, resource: String, action: String, result: String) -> Self {
+        Self {
+            event_type,
+            user_id: None,
+            resource,
+            action,
+            result,
+            timestamp: chrono::Utc::now(),
+        }
+    }
+
+    /// 设置用户 ID
+    pub fn with_user_id(mut self, user_id: String) -> Self {
+        self.user_id = Some(user_id);
+        self
+    }
+
+    /// 记录审计日志
+    pub fn log(&self, config: &LoggingConfig) {
+        if !config.enable_audit_logs {
+            return;
+        }
+
+        let user_info = self.user_id.as_deref().unwrap_or("anonymous");
+        
+        audit_log!(config, info,
+            "Type: {} | User: {} | Resource: {} | Action: {} | Result: {} | Time: {}",
+            self.event_type, user_info, self.resource, self.action, self.result,
+            self.timestamp.format("%Y-%m-%d %H:%M:%S UTC")
+        );
+    }
+}
+
+/// 日志工具函数
+pub mod utils {
+    use super::*;
+    use std::time::Instant;
+
+    /// 性能计时器
+    pub struct Timer {
+        start: Instant,
+        operation: String,
+    }
+
+    impl Timer {
+        /// 开始计时
+        pub fn start(operation: String) -> Self {
+            Self {
+                start: Instant::now(),
+                operation,
+            }
+        }
+
+        /// 结束计时并记录日志
+        pub fn finish(self, config: &LoggingConfig, success: bool) -> PerformanceMetrics {
+            let duration = self.start.elapsed();
+            let duration_ms = duration.as_secs_f64() * 1000.0;
+            
+            let metrics = PerformanceMetrics::new(self.operation, duration_ms, success);
+            metrics.log(config);
+            metrics
+        }
+
+        /// 结束计时并记录带详细信息的日志
+        pub fn finish_with_details(
+            self, 
+            config: &LoggingConfig, 
+            success: bool, 
+            details: String
+        ) -> PerformanceMetrics {
+            let duration = self.start.elapsed();
+            let duration_ms = duration.as_secs_f64() * 1000.0;
+            
+            let metrics = PerformanceMetrics::new(self.operation, duration_ms, success)
+                .with_details(details);
+            metrics.log(config);
+            metrics
+        }
+    }
+
+    /// 格式化字节大小
+    pub fn format_bytes(bytes: u64) -> String {
+        const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
+        let mut size = bytes as f64;
+        let mut unit_index = 0;
+
+        while size >= 1024.0 && unit_index < UNITS.len() - 1 {
+            size /= 1024.0;
+            unit_index += 1;
+        }
+
+        if unit_index == 0 {
+            format!("{} {}", bytes, UNITS[unit_index])
+        } else {
+            format!("{:.2} {}", size, UNITS[unit_index])
+        }
+    }
+
+    /// 格式化持续时间
+    pub fn format_duration(duration_ms: f64) -> String {
+        if duration_ms < 1.0 {
+            format!("{:.3}ms", duration_ms)
+        } else if duration_ms < 1000.0 {
+            format!("{:.2}ms", duration_ms)
+        } else {
+            format!("{:.2}s", duration_ms / 1000.0)
+        }
+    }
+}
+
+// ============================================================================
+// 安全的日志宏 - 参考melange_db设计
+// ============================================================================
+
+/// 缓存调试日志 - 仅在debug模式下编译
+#[macro_export]
+macro_rules! cache_debug {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::debug!($($arg)*);
+
+        #[cfg(not(debug_assertions))]
+        {
+            // release模式下完全零成本
+        }
+    };
+}
+
+/// 缓存追踪日志 - 仅在debug模式下编译
+#[macro_export]
+macro_rules! cache_trace {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::trace!($($arg)*);
+    };
+}
+
+/// 缓存信息日志 - 轻量级，在关键路径使用
+#[macro_export]
+macro_rules! cache_info {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::info!($($arg)*);
+    };
+}
+
+/// 缓存警告日志 - 始终保留但优化
+#[macro_export]
+macro_rules! cache_warn {
+    ($($arg:tt)*) => {
+        rat_logger::warn!($($arg)*);
+    };
+}
+
+/// 缓存错误日志 - 始终保留
+#[macro_export]
+macro_rules! cache_error {
+    ($($arg:tt)*) => {
+        rat_logger::error!($($arg)*);
+    };
+}
+
+/// TTL相关日志
+#[macro_export]
+macro_rules! ttl_log {
+    (debug, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::debug!("[TTL] $($arg)*);
+    };
+    (info, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::info!("[TTL] $($arg)*);
+    };
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[TTL] $($arg)*);
+    };
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[TTL] $($arg)*);
+    };
+}
+
+/// 压缩相关日志
+#[macro_export]
+macro_rules! compression_log {
+    (debug, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::debug!("[COMPRESSION] $($arg)*);
+    };
+    (info, $($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::info!("[COMPRESSION] $($arg)*);
+    };
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[COMPRESSION] $($arg)*);
+    };
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[COMPRESSION] $($arg)*);
+    };
+}
+
+/// 性能日志 - 始终保留用于监控
+#[macro_export]
+macro_rules! perf_log {

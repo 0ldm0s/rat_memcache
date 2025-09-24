@@ -1,110 +1,1416 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s
+     Running `target/debug/rat_memcached --config cache_config.toml`
 🚀 RatMemcached - 高性能 Memcached 协议兼容服务器
 📦 基于 rat_memcache (MelangeDB存储后端)
 ⚡ 支持完整的 Memcached 协议
 🧠 使用 mimalloc 高性能内存分配器
 ⚙️ 服务器配置:
   - 绑定地址: 127.0.0.1:11211
-  - 预设配置: Some("high_speed_communication")
   - 配置文件: cache_config.toml
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m🚀 初始化 RatMemcached 服务器[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m📍 绑定地址: 127.0.0.1:11211[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m📊 缓存配置详情:[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m  🎯 L1 内存缓存:[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 最大内存: 1024.00 MB[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 最大条目: 100000[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 淘汰策略: Lru[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m  💾 L2 MelangeDB 持久化缓存:[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 启用状态: 是[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 数据目录: ./rat_memcache_data[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 最大磁盘空间: 1024.00 MB[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 块缓存大小: 32.00 MB[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 写缓冲区: 64.00 MB[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 压缩: 启用[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - MelangeDB 压缩算法: Lz4[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 缓存大小: 512 MB[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 最大文件大小: 1024 MB[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 智能Flush: 启用[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - Flush间隔: 20-500ms (基础: 100ms)[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 缓存预热策略: Recent[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 统计信息: 启用[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m  ⏰ TTL 配置:[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 默认TTL: 3600秒[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 最大TTL: 86400秒[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 清理间隔: 300秒[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m  🗜️  压缩配置:[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - LZ4压缩: 启用[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 压缩阈值: 1024 bytes[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 压缩级别: 6[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m  ⚡ 性能配置:[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 工作线程: 4[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 并发支持: 启用[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 读写分离: 启用[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m    - 大值阈值: 10240 bytes (10KB)[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m  🧠 内存分配器: mimalloc (高性能优化)[0m
-[[92mINFO [0m] [90m18:08:15.920[0m [RAT-CACHE] [97m[TTL] TTL 管理器已启动[0m
-[[92mINFO [0m] [90m18:08:15.921[0m [RAT-CACHE] [97m[TTL] TTL 清理任务已启动，间隔: 300秒[0m
-[[92mINFO [0m] [90m18:08:15.921[0m [RAT-CACHE] [97m✅ 缓存实例创建成功[0m
-🔧 [DEBUG] 原始数据片段 (前100字节): [115, 101, 116, 32, 98, 117, 102, 102, 101, 114, 95, 116, 101, 115, 116, 95, 107, 101, 121, 32, 48, 32, 51, 48, 48, 32, 52, 55, 53, 48, 48, 13, 10, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70]
-🔧 [DEBUG] 累积缓冲区长度: 4096 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79]
-🔧 [DEBUG] 累积缓冲区长度: 8159 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82]
-🔧 [DEBUG] 累积缓冲区长度: 12255 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69]
-🔧 [DEBUG] 累积缓冲区长度: 16351 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69]
-🔧 [DEBUG] 累积缓冲区长度: 20447 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66]
-🔧 [DEBUG] 累积缓冲区长度: 24543 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95]
-🔧 [DEBUG] 累积缓冲区长度: 28639 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70]
-🔧 [DEBUG] 累积缓冲区长度: 32735 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67]
-🔧 [DEBUG] 累积缓冲区长度: 36831 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95]
-🔧 [DEBUG] 累积缓冲区长度: 40927 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84]
-🔧 [DEBUG] 累积缓冲区长度: 45023 chars
-🔧 [DEBUG] 原始数据片段 (前100字节): [82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83, 84, 95, 83, 79, 67, 75, 69, 84, 95, 66, 85, 70, 70, 69, 82, 95, 84, 69, 83]
-🔧 [DEBUG] 累积缓冲区长度: 47502 chars
-🔧 [DEBUG] 发送响应: 8 bytes
-🔧 [DEBUG] 响应发送成功!
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m🔧 初始化传统 TCP 监听器[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m🔧 配置平台特定的 TCP 优化[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m✅ TCP 优化配置完成[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m✅ TCP 监听器创建成功，地址: 127.0.0.1:11211[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m✅ 服务器创建成功，开始监听...[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m🚀 启动 RatMemcached 服务器[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m🔗 开始监听连接...[0m
-[[92mINFO [0m] [90m18:08:21.917[0m [RAT-CACHE] [97m🔗 新连接来自: 127.0.0.1:55342[0m
-🔧 [DEBUG] 原始数据片段 (前100字节): [103, 101, 116, 32, 98, 117, 102, 102, 101, 114, 95, 116, 101, 115, 116, 95, 107, 101, 121, 13, 10]
-🔧 [DEBUG] 累积缓冲区长度: 21 chars
-🔧 [DEBUG] 立即执行命令路径...
-🔧 [DEBUG] execute_command: 返回Value响应，数据大小: 47500 bytes
-🔧 [DEBUG] format_response: 准备发送大值响应 - key: buffer_test_key, data_size: 47500 bytes
-🔧 [DEBUG] format_response: 响应总大小: 47538 bytes (header: 31 + data: 47500 + trailer: 7)
-🔧 [DEBUG] 立即执行路径: 发送响应: 47538 bytes
-🔧 [DEBUG] 立即执行路径: 响应发送成功!
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m🔗 开始处理 TCP 连接[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 4096 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.928[0m [RAT-CACHE] [97m📨 接收到 2479 字节数据[0m
-[[92mINFO [0m] [90m18:08:22.929[0m [RAT-CACHE] [97m执行 SET 命令: buffer_test_key (47500 bytes, TTL: 300)[0m
-[[92mINFO [0m] [90m18:08:22.929[0m [RAT-CACHE] [97mSET 成功: buffer_test_key[0m
-[[92mINFO [0m] [90m18:08:22.929[0m [RAT-CACHE] [97m🔗 新连接来自: 127.0.0.1:55350[0m
-[[92mINFO [0m] [90m18:08:23.032[0m [RAT-CACHE] [97m🔗 开始处理 TCP 连接[0m
-[[92mINFO [0m] [90m18:08:23.032[0m [RAT-CACHE] [97m📨 接收到 21 字节数据[0m
-[[92mINFO [0m] [90m18:08:23.032[0m [RAT-CACHE] [97m执行 GET 命令: ["buffer_test_key"][0m
-[[92mINFO [0m] [90m18:08:23.032[0m [RAT-CACHE] [97mGET 命中: buffer_test_key (47500 bytes)[0m
-[[92mINFO [0m] [90m18:08:23.032[0m [RAT-CACHE] [97m🔚 连接处理结束[0m
-[[92mINFO [0m] [90m18:08:53.055[0m [RAT-CACHE] [97m🔚 连接处理结束[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m492[0m - [97m🚀 初始化 RatMemcached 服务器[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m493[0m - [97m📍 绑定地址: 127.0.0.1:11211[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m523[0m - [97m📊 缓存配置详情:[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m526[0m - [97m  🎯 L1 内存缓存:[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m527[0m - [97m    - 最大内存: 1024.00 MB[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m528[0m - [97m    - 最大条目: 100000[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m529[0m - [97m    - 淘汰策略: Lru[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m534[0m - [97m  💾 L2 MelangeDB 持久化缓存:[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m535[0m - [97m    - 启用状态: 是[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m537[0m - [97m    - 数据目录: ./rat_memcache_data[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m539[0m - [97m    - 最大磁盘空间: 1024.00 MB[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m540[0m - [97m    - 块缓存大小: 32.00 MB[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m541[0m - [97m    - 写缓冲区: 64.00 MB[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m542[0m - [97m    - 压缩: 启用[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m545[0m - [97m    - MelangeDB 压缩算法: "LZ4"[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m546[0m - [97m    - 缓存大小: 512 MB[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m547[0m - [97m    - 最大文件大小: 1024 MB[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m548[0m - [97m    - 智能Flush: 启用[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m550[0m - [97m    - Flush间隔: 20-500ms (基础: 100ms)[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m555[0m - [97m    - 缓存预热策略: Recent[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m556[0m - [97m    - 统计信息: 启用[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m565[0m - [97m  ⏰ TTL 配置:[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m566[0m - [97m    - 过期时间: 0秒[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m567[0m - [97m    - 清理间隔: 300秒[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m570[0m - [97m  🗜️  压缩配置:[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m572[0m - [97m    - LZ4压缩: 启用[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m573[0m - [97m    - 压缩阈值: 128 bytes[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m574[0m - [97m    - 最大压缩阈值: 1048576 bytes[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m575[0m - [97m    - 压缩级别: 6[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m581[0m - [97m  ⚡ 性能配置:[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m582[0m - [97m    - 工作线程: 4[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m583[0m - [97m    - 并发支持: 启用[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m584[0m - [97m    - 读写分离: 启用[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m585[0m - [97m    - 大值阈值: 10240 bytes (10KB)[0m
+[90m14:53:51.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m588[0m - [97m  🧠 内存分配器: mimalloc (高性能优化)[0m
+[90m14:53:51.210[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m133[0m - [97m[CACHE] RatMemCache::new 开始初始化[0m
+[90m14:53:51.210[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m134[0m - [97m[CACHE] 配置: CacheConfig { l1: L1Config { max_memory: 1073741824, max_entries: 100000, eviction_strategy: Lru }, l2: Some(L2Config { enable_l2_cache: true, data_dir: Some("./rat_memcache_data"), clear_on_startup: false, max_disk_size: 1073741824, write_buffer_size: 67108864, max_write_buffer_number: 3, block_cache_size: 33554432, background_threads: 4, enable_lz4: true, compression_threshold: 128, compression_max_threshold: 1048576, compression_level: 6, cache_size_mb: 512, max_file_size_mb: 1024, smart_flush_enabled: true, smart_flush_base_interval_ms: 100, smart_flush_min_interval_ms: 20, smart_flush_max_interval_ms: 500, smart_flush_write_rate_threshold: 8000, smart_flush_accumulated_bytes_threshold: 8388608, cache_warmup_strategy: Recent, zstd_compression_level: None, l2_write_strategy: "", l2_write_threshold: 0, l2_write_ttl_threshold: 0 }), ttl: TtlConfig { expire_seconds: None, cleanup_interval: 300, max_cleanup_entries: 1000, lazy_expiration: true, active_expiration: true }, performance: PerformanceConfig { worker_threads: 4, enable_concurrency: true, read_write_separation: true, batch_size: 100, enable_warmup: true, large_value_threshold: 10240 }, logging: LoggingConfig { level: "DEBUG", enable_colors: true, show_timestamp: true, enable_performance_logs: true, enable_audit_logs: true, enable_cache_logs: true, enable_logging: true, enable_async: false, batch_size: 2048, batch_interval_ms: 25, buffer_size: 16384 } }[0m
+[90m14:53:51.210[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m137[0m - [97m[CACHE] 初始化日志管理器[0m
+[90m14:53:51.210[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m140[0m - [97m[CACHE] 开始初始化 RatMemCache...[0m
+[90m14:53:51.210[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m143[0m - [97m[CACHE] 初始化压缩器[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m152[0m - [97m[CACHE] 初始化 TTL 管理器[0m
+[90m14:53:51.211[0m [[92mINFO [0m] [94mrat_memcache::ttl[0m:[95m83[0m - [97m[TTL] TTL 管理器已启动[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m159[0m - [97m[CACHE] 初始化 L1 缓存[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m87[0m - [97m[CACHE] L1 缓存已初始化，最大内存: 1073741824 bytes，最大条目: 100000[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m168[0m - [97m[CACHE] L1 缓存初始化成功[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m178[0m - [97m[CACHE] 检查是否启用 L2 缓存: true[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m179[0m - [97m[CACHE] L2 缓存配置: L2Config { enable_l2_cache: true, data_dir: Some("./rat_memcache_data"), clear_on_startup: false, max_disk_size: 1073741824, write_buffer_size: 67108864, max_write_buffer_number: 3, block_cache_size: 33554432, background_threads: 4, enable_lz4: true, compression_threshold: 128, compression_max_threshold: 1048576, compression_level: 6, cache_size_mb: 512, max_file_size_mb: 1024, smart_flush_enabled: true, smart_flush_base_interval_ms: 100, smart_flush_min_interval_ms: 20, smart_flush_max_interval_ms: 500, smart_flush_write_rate_threshold: 8000, smart_flush_accumulated_bytes_threshold: 8388608, cache_warmup_strategy: Recent, zstd_compression_level: None, l2_write_strategy: "", l2_write_threshold: 0, l2_write_ttl_threshold: 0 }[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m180[0m - [97m[CACHE] 开始初始化 L2 缓存[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m181[0m - [97m[CACHE] L2 缓存数据目录: Some("./rat_memcache_data")[0m
+[90m14:53:51.211[0m [[92mINFO [0m] [94mrat_memcache::ttl[0m:[95m283[0m - [97m[TTL] TTL 清理任务已启动，间隔: 300秒[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m185[0m - [97m[CACHE] 手动验证 L2 缓存目录是否可写: "./rat_memcache_data"[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m186[0m - [97m[CACHE] 目录是否存在: true[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m198[0m - [97m[CACHE] 尝试写入测试文件: "./rat_memcache_data/.cache_write_test"[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m201[0m - [97m[CACHE] 测试文件写入成功[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m203[0m - [97m[CACHE] 测试文件删除成功[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m213[0m - [97m[CACHE] 调用 L2Cache::new[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m98[0m - [97m[CACHE] L2Cache::new 开始初始化[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m99[0m - [97m[CACHE] L2 缓存配置: L2Config { enable_l2_cache: true, data_dir: Some("./rat_memcache_data"), clear_on_startup: false, max_disk_size: 1073741824, write_buffer_size: 67108864, max_write_buffer_number: 3, block_cache_size: 33554432, background_threads: 4, enable_lz4: true, compression_threshold: 128, compression_max_threshold: 1048576, compression_level: 6, cache_size_mb: 512, max_file_size_mb: 1024, smart_flush_enabled: true, smart_flush_base_interval_ms: 100, smart_flush_min_interval_ms: 20, smart_flush_max_interval_ms: 500, smart_flush_write_rate_threshold: 8000, smart_flush_accumulated_bytes_threshold: 8388608, cache_warmup_strategy: Recent, zstd_compression_level: None, l2_write_strategy: "", l2_write_threshold: 0, l2_write_ttl_threshold: 0 }[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m109[0m - [97m[CACHE] 获取数据目录[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m118[0m - [97m[CACHE] 最终数据目录: "./rat_memcache_data"[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m133[0m - [97m[CACHE] 验证数据目录写权限[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m137[0m - [97m[CACHE] 数据目录写权限验证成功[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m187[0m - [97m[CACHE] 尝试打开 MelangeDB 数据库，路径: "./rat_memcache_data"[0m
+[90m14:53:51.211[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m339[0m - [97m[TTL] 开始 TTL 清理任务[0m
+[90m14:53:51.212[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m406[0m - [97m[TTL] TTL 清理完成: 无过期键，耗时 0ms[0m
+[90m14:53:51.212[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m412[0m - [97m[PERF] TTL cleanup performance: 0 keys cleaned in 0ms[0m
+[90m14:53:51.287[0m [[96mDEBUG[0m] [94mmelange_db::metadata_store[0m:[95m361[0m - [97mopening MetadataStore at "./rat_memcache_data/metadata"[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mmelange_db::heap[0m:[95m819[0m - [97mrecovery of Heap at "./rat_memcache_data" complete[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mmelange_db::block_cache[0m:[95m343[0m - [97m创建分级块缓存: 热=13421772, 温=40265318, 冷=80530636[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m203[0m - [97m[CACHE] L2 缓存（MelangeDB）已初始化，数据目录: "./rat_memcache_data"[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m222[0m - [97m[CACHE] L2Cache::new 调用成功[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m236[0m - [97m[CACHE] 创建 RatMemCache 实例[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m250[0m - [97m[CACHE] RatMemCache 初始化完成，耗时: 94ms[0m
+[90m14:53:51.310[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m252[0m - [97m[CACHE] 返回 RatMemCache 实例[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m503[0m - [97m✅ 缓存实例创建成功[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m615[0m - [97m🔧 初始化传统 TCP 监听器[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m631[0m - [97m🔧 配置平台特定的 TCP 优化[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m730[0m - [97m✅ TCP 优化配置完成[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m625[0m - [97m✅ TCP 监听器创建成功，地址: 127.0.0.1:11211[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1597[0m - [97m✅ 服务器创建成功，开始监听...[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m736[0m - [97m🚀 启动 RatMemcached 服务器[0m
+[90m14:53:51.310[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m739[0m - [97m🔗 开始监听连接...[0m
+[90m14:57:03.060[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m751[0m - [97m🔗 新连接来自: 127.0.0.1:50545[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m795[0m - [97m🔗 开始处理 TCP 连接[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 73 字节数据[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set small_50 0 0 50[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: small_50 (50 bytes, TTL: 0)[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: small_50 (未压缩)[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: small_50 (大值: false, L1: true, L2: false)[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: small_50[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 14 字节数据[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get small_50[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["small_50"][0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: small_50[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: small_50[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: small_50 (50 bytes)[0m
+[90m14:57:03.061[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete small_50[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: small_50[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_50 的过期时间[0m
+[90m14:57:03.061[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: small_50[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_50 的过期时间[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: small_50[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: small_50[0m
+[90m14:57:03.062[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 125 字节数据[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set small_100 0 0 100[0m
+[90m14:57:03.062[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: small_100 (100 bytes, TTL: 0)[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: small_100 (未压缩)[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: small_100 (大值: false, L1: true, L2: false)[0m
+[90m14:57:03.062[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: small_100[0m
+[90m14:57:03.062[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 15 字节数据[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get small_100[0m
+[90m14:57:03.062[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["small_100"][0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: small_100[0m
+[90m14:57:03.062[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: small_100[0m
+[90m14:57:03.062[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: small_100 (100 bytes)[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 18 字节数据[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete small_100[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: small_100[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_100 的过期时间[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: small_100[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_100 的过期时间[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: small_100[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: small_100[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 226 字节数据[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set medium_200 0 0 200[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: medium_200 (200 bytes, TTL: 0)[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: medium_200 (已压缩)[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: medium_200 (大值: false, L1: true, L2: false)[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: medium_200[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 16 字节数据[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get medium_200[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["medium_200"][0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: medium_200[0m
+[90m14:57:03.063[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: medium_200[0m
+[90m14:57:03.063[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: medium_200 (200 bytes)[0m
+[90m14:57:03.064[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 19 字节数据[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete medium_200[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: medium_200[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_200 的过期时间[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: medium_200[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_200 的过期时间[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: medium_200[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: medium_200[0m
+[90m14:57:03.064[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 1052 字节数据[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set medium_1024 0 0 1024[0m
+[90m14:57:03.064[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: medium_1024 (1024 bytes, TTL: 0)[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: medium_1024 (已压缩)[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: medium_1024 (大值: false, L1: true, L2: false)[0m
+[90m14:57:03.064[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: medium_1024[0m
+[90m14:57:03.064[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:03.064[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get medium_1024[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["medium_1024"][0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: medium_1024[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: medium_1024[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: medium_1024 (1024 bytes)[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 20 字节数据[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete medium_1024[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: medium_1024[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_1024 的过期时间[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: medium_1024[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_1024 的过期时间[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: medium_1024[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: medium_1024[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 26 字节数据[0m
+[90m14:57:03.065[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set medium_8192 0 0 8192[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.065[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 2 字节数据[0m
+[90m14:57:03.066[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: medium_8192 (8192 bytes, TTL: 0)[0m
+[90m14:57:03.066[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: medium_8192 (已压缩)[0m
+[90m14:57:03.066[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: medium_8192 (大值: false, L1: true, L2: false)[0m
+[90m14:57:03.066[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: medium_8192[0m
+[90m14:57:03.066[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:03.066[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get medium_8192[0m
+[90m14:57:03.066[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["medium_8192"][0m
+[90m14:57:03.066[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: medium_8192[0m
+[90m14:57:03.066[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: medium_8192[0m
+[90m14:57:03.066[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: medium_8192 (8192 bytes)[0m
+[90m14:57:03.068[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 20 字节数据[0m
+[90m14:57:03.068[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete medium_8192[0m
+[90m14:57:03.068[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: medium_8192[0m
+[90m14:57:03.069[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_8192 的过期时间[0m
+[90m14:57:03.069[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: medium_8192[0m
+[90m14:57:03.069[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_8192 的过期时间[0m
+[90m14:57:03.069[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: medium_8192[0m
+[90m14:57:03.069[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: medium_8192[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 26 字节数据[0m
+[90m14:57:03.069[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set large_2M 0 0 2097152[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.069[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.070[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.071[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.072[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.073[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.074[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.075[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:03.077[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 2 字节数据[0m
+[90m14:57:03.190[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: large_2M (2097152 bytes, TTL: 0)[0m
+[90m14:57:03.190[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m331[0m - [97m[CACHE] 检测到大值: large_2M (2097152 bytes)[0m
+[90m14:57:03.190[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m337[0m - [97m[CACHE] 大值直接下沉到 L2: large_2M[0m
+[90m14:57:03.191[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m339[0m - [97m[CACHE] L2 缓存设置: large_2M (未压缩)[0m
+[90m14:57:03.191[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: large_2M (大值: true, L1: false, L2: true)[0m
+[90m14:57:03.191[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: large_2M[0m
+[90m14:57:03.192[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 14 字节数据[0m
+[90m14:57:03.192[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get large_2M[0m
+[90m14:57:03.192[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["large_2M"][0m
+[90m14:57:03.192[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m118[0m - [97m[CACHE] L1 缓存未命中: large_2M[0m
+[90m14:57:03.192[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m259[0m - [97m[CACHE] L2 缓存命中: large_2M[0m
+[90m14:57:03.192[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m283[0m - [97m[TRANSFER] L2 缓存命中: large_2M[0m
+[90m14:57:03.193[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: large_2M (未压缩)[0m
+[90m14:57:03.193[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: large_2M (2097152 bytes)[0m
+[90m14:57:06.076[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete large_2M[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: large_2M[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_2M 的过期时间[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: large_2M[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_2M 的过期时间[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m355[0m - [97m[CACHE] L2 缓存删除: large_2M[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_2M 的过期时间[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: large_2M[0m
+[90m14:57:06.076[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: large_2M[0m
+[90m14:57:06.180[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m816[0m - [97m连接连续收到空数据，可能已断开[0m
+[90m14:57:06.180[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m995[0m - [97m🔚 连接处理结束[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m751[0m - [97m🔗 新连接来自: 127.0.0.1:50661[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m795[0m - [97m🔗 开始处理 TCP 连接[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 73 字节数据[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set small_50 0 0 50[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: small_50 (50 bytes, TTL: 0)[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: small_50 (未压缩)[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: small_50 (大值: false, L1: true, L2: false)[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: small_50[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 14 字节数据[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get small_50[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["small_50"][0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: small_50[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: small_50[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: small_50 (50 bytes)[0m
+[90m14:57:56.203[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete small_50[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: small_50[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_50 的过期时间[0m
+[90m14:57:56.203[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: small_50[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_50 的过期时间[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: small_50[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: small_50[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 125 字节数据[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set small_100 0 0 100[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: small_100 (100 bytes, TTL: 0)[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: small_100 (未压缩)[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: small_100 (大值: false, L1: true, L2: false)[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: small_100[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 15 字节数据[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get small_100[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["small_100"][0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: small_100[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: small_100[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: small_100 (100 bytes)[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 18 字节数据[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete small_100[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: small_100[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_100 的过期时间[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: small_100[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 small_100 的过期时间[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: small_100[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: small_100[0m
+[90m14:57:56.204[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 226 字节数据[0m
+[90m14:57:56.204[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set medium_200 0 0 200[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: medium_200 (200 bytes, TTL: 0)[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: medium_200 (已压缩)[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: medium_200 (大值: false, L1: true, L2: false)[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: medium_200[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 16 字节数据[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get medium_200[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["medium_200"][0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: medium_200[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: medium_200[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: medium_200 (200 bytes)[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 19 字节数据[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete medium_200[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: medium_200[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_200 的过期时间[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: medium_200[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_200 的过期时间[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: medium_200[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: medium_200[0m
+[90m14:57:56.205[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 1052 字节数据[0m
+[90m14:57:56.205[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set medium_1024 0 0 1024[0m
+[90m14:57:56.206[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: medium_1024 (1024 bytes, TTL: 0)[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: medium_1024 (已压缩)[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: medium_1024 (大值: false, L1: true, L2: false)[0m
+[90m14:57:56.206[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: medium_1024[0m
+[90m14:57:56.206[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get medium_1024[0m
+[90m14:57:56.206[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["medium_1024"][0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: medium_1024[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: medium_1024[0m
+[90m14:57:56.206[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: medium_1024 (1024 bytes)[0m
+[90m14:57:56.206[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 20 字节数据[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete medium_1024[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: medium_1024[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_1024 的过期时间[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: medium_1024[0m
+[90m14:57:56.206[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_1024 的过期时间[0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: medium_1024[0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: medium_1024[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 26 字节数据[0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set medium_8192 0 0 8192[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 2 字节数据[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: medium_8192 (8192 bytes, TTL: 0)[0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: medium_8192 (已压缩)[0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: medium_8192 (大值: false, L1: true, L2: false)[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: medium_8192[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get medium_8192[0m
+[90m14:57:56.207[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["medium_8192"][0m
+[90m14:57:56.207[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m114[0m - [97m[CACHE] L1 缓存命中: medium_8192[0m
+[90m14:57:56.208[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m274[0m - [97m[TRANSFER] L1 缓存命中: medium_8192[0m
+[90m14:57:56.208[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: medium_8192 (8192 bytes)[0m
+[90m14:57:56.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 20 字节数据[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete medium_8192[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: medium_8192[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_8192 的过期时间[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: medium_8192[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 medium_8192 的过期时间[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: medium_8192[0m
+[90m14:57:56.210[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: medium_8192[0m
+[90m14:57:56.210[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 25 字节数据[0m
+[90m14:57:56.211[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set large_15K 0 0 15360[0m
+[90m14:57:56.211[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.211[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.211[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.211[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 3074 字节数据[0m
+[90m14:57:56.212[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: large_15K (15360 bytes, TTL: 0)[0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m331[0m - [97m[CACHE] 检测到大值: large_15K (15360 bytes)[0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m337[0m - [97m[CACHE] 大值直接下沉到 L2: large_15K[0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m339[0m - [97m[CACHE] L2 缓存设置: large_15K (已压缩)[0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: large_15K (大值: true, L1: false, L2: true)[0m
+[90m14:57:56.212[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: large_15K[0m
+[90m14:57:56.212[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 15 字节数据[0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get large_15K[0m
+[90m14:57:56.212[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["large_15K"][0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m118[0m - [97m[CACHE] L1 缓存未命中: large_15K[0m
+[90m14:57:56.212[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m259[0m - [97m[CACHE] L2 缓存命中: large_15K[0m
+[90m14:57:56.213[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m283[0m - [97m[TRANSFER] L2 缓存命中: large_15K[0m
+[90m14:57:56.213[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: large_15K (已压缩)[0m
+[90m14:57:56.213[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: large_15K (15360 bytes)[0m
+[90m14:57:56.217[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 18 字节数据[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete large_15K[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: large_15K[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_15K 的过期时间[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: large_15K[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_15K 的过期时间[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m355[0m - [97m[CACHE] L2 缓存删除: large_15K[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_15K 的过期时间[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: large_15K[0m
+[90m14:57:56.217[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: large_15K[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 26 字节数据[0m
+[90m14:57:56.218[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: set large_2M 0 0 2097152[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.218[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.219[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.220[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.221[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.222[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.223[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.224[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 4096 字节数据[0m
+[90m14:57:56.225[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 2 字节数据[0m
+[90m14:57:56.339[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1228[0m - [97m执行 SET 命令: large_2M (2097152 bytes, TTL: 0)[0m
+[90m14:57:56.339[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m331[0m - [97m[CACHE] 检测到大值: large_2M (2097152 bytes)[0m
+[90m14:57:56.339[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m337[0m - [97m[CACHE] 大值直接下沉到 L2: large_2M[0m
+[90m14:57:56.339[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m339[0m - [97m[CACHE] L2 缓存设置: large_2M (未压缩)[0m
+[90m14:57:56.339[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m391[0m - [97m[CACHE] 缓存设置完成: large_2M (大值: true, L1: false, L2: true)[0m
+[90m14:57:56.339[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1239[0m - [97mSET 成功: large_2M[0m
+[90m14:57:56.340[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 14 字节数据[0m
+[90m14:57:56.340[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: get large_2M[0m
+[90m14:57:56.340[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1197[0m - [97m执行 GET 命令: ["large_2M"][0m
+[90m14:57:56.340[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m118[0m - [97m[CACHE] L1 缓存未命中: large_2M[0m
+[90m14:57:56.340[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m259[0m - [97m[CACHE] L2 缓存命中: large_2M[0m
+[90m14:57:56.340[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m283[0m - [97m[TRANSFER] L2 缓存命中: large_2M[0m
+[90m14:57:56.340[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m174[0m - [97m[CACHE] L1 缓存设置: large_2M (未压缩)[0m
+[90m14:57:56.340[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m1203[0m - [97mGET 命中: large_2M (2097152 bytes)[0m
+[90m14:57:59.064[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m827[0m - [97m📨 接收到 17 字节数据[0m
+[90m14:57:59.064[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m921[0m - [97m📝 处理命令行: delete large_2M[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1330[0m - [97m执行 DELETE 命令: large_2M[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_2M 的过期时间[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcache::l1_cache[0m:[95m188[0m - [97m[CACHE] L1 缓存删除: large_2M[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_2M 的过期时间[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcache::l2_cache[0m:[95m355[0m - [97m[CACHE] L2 缓存删除: large_2M[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m126[0m - [97m[TTL] 移除键 large_2M 的过期时间[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcache::cache[0m:[95m594[0m - [97m[CACHE] 缓存删除: large_2M[0m
+[90m14:57:59.065[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m1334[0m - [97mDELETE 成功: large_2M[0m
+[90m14:57:59.169[0m [[96mDEBUG[0m] [94mrat_memcached[0m:[95m816[0m - [97m连接连续收到空数据，可能已断开[0m
+[90m14:57:59.169[0m [[92mINFO [0m] [94mrat_memcached[0m:[95m995[0m - [97m🔚 连接处理结束[0m
+[90m14:58:51.205[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m339[0m - [97m[TTL] 开始 TTL 清理任务[0m
+[90m14:58:51.207[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m406[0m - [97m[TTL] TTL 清理完成: 无过期键，耗时 0ms[0m
+[90m14:58:51.207[0m [[96mDEBUG[0m] [94mrat_memcache::ttl[0m:[95m412[0m - [97m[PERF] TTL cleanup performance: 0 keys cleaned in 0ms[0m
