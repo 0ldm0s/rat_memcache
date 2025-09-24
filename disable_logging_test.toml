@@ -13,10 +13,11 @@ max_disk_size = 1073741824
 write_buffer_size = 67108864
 max_write_buffer_number = 3
 block_cache_size = 33554432
-enable_compression = true
-compression_level = 6
 background_threads = 4
-compression_algorithm = "Lz4"
+enable_lz4 = true
+compression_threshold = 128
+compression_max_threshold = 1048576
+compression_level = 6
 cache_size_mb = 512
 max_file_size_mb = 1024
 enable_statistics = true
@@ -28,12 +29,6 @@ smart_flush_max_interval_ms = 500
 smart_flush_write_rate_threshold = 8000
 smart_flush_accumulated_bytes_threshold = 8388608
 
-[compression]
-enable_lz4 = true
-compression_threshold = 1024
-compression_level = 6
-auto_compression = true
-min_compression_ratio = 0.8
 
 [ttl]
 default_ttl = 3600

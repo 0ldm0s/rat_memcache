@@ -6,12 +6,6 @@ eviction_strategy = "Lru"
 [l2]
 enable_l2_cache = false
 
-[compression]
-enable_lz4 = true
-compression_threshold = 1024
-compression_level = 4
-auto_compression = true
-min_compression_ratio = 0
 
 [ttl]
 expire_seconds = 3600
