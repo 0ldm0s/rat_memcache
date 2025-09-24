@@ -16,9 +16,11 @@ max_disk_size = 1073741824  # 1GB (Surface Book 2优化)
 write_buffer_size = 67108864  # 64MB
 max_write_buffer_number = 3
 block_cache_size = 33554432  # 32MB
-enable_compression = true
-compression_level = 6
 background_threads = 4
+enable_lz4 = true
+compression_threshold = 128  # 128 bytes
+compression_max_threshold = 1048576  # 1MB
+compression_level = 6
 
 # MelangeDB配置 (Surface Book 2优化)
 compression_algorithm = "Lz4"
@@ -37,14 +39,6 @@ smart_flush_accumulated_bytes_threshold = 8388608  # 8MB累积字节，最佳平
 
 # ZSTD压缩级别 (如果使用ZSTD压缩时生效)
 # zstd_compression_level = 6
-
-[compression]
-# 压缩配置
-enable_lz4 = true
-compression_threshold = 1024  # 1KB
-compression_level = 6
-auto_compression = true
-min_compression_ratio = 0.8
 
 [ttl]
 # TTL 配置

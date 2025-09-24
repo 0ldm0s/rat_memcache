@@ -1,20 +1,21 @@
-[cache]
-max_memory_mb = 1024
+[l1]
+max_memory = 1073741824
 max_entries = 100000
-eviction_strategy = "lru"
+eviction_strategy = "Lru"
 
-[l2_cache]
+[l2]
 enable_l2_cache = true
 data_dir = "./test_cache_data"
+clear_on_startup = false
 max_disk_size = 1073741824
 write_buffer_size = 67108864
 max_write_buffer_number = 3
 block_cache_size = 33554432
-enable_compression = true
-compression_level = 6
 background_threads = 2
-clear_on_startup = false
-compression_algorithm = "lz4"
+enable_lz4 = true
+compression_threshold = 128
+compression_max_threshold = 1048576
+compression_level = 6
 cache_size_mb = 512
 max_file_size_mb = 1024
 smart_flush_enabled = true
@@ -23,10 +24,7 @@ smart_flush_min_interval_ms = 20
 smart_flush_max_interval_ms = 500
 smart_flush_write_rate_threshold = 10000
 smart_flush_accumulated_bytes_threshold = 4194304
-cache_warmup_strategy = "recent"
-l2_write_strategy = "write_through"
-l2_write_threshold = 1024
-l2_write_ttl_threshold = 300
+cache_warmup_strategy = "Recent"
 
 [ttl]
 default_ttl = 3600
@@ -41,6 +39,7 @@ enable_concurrency = true
 read_write_separation = true
 batch_size = 100
 enable_warmup = false
+large_value_threshold = 10240
 
 [logging]
 level = "info"
