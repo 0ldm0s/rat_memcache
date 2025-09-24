@@ -528,42 +528,37 @@ impl MemcachedServer {
         info!("    - 最大条目: {}", cache_config.l1.max_entries);
         info!("    - 淘汰策略: {:?}", cache_config.l1.eviction_strategy);
 
-        #[cfg(feature = "melange-storage")]
-        {
-            if let Some(l2_config) = &cache_config.l2 {
-                if l2_config.enable_l2_cache {
-                    info!("  💾 L2 MelangeDB 持久化缓存:");
-                    info!("    - 启用状态: 是");
-                    if let Some(data_dir) = &l2_config.data_dir {
-                        info!("    - 数据目录: {}", data_dir.display());
-                    }
-                    info!("    - 最大磁盘空间: {:.2} MB", l2_config.max_disk_size as f64 / 1024.0 / 1024.0);
-                    info!("    - 块缓存大小: {:.2} MB", l2_config.block_cache_size as f64 / 1024.0 / 1024.0);
-                    info!("    - 写缓冲区: {:.2} MB", l2_config.write_buffer_size as f64 / 1024.0 / 1024.0);
-                    info!("    - 压缩: {}", if l2_config.enable_lz4 { "启用" } else { "禁用" });
-
-                    // MelangeDB 特定配置
-                    info!("    - MelangeDB 压缩算法: {:?}", if l2_config.enable_lz4 { "LZ4" } else { "None" });
-                    info!("    - 缓存大小: {} MB", l2_config.cache_size_mb);
-                    info!("    - 最大文件大小: {} MB", l2_config.max_file_size_mb);
-                    info!("    - 智能Flush: {}", if l2_config.smart_flush_enabled { "启用" } else { "禁用" });
-                    if l2_config.smart_flush_enabled {
-                        info!("    - Flush间隔: {}-{}ms (基础: {}ms)",
-                              l2_config.smart_flush_min_interval_ms,
-                              l2_config.smart_flush_max_interval_ms,
-                              l2_config.smart_flush_base_interval_ms);
-                    }
-                    info!("    - 缓存预热策略: {:?}", l2_config.cache_warmup_strategy);
-                    info!("    - 统计信息: {}", if true { "启用" } else { "禁用" });
+        // L2 缓存配置显示
+        if let Some(l2_config) = &cache_config.l2 {
+            if l2_config.enable_l2_cache {
+                info!("  💾 L2 MelangeDB 持久化缓存:");
+                info!("    - 启用状态: 是");
+                if let Some(data_dir) = &l2_config.data_dir {
+                    info!("    - 数据目录: {}", data_dir.display());
                 }
-            } else {
-                info!("  💾 L2 MelangeDB 持久化缓存: 禁用");
-            }
-        }
+                info!("    - 最大磁盘空间: {:.2} MB", l2_config.max_disk_size as f64 / 1024.0 / 1024.0);
+                info!("    - 块缓存大小: {:.2} MB", l2_config.block_cache_size as f64 / 1024.0 / 1024.0);
+                info!("    - 写缓冲区: {:.2} MB", l2_config.write_buffer_size as f64 / 1024.0 / 1024.0);
+                info!("    - 压缩: {}", if l2_config.enable_lz4 { "启用" } else { "禁用" });
 
-        #[cfg(not(feature = "melange-storage"))]
-        {
-            info!("  💾 L2 MelangeDB 持久化缓存: 未编译支持");
+                // MelangeDB 特定配置
+                info!("    - MelangeDB 压缩算法: {:?}", if l2_config.enable_lz4 { "LZ4" } else { "None" });
+                info!("    - 缓存大小: {} MB", l2_config.cache_size_mb);
+                info!("    - 最大文件大小: {} MB", l2_config.max_file_size_mb);
+                info!("    - 智能Flush: {}", if l2_config.smart_flush_enabled { "启用" } else { "禁用" });
+                if l2_config.smart_flush_enabled {
+                    info!("    - Flush间隔: {}-{}ms (基础: {}ms)",
+                          l2_config.smart_flush_min_interval_ms,
+                          l2_config.smart_flush_max_interval_ms,
+                          l2_config.smart_flush_base_interval_ms);
+                }
+                info!("    - 缓存预热策略: {:?}", l2_config.cache_warmup_strategy);
+                info!("    - 统计信息: {}", if true { "启用" } else { "禁用" });
+            } else {
+                info!("  💾 L2 MelangeDB 持久化缓存: 禁用 (通过配置)");
+            }
+        } else {
+            info!("  💾 L2 MelangeDB 持久化缓存: 禁用 (未配置)");
         }
 
         // TTL 配置
@@ -573,20 +568,13 @@ impl MemcachedServer {
 
         // 压缩配置（现在在L2配置中）
         info!("  🗜️  压缩配置:");
-        #[cfg(feature = "melange-storage")]
-        {
-            if let Some(l2_config) = &cache_config.l2 {
-                info!("    - LZ4压缩: {}", if l2_config.enable_lz4 { "启用" } else { "禁用" });
-                info!("    - 压缩阈值: {} bytes", l2_config.compression_threshold);
-                info!("    - 最大压缩阈值: {} bytes", l2_config.compression_max_threshold);
-                info!("    - 压缩级别: {}", l2_config.compression_level);
-            } else {
-                info!("    - LZ4压缩: 禁用 (未配置L2缓存)");
-            }
-        }
-        #[cfg(not(feature = "melange-storage"))]
-        {
-            info!("    - LZ4压缩: 禁用 (未启用melange-storage特性)");
+        if let Some(l2_config) = &cache_config.l2 {
+            info!("    - LZ4压缩: {}", if l2_config.enable_lz4 { "启用" } else { "禁用" });
+            info!("    - 压缩阈值: {} bytes", l2_config.compression_threshold);
+            info!("    - 最大压缩阈值: {} bytes", l2_config.compression_max_threshold);
+            info!("    - 压缩级别: {}", l2_config.compression_level);
+        } else {
+            info!("    - LZ4压缩: 禁用 (未配置L2缓存)");
         }
 
         // 性能配置
