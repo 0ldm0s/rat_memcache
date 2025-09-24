@@ -1,6 +1,17 @@
 //! 日志模块
 //!
 //! 基于 rat_logger 库实现高性能日志系统
+//!
+//! ## 设计原则
+//!
+//! 作为库使用时：
+//! - 不主动初始化日志系统，由调用者负责
+//! - 提供安全的日志宏，未初始化时静默失败
+//! - 不同级别的日志有不同处理策略
+//!
+//! 作为服务器使用时：
+//! - 在main函数中负责初始化日志系统
+//! - 支持丰富的配置选项
 
 use crate::config::LoggingConfig;
 use crate::error::{CacheError, CacheResult};
@@ -10,9 +21,6 @@ use rat_logger::{LoggerBuilder, Level, LevelFilter, Logger};
 use rat_logger::config::{Record, Metadata};
 use rat_logger::handler::term::TermConfig;
 use rat_logger::{FormatConfig, LevelStyle, ColorConfig};
-
-// 重新导出 rat_logger 的日志宏
-pub use rat_logger::{debug, error, info, trace, warn};
 
 /// 日志管理器
 pub struct LogManager {
@@ -466,3 +474,57 @@ pub mod utils {
         }
     }
 }
+
+// ============================================================================
+// 安全的日志宏 - 参考melange_db设计
+// ============================================================================
+
+/// 缓存调试日志 - 仅在debug模式下编译
+#[macro_export]
+macro_rules! cache_debug {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::debug!($($arg)*);
+
+        #[cfg(not(debug_assertions))]
+        {
+            // release模式下完全零成本
+        }
+    };
+}
+
+/// 缓存追踪日志 - 仅在debug模式下编译
+#[macro_export]
+macro_rules! cache_trace {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::trace!($($arg)*);
+    };
+}
+
+/// 缓存信息日志 - 轻量级，在关键路径使用
+#[macro_export]
+macro_rules! cache_info {
+    ($($arg:tt)*) => {
+        #[cfg(debug_assertions)]
+        rat_logger::info!($($arg)*);
+    };
+}
+
+/// 缓存警告日志 - 始终保留但优化
+#[macro_export]
+macro_rules! cache_warn {
+    ($($arg:tt)*) => {
+        rat_logger::warn!($($arg)*);
+    };
+}
+
+/// 缓存错误日志 - 始终保留
+#[macro_export]
+macro_rules! cache_error {
+    ($($arg:tt)*) => {
+        rat_logger::error!($($arg)*);
+    };
+}
+
+

@@ -4,8 +4,6 @@
 
 use crate::error::{CacheError, CacheResult};
 use crate::types::EvictionStrategy;
-#[cfg(feature = "melange-storage")]
-use crate::melange_adapter::CompressionAlgorithm;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use sysinfo::System;
@@ -17,8 +15,7 @@ pub struct CacheConfig {
     /// L1 缓存配置
     pub l1: L1Config,
     /// L2 缓存配置
-    #[cfg(feature = "melange-storage")]
-    pub l2: L2Config,
+    pub l2: Option<L2Config>,
     /// 压缩配置
     pub compression: CompressionConfig,
     /// TTL 配置
@@ -41,7 +38,6 @@ pub struct L1Config {
 }
 
 /// L2 持久化缓存配置
-#[cfg(feature = "melange-storage")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct L2Config {
     /// 启用 L2 缓存（MelangeDB 持久化存储）
@@ -72,9 +68,9 @@ pub struct L2Config {
     /// 后台线程数
     #[serde(default)]
     pub background_threads: i32,
-    /// MelangeDB 压缩算法
-    #[serde(default)]
-    pub compression_algorithm: CompressionAlgorithm,
+    /// 是否启用LZ4压缩
+    #[serde(default = "default_true")]
+    pub enable_lz4: bool,
     /// MelangeDB 缓存大小（MB）
     #[serde(default)]
     pub cache_size_mb: usize,
@@ -125,7 +121,7 @@ impl Default for L2Config {
             enable_compression: true,
             compression_level: 6,
             background_threads: 2,
-            compression_algorithm: CompressionAlgorithm::Lz4,
+            enable_lz4: true,
             cache_size_mb: 512,
             max_file_size_mb: 1024,
             smart_flush_enabled: true,
@@ -145,25 +141,24 @@ impl Default for L2Config {
 
 
 /// 缓存预热策略
-#[cfg(feature = "melange-storage")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CacheWarmupStrategy {
     /// 无预热
     None,
     /// 预热最近访问的数据
     Recent,
-    /// 预热热点数据
-    Hot,
-    /// 全部预热
+    /// 预热最频繁访问的数据
+    Frequent,
+    /// 预热全部数据
     Full,
 }
 
-#[cfg(feature = "melange-storage")]
 impl Default for CacheWarmupStrategy {
     fn default() -> Self {
-        CacheWarmupStrategy::Recent
+        CacheWarmupStrategy::None
     }
 }
+
 
 
 /// 压缩配置
@@ -260,7 +255,6 @@ pub struct LoggingConfig {
 #[derive(Debug)]
 pub struct CacheConfigBuilder {
     l1_config: Option<L1Config>,
-    #[cfg(feature = "melange-storage")]
     l2_config: Option<L2Config>,
     compression_config: Option<CompressionConfig>,
     ttl_config: Option<TtlConfig>,
@@ -273,7 +267,6 @@ impl CacheConfigBuilder {
     pub fn new() -> Self {
         Self {
             l1_config: None,
-            #[cfg(feature = "melange-storage")]
             l2_config: None,
             compression_config: None,
             ttl_config: None,
@@ -325,12 +318,32 @@ impl CacheConfigBuilder {
             CacheError::config_error("L1 配置未设置")
         })?;
         
-          #[cfg(feature = "melange-storage")]
-        let l2_config = self.l2_config.unwrap_or_else(L2Config::default);
-        
-        let compression_config = self.compression_config.ok_or_else(|| {
-            CacheError::config_error("压缩配置未设置")
-        })?;
+          // L2配置：未启用特性时强制为None，启用时验证用户配置
+        let l2_config = if cfg!(feature = "melange-storage") {
+            if self.l2_config.is_none() {
+                return Err(CacheError::config_error("L2 配置未设置（启用了melange-storage特性时必须配置）"));
+            }
+            self.l2_config
+        } else {
+            // 未启用L2特性时，忽略用户配置，强制为None
+            None
+        };
+
+        // 压缩配置：根据特性决定处理方式
+        let compression_config = if cfg!(feature = "melange-storage") {
+            self.compression_config.ok_or_else(|| {
+                CacheError::config_error("压缩配置未设置")
+            })?
+        } else {
+            // 不启用L2时，压缩配置使用默认值
+            CompressionConfig {
+                enable_lz4: false,
+                compression_threshold: 0,
+                compression_level: 1,
+                auto_compression: false,
+                min_compression_ratio: 0.0,
+            }
+        };
         
         let ttl_config = self.ttl_config.ok_or_else(|| {
             CacheError::config_error("TTL 配置未设置")
@@ -352,7 +365,6 @@ impl CacheConfigBuilder {
 
         let config = CacheConfig {
             l1: l1_config,
-            #[cfg(feature = "melange-storage")]
             l2: l2_config,
             compression: compression_config,
             ttl: ttl_config,
@@ -635,8 +647,8 @@ impl PathUtils {
 
 // 默认值函数
 #[cfg(feature = "melange-storage")]
-fn default_melange_compression() -> CompressionAlgorithm {
-    CompressionAlgorithm::Lz4
+fn default_melange_compression() -> bool {
+    true
 }
 
 #[cfg(feature = "melange-storage")]

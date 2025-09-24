@@ -593,6 +593,7 @@ impl RatMemCache {
     }
 
     /// 判断是否应该写入 L2
+    #[cfg(feature = "melange-storage")]
     async fn should_write_to_l2(&self, _key: &str, value: &Bytes, options: &CacheOptions) -> bool {
         // 如果强制 L2，直接返回 true
         if options.force_l2 {
