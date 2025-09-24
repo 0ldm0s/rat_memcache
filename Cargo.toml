@@ -1,6 +1,6 @@
 [package]
 name = "rat_memcache"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["0ldm0s <oldmos@gmail.com>"]
 description = "高性能 Memcached 协议兼容服务器，支持双层缓存和持久化存储"
