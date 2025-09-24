@@ -87,6 +87,7 @@ pub fn info() -> String {
 mod tests {
     use super::*;
     use bytes::Bytes;
+    use tokio::time::{sleep, Duration};
     use tempfile::TempDir;
 
     #[tokio::test]
@@ -269,7 +270,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_error_handling() {
-        // 测试无效 TTL
+        // 测试错误处理场景
         let temp_dir = TempDir::new().unwrap();
 
         let cache = RatMemCacheBuilder::new()
@@ -339,16 +340,34 @@ mod tests {
 
         let key = "test_key".to_string();
         let value = Bytes::from("test_value");
-        
-        // 尝试设置超过最大 TTL 的值
-        let result = cache.set_with_ttl(key, value, 10000).await;
-        assert!(result.is_err());
-        
-        if let Err(CacheError::InvalidTtl { ttl_seconds: _ }) = result {
-            // 预期的错误类型
-        } else {
-            panic!("Expected InvalidTtl error");
-        }
+
+        // 测试1: 设置一个很大的 TTL 值（现在应该成功，因为没有TTL限制）
+        let result = cache.set_with_ttl(key.clone(), value.clone(), 10000).await;
+        assert!(result.is_ok(), "设置大TTL值应该成功");
+
+        // 验证值确实被设置了
+        let retrieved = cache.get(&key).await.unwrap();
+        assert!(retrieved.is_some(), "设置的值应该能够获取到");
+        assert_eq!(retrieved.unwrap(), value, "获取的值应该与设置的值相同");
+
+        // 测试2: 设置 TTL 为 0（永不过期）
+        let result = cache.set_with_ttl(key.clone(), value.clone(), 0).await;
+        assert!(result.is_ok(), "设置TTL为0应该成功");
+
+        // 测试3: 验证 TTL 功能正常工作
+        let short_ttl_key = "short_ttl";
+        cache.set_with_ttl(short_ttl_key.to_string(), value.clone(), 1).await.unwrap();
+
+        // 立即获取应该成功
+        let retrieved = cache.get(short_ttl_key).await.unwrap();
+        assert!(retrieved.is_some(), "短TTL键应该能够立即获取");
+
+        // 等待过期
+        sleep(Duration::from_millis(1500)).await;
+
+        // 现在应该过期了
+        let retrieved = cache.get(short_ttl_key).await.unwrap();
+        assert!(retrieved.is_none(), "短TTL键应该已经过期");
 
         cache.shutdown().await.unwrap();
     }

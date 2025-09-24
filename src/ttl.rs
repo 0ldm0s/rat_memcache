@@ -85,8 +85,15 @@ impl TtlManager {
     }
 
     /// 添加键的过期时间
-    pub async fn add_key(&self, key: String, _ttl_seconds: Option<u64>) -> CacheResult<u64> {
-        let expire_time = if let Some(expire) = self.config.expire_seconds {
+    pub async fn add_key(&self, key: String, ttl_seconds: Option<u64>) -> CacheResult<u64> {
+        let expire_time = if let Some(ttl) = ttl_seconds {
+            // 使用传入的TTL参数
+            if ttl == 0 {
+                // TTL为0表示永不过期
+                return Ok(0);
+            }
+            current_timestamp() + ttl
+        } else if let Some(expire) = self.config.expire_seconds {
             // 使用配置中设置的过期时间
             if expire == 0 {
                 // 配置为0表示永不过期
@@ -100,7 +107,7 @@ impl TtlManager {
 
         // 更新索引
         self.update_key_expiry(key.clone(), expire_time).await;
-        
+
         // 发送清理命令
         if let Err(e) = self.cleanup_sender.send(CleanupCommand::AddKey {
             key: key.clone(),
@@ -130,7 +137,7 @@ impl TtlManager {
     pub async fn update_key(&self, key: String, ttl_seconds: Option<u64>) -> CacheResult<u64> {
         // 先移除旧的过期时间
         self.remove_key_expiry(&key).await;
-        
+
         // 添加新的过期时间
         self.add_key(key, ttl_seconds).await
     }
@@ -471,7 +478,7 @@ mod tests {
 
     fn create_test_config() -> (TtlConfig, LoggingConfig) {
         let ttl_config = TtlConfig {
-            expire_seconds: Some(60),
+            expire_seconds: None, // 测试中使用传入的TTL参数
             cleanup_interval: 1,
             max_cleanup_entries: 100,
             lazy_expiration: true,
@@ -519,9 +526,9 @@ mod tests {
     async fn test_key_expiration() {
         let (mut ttl_config, logging_config) = create_test_config();
         ttl_config.cleanup_interval = 1; // 1秒清理间隔
-        
+
         let manager = TtlManager::new(ttl_config, logging_config).await.unwrap();
-        
+
         // 添加一个很短的 TTL
         manager.add_key("short_ttl_key".to_string(), Some(1)).await.unwrap();
 
