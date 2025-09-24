@@ -36,13 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         enable_warmup: false,
         large_value_threshold: 10240,
     };
-    let compression_config = CompressionConfig {
-        enable_lz4: false,
-        compression_threshold: 0,
-        compression_level: 1,
-        auto_compression: false,
-        min_compression_ratio: 0.0,
-    };
+    // 压缩配置已整合到L2Config中，测试示例不需要压缩功能
 
     // 创建一个日志配置用于测试
     let log_config = LoggingConfig {
@@ -64,7 +58,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .ttl_config(ttl_config)
         .performance_config(performance_config)
         .logging_config(log_config.clone())
-        .compression_config(compression_config)
         .build()
         .await?;
     println!("✓ 缓存实例创建成功\n");

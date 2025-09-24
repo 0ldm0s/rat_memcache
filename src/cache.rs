@@ -92,12 +92,7 @@ impl RatMemCacheBuilder {
         self
     }
 
-    /// 设置压缩配置
-    pub fn compression_config(mut self, config: crate::config::CompressionConfig) -> Self {
-        self.config_builder = self.config_builder.with_compression_config(config);
-        self
-    }
-
+    
     /// 设置 TTL 配置
     pub fn ttl_config(mut self, config: crate::config::TtlConfig) -> Self {
         self.config_builder = self.config_builder.with_ttl_config(config);
@@ -144,9 +139,14 @@ impl RatMemCache {
         
         cache_log!(config.logging, debug, "开始初始化 RatMemCache...");
         
-        // 初始化压缩器
+        // 初始化压缩器（基于 L2 配置）
         cache_log!(config.logging, debug, "初始化压缩器");
-        let compressor = Arc::new(Compressor::new(config.compression.clone()));
+        let compressor = if let Some(ref l2_config) = config.l2 {
+            Arc::new(Compressor::new_from_l2_config(l2_config))
+        } else {
+            // 如果没有 L2 配置，创建一个默认的禁用压缩的压缩器
+            Arc::new(Compressor::new_disabled())
+        };
         
         // 初始化 TTL 管理器
         cache_log!(config.logging, debug, "初始化 TTL 管理器");
@@ -169,60 +169,65 @@ impl RatMemCache {
         
         // 初始化 L2 缓存（如果启用）
         #[cfg(feature = "melange-storage")]
-        let l2_cache = if config.l2.enable_l2_cache {
-            cache_log!(config.logging, debug, "检查是否启用 L2 缓存: {}", config.l2.enable_l2_cache);
-            cache_log!(config.logging, debug, "L2 缓存配置: {:?}", config.l2);
-            cache_log!(config.logging, debug, "开始初始化 L2 缓存");
-            cache_log!(config.logging, debug, "L2 缓存数据目录: {:?}", config.l2.data_dir);
+        let l2_cache = {
+            let l2_config = config.l2.as_ref().ok_or_else(|| {
+                CacheError::config_error("启用了 melange-storage 特性但未配置 L2")
+            })?;
 
-            // 手动验证 L2 缓存目录是否可写
-            if let Some(dir) = &config.l2.data_dir {
-                cache_log!(config.logging, debug, "手动验证 L2 缓存目录是否可写: {:?}", dir);
-                cache_log!(config.logging, debug, "目录是否存在: {}", dir.exists());
+            if l2_config.enable_l2_cache {
+                cache_log!(config.logging, debug, "检查是否启用 L2 缓存: {}", l2_config.enable_l2_cache);
+                cache_log!(config.logging, debug, "L2 缓存配置: {:?}", l2_config);
+                cache_log!(config.logging, debug, "开始初始化 L2 缓存");
+                cache_log!(config.logging, debug, "L2 缓存数据目录: {:?}", l2_config.data_dir);
 
-                if !dir.exists() {
-                    cache_log!(config.logging, debug, "尝试创建目录: {:?}", dir);
-                    match std::fs::create_dir_all(dir) {
-                        Ok(_) => cache_log!(config.logging, debug, "目录创建成功"),
-                        Err(e) => cache_log!(config.logging, debug, "创建目录失败: {}", e)
-                    }
-                }
+                // 手动验证 L2 缓存目录是否可写
+                if let Some(dir) = &l2_config.data_dir {
+                    cache_log!(config.logging, debug, "手动验证 L2 缓存目录是否可写: {:?}", dir);
+                    cache_log!(config.logging, debug, "目录是否存在: {}", dir.exists());
 
-                // 测试目录是否可写
-                let test_file = dir.join(".cache_write_test");
-                cache_log!(config.logging, debug, "尝试写入测试文件: {:?}", test_file);
-                match std::fs::write(&test_file, b"test") {
-                    Ok(_) => {
-                        cache_log!(config.logging, debug, "测试文件写入成功");
-                        match std::fs::remove_file(&test_file) {
-                            Ok(_) => cache_log!(config.logging, debug, "测试文件删除成功"),
-                            Err(e) => cache_log!(config.logging, debug, "测试文件删除失败: {}", e)
+                    if !dir.exists() {
+                        cache_log!(config.logging, debug, "尝试创建目录: {:?}", dir);
+                        match std::fs::create_dir_all(dir) {
+                            Ok(_) => cache_log!(config.logging, debug, "目录创建成功"),
+                            Err(e) => cache_log!(config.logging, debug, "创建目录失败: {}", e)
                         }
-                    },
-                    Err(e) => cache_log!(config.logging, debug, "测试文件写入失败: {}", e)
+                    }
+
+                    // 测试目录是否可写
+                    let test_file = dir.join(".cache_write_test");
+                    cache_log!(config.logging, debug, "尝试写入测试文件: {:?}", test_file);
+                    match std::fs::write(&test_file, b"test") {
+                        Ok(_) => {
+                            cache_log!(config.logging, debug, "测试文件写入成功");
+                            match std::fs::remove_file(&test_file) {
+                                Ok(_) => cache_log!(config.logging, debug, "测试文件删除成功"),
+                                Err(e) => cache_log!(config.logging, debug, "测试文件删除失败: {}", e)
+                            }
+                        },
+                        Err(e) => cache_log!(config.logging, debug, "测试文件写入失败: {}", e)
+                    }
+                } else {
+                    cache_log!(config.logging, debug, "L2 缓存数据目录未设置");
                 }
+
+                cache_log!(config.logging, debug, "调用 L2Cache::new");
+                let l2_cache_result = L2Cache::new(
+                    l2_config.clone(),
+                    config.logging.clone(),
+                    compressor.as_ref().clone(),
+                    Arc::clone(&ttl_manager),
+                ).await;
+
+                match &l2_cache_result {
+                    Ok(_) => cache_log!(config.logging, debug, "L2Cache::new 调用成功"),
+                    Err(e) => cache_log!(config.logging, debug, "L2Cache::new 调用失败: {}", e)
+                }
+
+                Some(Arc::new(l2_cache_result?))
             } else {
-                cache_log!(config.logging, debug, "L2 缓存数据目录未设置");
+                cache_log!(config.logging, debug, "L2 缓存已禁用，不创建任何实例");
+                None
             }
-
-            cache_log!(config.logging, debug, "调用 L2Cache::new");
-            let l2_cache_result = L2Cache::new(
-                config.l2.clone(),
-                config.logging.clone(),
-                compressor.as_ref().clone(),
-                Arc::clone(&ttl_manager),
-            ).await;
-
-            match &l2_cache_result {
-                Ok(_) => cache_log!(config.logging, debug, "L2Cache::new 调用成功"),
-                Err(e) => cache_log!(config.logging, debug, "L2Cache::new 调用失败: {}", e)
-            }
-
-            Some(Arc::new(l2_cache_result?))
-        } else {
-            cache_log!(config.logging, debug, "L2 缓存已禁用，不创建任何实例");
-            cache_log!(config.logging, debug, "L2 缓存已禁用，跳过初始化");
-            None
         };
 
         #[cfg(not(feature = "melange-storage"))]
@@ -601,19 +606,23 @@ impl RatMemCache {
         }
         
         // 根据配置的写入策略决定
-        match self.config.l2.l2_write_strategy.as_str() {
-            "always" => true,
-            "never" => false,
-            "size_based" => value.len() >= self.config.l2.l2_write_threshold,
-            "ttl_based" => options.ttl_seconds.unwrap_or(0) >= self.config.l2.l2_write_ttl_threshold,
-            "adaptive" => {
-                // 自适应策略：基于 L1 使用率和数据大小
-                let l1_stats = self.l1_cache.get_stats().await;
-                let l1_usage_ratio = l1_stats.memory_usage as f64 / self.config.l1.max_memory as f64;
+        if let Some(l2_config) = &self.config.l2 {
+            match l2_config.l2_write_strategy.as_str() {
+                "always" => true,
+                "never" => false,
+                "size_based" => value.len() >= l2_config.l2_write_threshold,
+                "ttl_based" => options.ttl_seconds.unwrap_or(0) >= l2_config.l2_write_ttl_threshold,
+                "adaptive" => {
+                    // 自适应策略：基于 L1 使用率和数据大小
+                    let l1_stats = self.l1_cache.get_stats().await;
+                    let l1_usage_ratio = l1_stats.memory_usage as f64 / self.config.l1.max_memory as f64;
 
-                l1_usage_ratio > 0.8 || value.len() >= self.config.l2.l2_write_threshold
-            },
-            _ => false,
+                    l1_usage_ratio > 0.8 || value.len() >= l2_config.l2_write_threshold
+                },
+                _ => false,
+            }
+        } else {
+            false
         }
     }
 }
