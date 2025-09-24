@@ -4,8 +4,7 @@ High-performance Memcached protocol-compatible server with dual-layer cache and 
 
 [![Crates.io](https://img.shields.io/crates/v/rat_memcache.svg)](https://crates.io/crates/rat_memcache)
 [![Documentation](https://docs.rs/rat_memcache/badge.svg)](https://docs.rs/rat_memcache)
-[![License](https://img.shields.io/crates/l/rat_memcache.svg)](https://crates.io/crates/rat_memcache)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/0ldm0s/rat_memcache/rust.yml?branch=master)](https://github.com/0ldm0s/rat_memcache/actions)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Coverage](https://img.shields.io/codecov/c/github/0ldm0s/rat_memcache)](https://codecov.io/gh/0ldm0s/rat_memcache)
 [![Downloads](https://img.shields.io/crates/d/rat_memcache.svg)](https://crates.io/crates/rat_memcache)
 [![Rust](https://img.shields.io/badge/rust-1.70+-orange.svg)](https://rust-lang.org)
