@@ -83,7 +83,7 @@ pub fn info() -> String {
     format!("{} v{} - {}", NAME, VERSION, DESCRIPTION)
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "melange-storage"))]
 mod tests {
     use super::*;
     use bytes::Bytes;
@@ -99,7 +99,7 @@ mod tests {
     #[tokio::test]
     async fn test_basic_usage() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
             .l1_config(L1Config {
                 max_memory: 1024 * 1024 * 1024, // 1GB
@@ -113,11 +113,12 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
                 cache_size_mb: 256,
                 max_file_size_mb: 512,
                 smart_flush_enabled: true,
@@ -133,8 +134,8 @@ mod tests {
                 l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
-                default_ttl: Some(60),
-                                cleanup_interval: 60,
+                expire_seconds: Some(60),
+                cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
@@ -154,6 +155,11 @@ mod tests {
                 enable_performance_logs: true,
                 enable_audit_logs: false,
                 enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
             })
             .build()
             .await
@@ -175,7 +181,7 @@ mod tests {
     #[tokio::test]
     async fn test_cache_options() {
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
             .l1_config(L1Config {
                 max_memory: 1024 * 1024 * 1024, // 1GB
@@ -189,11 +195,12 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
                 cache_size_mb: 256,
                 max_file_size_mb: 512,
                 smart_flush_enabled: true,
@@ -209,8 +216,8 @@ mod tests {
                 l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
-                default_ttl: Some(60),
-                                cleanup_interval: 60,
+                expire_seconds: Some(60),
+                cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
@@ -230,6 +237,11 @@ mod tests {
                 enable_performance_logs: true,
                 enable_audit_logs: false,
                 enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
             })
             .build()
             .await
@@ -259,7 +271,7 @@ mod tests {
     async fn test_error_handling() {
         // 测试无效 TTL
         let temp_dir = TempDir::new().unwrap();
-        
+
         let cache = RatMemCacheBuilder::new()
             .l1_config(L1Config {
                 max_memory: 1024 * 1024 * 1024, // 1GB
@@ -273,11 +285,12 @@ mod tests {
                 write_buffer_size: 1024 * 1024,
                 max_write_buffer_number: 3,
                 block_cache_size: 512 * 1024,
-                enable_compression: true,
+                enable_lz4: true,
+                compression_threshold: 128,
+                compression_max_threshold: 1024 * 1024,
                 compression_level: 6,
                 background_threads: 2,
                 clear_on_startup: false,
-                compression_algorithm: crate::melange_adapter::CompressionAlgorithm::Lz4,
                 cache_size_mb: 256,
                 max_file_size_mb: 512,
                 smart_flush_enabled: true,
@@ -293,8 +306,8 @@ mod tests {
                 l2_write_ttl_threshold: 300,
             })
             .ttl_config(TtlConfig {
-                default_ttl: Some(60),
-                                cleanup_interval: 60,
+                expire_seconds: Some(60),
+                cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
                 active_expiration: false,
@@ -314,6 +327,11 @@ mod tests {
                 enable_performance_logs: true,
                 enable_audit_logs: false,
                 enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
             })
             .build()
             .await

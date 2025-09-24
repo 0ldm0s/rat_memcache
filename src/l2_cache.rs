@@ -696,11 +696,15 @@ mod tests {
             enable_performance_logs: true,
             enable_audit_logs: false,
             enable_cache_logs: true,
+            enable_logging: true,
+            enable_async: false,
+            batch_size: 2048,
+            batch_interval_ms: 25,
+            buffer_size: 16384,
         };
 
         let ttl_config = TtlConfig {
-            default_ttl: Some(60),
-            max_ttl: 3600,
+            expire_seconds: Some(60),
             cleanup_interval: 60,
             max_cleanup_entries: 100,
             lazy_expiration: true,
@@ -860,11 +864,15 @@ mod tests {
                 enable_performance_logs: true,
                 enable_audit_logs: false,
                 enable_cache_logs: true,
+                enable_logging: true,
+                enable_async: false,
+                batch_size: 2048,
+                batch_interval_ms: 25,
+                buffer_size: 16384,
             };
 
             let ttl_config = TtlConfig {
-                default_ttl: Some(60),
-                max_ttl: 3600,
+                expire_seconds: Some(60),
                 cleanup_interval: 60,
                 max_cleanup_entries: 100,
                 lazy_expiration: true,
