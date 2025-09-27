@@ -141,6 +141,26 @@ impl Default for L2Config {
     }
 }
 
+/// 使用场景检测
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UsageMode {
+    /// 作为独立二进制运行
+    Standalone,
+    /// 作为库使用
+    Library,
+}
+
+impl UsageMode {
+    /// 自动检测使用场景
+    pub fn detect() -> Self {
+        // 检查是否有全局日志器已初始化
+        if rat_logger::core::LOGGER.lock().unwrap().is_some() {
+            UsageMode::Library
+        } else {
+            UsageMode::Standalone
+        }
+    }
+}
 
 /// 缓存预热策略
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -158,6 +178,46 @@ pub enum CacheWarmupStrategy {
 impl Default for CacheWarmupStrategy {
     fn default() -> Self {
         CacheWarmupStrategy::None
+    }
+}
+
+impl LoggingConfig {
+    /// 根据使用场景创建合适的日志配置
+    pub fn for_usage_mode(mode: UsageMode) -> Self {
+        match mode {
+            UsageMode::Standalone => {
+                // 独立二进制模式：使用完整的日志配置
+                Self {
+                    level: "info".to_string(),
+                    enable_colors: true,
+                    show_timestamp: true,
+                    enable_performance_logs: true,
+                    enable_audit_logs: true,
+                    enable_cache_logs: true,
+                    enable_logging: true,
+                    enable_async: false,
+                    batch_size: 1000,
+                    batch_interval_ms: 100,
+                    buffer_size: 8192,
+                }
+            }
+            UsageMode::Library => {
+                // 库模式：继承调用者的日志配置，使用debug级别确保能看到所有日志
+                Self {
+                    level: "debug".to_string(),   // 使用debug级别，确保能看到所有日志
+                    enable_colors: false,         // 由调用者控制颜色
+                    show_timestamp: true,         // 时间戳通常有用
+                    enable_performance_logs: true,
+                    enable_audit_logs: true,
+                    enable_cache_logs: true,
+                    enable_logging: true,         // 启用日志，但继承调用者的配置
+                    enable_async: false,
+                    batch_size: 1000,
+                    batch_interval_ms: 100,
+                    buffer_size: 8192,
+                }
+            }
+        }
     }
 }
 
@@ -288,6 +348,14 @@ impl CacheConfigBuilder {
 
     /// 设置日志配置
     pub fn with_logging_config(mut self, config: LoggingConfig) -> Self {
+        self.logging_config = Some(config);
+        self
+    }
+
+    /// 自动根据使用场景设置日志配置
+    pub fn with_auto_logging_config(mut self) -> Self {
+        let mode = UsageMode::detect();
+        let config = LoggingConfig::for_usage_mode(mode);
         self.logging_config = Some(config);
         self
     }

@@ -58,7 +58,8 @@ pub use types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
 pub use config::{
     CacheConfig, CacheConfigBuilder,
     L1Config, TtlConfig,
-    PerformanceConfig, LoggingConfig
+    PerformanceConfig, LoggingConfig,
+    UsageMode
 };
 #[cfg(feature = "melange-storage")]
 pub use config::{L2Config, CacheWarmupStrategy};

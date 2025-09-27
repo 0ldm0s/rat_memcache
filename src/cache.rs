@@ -72,11 +72,14 @@ impl Default for CacheOptions {
 }
 
 impl RatMemCacheBuilder {
-    /// 创建新的构建器
+    /// 创建新的构建器（自动检测使用场景并配置日志）
     pub fn new() -> Self {
-        Self {
+        let mut builder = Self {
             config_builder: CacheConfigBuilder::new(),
-        }
+        };
+        // 自动检测使用场景并设置合适的日志配置
+        builder = builder.with_auto_logging_config();
+        builder
     }
 
     /// 设置 L1 缓存配置
@@ -111,7 +114,15 @@ impl RatMemCacheBuilder {
         self
     }
 
-    
+    /// 自动根据使用场景设置日志配置
+    pub fn with_auto_logging_config(mut self) -> Self {
+        let mode = crate::config::UsageMode::detect();
+        let config = crate::config::LoggingConfig::for_usage_mode(mode);
+        self.config_builder = self.config_builder.with_logging_config(config);
+        self
+    }
+
+
     /// 构建缓存实例
     pub async fn build(self) -> CacheResult<RatMemCache> {
         let config = self.config_builder.build()?;
@@ -129,34 +140,33 @@ impl RatMemCache {
     /// 创建新的缓存实例
     pub async fn new(config: CacheConfig) -> CacheResult<Self> {
         let start_time = Instant::now();
-        
-        cache_log!(config.logging, debug, "RatMemCache::new 开始初始化");
-        cache_log!(config.logging, debug, "配置: {:?}", config);
-        
+
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] RatMemCache::new 开始初始化");
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 使用场景检测: {:?}", crate::config::UsageMode::detect());
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 日志配置级别: {}", config.logging.level);
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 日志启用状态: {}", config.logging.enable_logging);
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 日志颜色启用: {}", config.logging.enable_colors);
+
         // 初始化日志管理器
-        cache_log!(config.logging, debug, "初始化日志管理器");
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 初始化日志管理器");
         let log_manager = Arc::new(LogManager::new(config.logging.clone()));
-        
-        cache_log!(config.logging, debug, "开始初始化 RatMemCache...");
+
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 开始初始化 RatMemCache...");
         
         // 初始化压缩器（基于 L2 配置）
-        cache_log!(config.logging, debug, "初始化压缩器");
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 初始化压缩器");
         let compressor = if let Some(ref l2_config) = config.l2 {
             Arc::new(Compressor::new_from_l2_config(l2_config))
         } else {
             // 如果没有 L2 配置，创建一个默认的禁用压缩的压缩器
             Arc::new(Compressor::new_disabled())
         };
-        
+
         // 初始化 TTL 管理器
-        cache_log!(config.logging, debug, "初始化 TTL 管理器");
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 初始化 TTL 管理器");
         let ttl_manager = Arc::new(TtlManager::new(config.ttl.clone(), config.logging.clone()).await?);
-        
-                
-        // 初始化智能传输路由器（已移除）
-                
-        // 初始化 L1 缓存
-        cache_log!(config.logging, debug, "初始化 L1 缓存");
+
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] 初始化 L1 缓存");
         let l1_cache = Arc::new(
             L1Cache::new(
                 config.l1.clone(),
@@ -165,7 +175,7 @@ impl RatMemCache {
                 Arc::clone(&ttl_manager),
             ).await?
         );
-        cache_log!(config.logging, debug, "L1 缓存初始化成功");
+        cache_log!(config.logging, debug, "🎯 [RatMemCache] L1 缓存初始化成功");
         
         // 初始化 L2 缓存（如果启用）
         #[cfg(feature = "melange-storage")]
@@ -255,7 +265,10 @@ impl RatMemCache {
 
     /// 获取缓存值
     pub async fn get(&self, key: &str) -> CacheResult<Option<Bytes>> {
-        self.get_with_options(key, &CacheOptions::default()).await
+        cache_log!(self.config.logging, debug, "🎯 [RatMemCache] GET 操作: key={}", key);
+        let result = self.get_with_options(key, &CacheOptions::default()).await;
+        cache_log!(self.config.logging, debug, "🎯 [RatMemCache] GET 结果: key={}, found={}", key, result.as_ref().map_or(false, |_| true));
+        result
     }
 
     /// 获取缓存值（带选项）
@@ -302,6 +315,7 @@ impl RatMemCache {
 
     /// 设置缓存值
     pub async fn set(&self, key: String, value: Bytes) -> CacheResult<()> {
+        cache_log!(self.config.logging, debug, "🎯 [RatMemCache] SET 操作: key={}, size={} bytes", key, value.len());
         self.set_with_options(key, value, &CacheOptions::default()).await
     }
 
