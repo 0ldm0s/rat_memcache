@@ -64,7 +64,7 @@ RatMemCache provides flexible feature selection to meet different scenario needs
 #### 1. Pure Memory Cache (Default)
 ```toml
 [dependencies]
-rat_memcache = "0.2.1"
+rat_memcache = "0.2.2"
 ```
 - ✅ Basic memory cache functionality
 - ✅ TTL support
@@ -75,7 +75,7 @@ rat_memcache = "0.2.1"
 #### 2. Dual-Layer Cache (Memory + Persistent)
 ```toml
 [dependencies]
-rat_memcache = { version = "0.2.1", features = ["full-features"] }
+rat_memcache = { version = "0.2.2", features = ["full-features"] }
 ```
 - ✅ All library features
 - ✅ MelangeDB persistent storage
@@ -87,7 +87,7 @@ rat_memcache = { version = "0.2.1", features = ["full-features"] }
 #### 3. Complete Server
 ```toml
 [dependencies]
-rat_memcache = { version = "0.2.1", features = ["server"] }
+rat_memcache = { version = "0.2.2", features = ["server"] }
 ```
 - ✅ Includes all library features
 - ✅ rat_memcached binary
@@ -96,7 +96,7 @@ rat_memcache = { version = "0.2.1", features = ["server"] }
 #### 4. Custom Combination
 ```toml
 [dependencies]
-rat_memcache = { version = "0.2.1", features = ["cache-lib", "ttl-support", "metrics"] }
+rat_memcache = { version = "0.2.2", features = ["cache-lib", "ttl-support", "metrics"] }
 ```
 - Select specific features as needed
 - Minimize dependencies and compilation time
@@ -109,7 +109,7 @@ RatMemCache can be integrated into your project as a Rust library, providing hig
 
 ```toml
 [dependencies]
-rat_memcache = "0.2.1"
+rat_memcache = "0.2.2"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -486,12 +486,27 @@ cargo clippy
 
 ## Performance Benchmarks
 
-In standard test environment (4-core CPU, 8GB memory):
+⚠️ **Important Note**: The following performance data is based on tests conducted with Apple MacBook Air M1 chip. Actual performance may vary depending on hardware configuration, usage scenarios, and data characteristics. This data is for reference only.
 
+### L1 Cache Performance (After v0.2.2 Optimization)
+Tested on Apple MacBook Air M1:
+- **L1 Cache GET Operations**: 1.75-3.4 microseconds (µs)
+- **L1 Cache SET Operations**: 8-35 microseconds (µs)
+- **Memory Cache Hit Rate**: 99%+
+- **Data Consistency**: 100%
+
+### General Performance Benchmarks
+In standard test environment (4-core CPU, 8GB memory):
 - **QPS**: 50,000+ (simple get operations)
 - **Memory Usage**: < 50MB base footprint
 - **Concurrent Connections**: 10,000+
 - **Latency**: < 1ms (99th percentile)
+
+### Performance Optimization Notes
+Version v0.2.2 focuses on optimizing L1 memory cache performance:
+- Fixed the issue where L1 cache incorrectly performed compression/decompression operations
+- L1 cache now directly stores and returns raw data, avoiding unnecessary CPU overhead
+- Memory cache hit response time improved by 145,000x (from 515ms to microsecond level)
 
 ## ⚠️ Large Value Data Transfer Warning
 
