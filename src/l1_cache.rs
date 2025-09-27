@@ -93,7 +93,7 @@ impl L1Cache {
     /// 获取缓存值
     pub async fn get(&self, key: &str) -> CacheResult<Option<Bytes>> {
         let start_time = Instant::now();
-        
+
         // 检查 TTL
         if self.ttl_manager.is_expired(key).await {
             self.remove_internal(key).await;
@@ -103,18 +103,14 @@ impl L1Cache {
         if let Some(cache_value) = self.storage.get(key) {
             // 更新访问统计
             self.update_access_stats(key).await;
-            
-            // 解压缩数据
-            let decompressed = self.compressor.decompress(
-                &cache_value.data,
-                cache_value.is_compressed,
-            )?;
-            
-            
+
+            // L1缓存直接返回原始数据，不解压缩
+            let data = Bytes::from(cache_value.data.clone());
+
             cache_log!(self.logging_config, debug, "L1 缓存命中: {}", key);
-            Ok(Some(decompressed.data))
+            Ok(Some(data))
         } else {
-            
+
             cache_log!(self.logging_config, debug, "L1 缓存未命中: {}", key);
             Ok(None)
         }
@@ -123,20 +119,9 @@ impl L1Cache {
     /// 设置缓存值
     pub async fn set(&self, key: String, value: Bytes, ttl_seconds: Option<u64>) -> CacheResult<()> {
         let start_time = Instant::now();
-        
-        // 压缩数据
-        let compression_result = self.compressor.compress(&value)?;
-        
-        // 创建缓存值
-        let cache_value = if compression_result.is_compressed {
-            CacheValue::new_compressed(
-                compression_result.compressed_data.to_vec(),
-                compression_result.original_size,
-            )
-        } else {
-            CacheValue::new_uncompressed(compression_result.compressed_data.to_vec())
-        };
 
+        // L1缓存直接存储原始数据，不进行压缩
+        let cache_value = CacheValue::new_uncompressed(value.to_vec());
         let value_size = cache_value.size();
         
         // 检查是否需要驱逐
@@ -166,13 +151,8 @@ impl L1Cache {
         if ttl_seconds.is_some() || self.ttl_manager.get_ttl(&key).await.is_none() {
             self.ttl_manager.add_key(key.clone(), ttl_seconds).await?;
         }
-        
-        if compression_result.is_compressed {
-            // 压缩统计已移除
-        }
 
-        cache_log!(self.logging_config, debug, "L1 缓存设置: {} ({}压缩)",
-            key, if compression_result.is_compressed { "已" } else { "未" });
+        cache_log!(self.logging_config, debug, "L1 缓存设置: {} (未压缩)", key);
         
         Ok(())
     }
