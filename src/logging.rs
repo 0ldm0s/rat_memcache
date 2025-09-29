@@ -203,31 +203,51 @@ macro_rules! audit_log {
     };
 }
 
-/// 缓存操作日志宏
+/// 缓存操作日志宏（支持Option配置）
 #[macro_export]
 macro_rules! cache_log {
     ($config:expr, trace, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
+        if let Some(config) = $config {
+            if config.enable_cache_logs {
+                rat_logger::trace!("[CACHE] {}", format!($($arg)*));
+            }
+        } else {
             rat_logger::trace!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, debug, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
+        if let Some(config) = $config {
+            if config.enable_cache_logs {
+                rat_logger::debug!("[CACHE] {}", format!($($arg)*));
+            }
+        } else {
             rat_logger::debug!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, info, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
+        if let Some(config) = $config {
+            if config.enable_cache_logs {
+                rat_logger::info!("[CACHE] {}", format!($($arg)*));
+            }
+        } else {
             rat_logger::info!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, warn, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
+        if let Some(config) = $config {
+            if config.enable_cache_logs {
+                rat_logger::warn!("[CACHE] {}", format!($($arg)*));
+            }
+        } else {
             rat_logger::warn!("[CACHE] {}", format!($($arg)*));
         }
     };
     ($config:expr, error, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
+        if let Some(config) = $config {
+            if config.enable_cache_logs {
+                rat_logger::error!("[CACHE] {}", format!($($arg)*));
+            }
+        } else {
             rat_logger::error!("[CACHE] {}", format!($($arg)*));
         }
     };
@@ -256,30 +276,20 @@ macro_rules! compression_log {
 /// TTL 操作日志宏
 #[macro_export]
 macro_rules! ttl_log {
-    ($config:expr, trace, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
-            rat_logger::trace!("[TTL] {}", format!($($arg)*));
-        }
+    (trace, $($arg:tt)*) => {
+        rat_logger::trace!("[TTL] {}", format!($($arg)*));
     };
-    ($config:expr, debug, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
-            rat_logger::debug!("[TTL] {}", format!($($arg)*));
-        }
+    (debug, $($arg:tt)*) => {
+        rat_logger::debug!("[TTL] {}", format!($($arg)*));
     };
-    ($config:expr, info, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
-            rat_logger::info!("[TTL] {}", format!($($arg)*));
-        }
+    (info, $($arg:tt)*) => {
+        rat_logger::info!("[TTL] {}", format!($($arg)*));
     };
-    ($config:expr, warn, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
-            rat_logger::warn!("[TTL] {}", format!($($arg)*));
-        }
+    (warn, $($arg:tt)*) => {
+        rat_logger::warn!("[TTL] {}", format!($($arg)*));
     };
-    ($config:expr, error, $($arg:tt)*) => {
-        if $config.enable_cache_logs {
-            rat_logger::error!("[TTL] {}", format!($($arg)*));
-        }
+    (error, $($arg:tt)*) => {
+        rat_logger::error!("[TTL] {}", format!($($arg)*));
     };
 }
 

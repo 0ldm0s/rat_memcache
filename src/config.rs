@@ -20,8 +20,8 @@ pub struct CacheConfig {
     pub ttl: TtlConfig,
     /// 性能配置
     pub performance: PerformanceConfig,
-    /// 日志配置
-    pub logging: LoggingConfig,
+    /// 日志配置（可选）
+    pub logging: Option<LoggingConfig>,
 }
 
 /// L1 内存缓存配置
@@ -318,9 +318,8 @@ impl CacheConfigBuilder {
             CacheError::config_error("性能配置未设置")
         })?;
         
-        let logging_config = self.logging_config.ok_or_else(|| {
-            CacheError::config_error("日志配置未设置")
-        })?;
+        // 日志配置：完全可选，如果不设置则为None
+        let logging_config = self.logging_config;
 
             // 强制验证配置的合法性
         #[cfg(feature = "melange-storage")]

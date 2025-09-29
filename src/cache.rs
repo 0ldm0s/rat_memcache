@@ -3,15 +3,15 @@
 //! 整合 L1 内存缓存和 L2 持久化缓存，提供统一的缓存接口
 
 use crate::compression::Compressor;
+use crate::transfer_log;
 use crate::config::{CacheConfig, CacheConfigBuilder};
 use crate::error::{CacheError, CacheResult};
 use crate::l1_cache::{L1Cache, L1CacheStats};
 #[cfg(feature = "melange-storage")]
 use crate::l2_cache::{L2Cache, L2CacheStats};
-use crate::logging::LogManager;
 use crate::ttl::TtlManager;
 use crate::types::{CacheLayer, CacheOperation};
-use crate::{cache_log, perf_log, transfer_log};
+use crate::cache_log;
 use bytes::Bytes;
 use std::sync::Arc;
 use std::time::Instant;
@@ -32,8 +32,6 @@ pub struct RatMemCache {
     // transfer_router: Arc<SmartTransferRouter>,
     /// TTL 管理器
     ttl_manager: Arc<TtlManager>,
-      /// 日志管理器
-    log_manager: Arc<LogManager>,
     /// 压缩器
     compressor: Arc<Compressor>,
     /// 运行状态
@@ -105,13 +103,12 @@ impl RatMemCacheBuilder {
         self
     }
 
-    /// 设置日志配置
+/// 设置日志配置
     pub fn logging_config(mut self, config: crate::config::LoggingConfig) -> Self {
         self.config_builder = self.config_builder.with_logging_config(config);
         self
     }
 
-    
     /// 构建缓存实例
     pub async fn build(self) -> CacheResult<RatMemCache> {
         let config = self.config_builder.build()?;
@@ -130,17 +127,13 @@ impl RatMemCache {
     pub async fn new(config: CacheConfig) -> CacheResult<Self> {
         let start_time = Instant::now();
         
-        cache_log!(config.logging, debug, "RatMemCache::new 开始初始化");
-        cache_log!(config.logging, debug, "配置: {:?}", config);
+        rat_logger::debug!("[CACHE] RatMemCache::new 开始初始化");
+        rat_logger::debug!("[CACHE] 配: {:?}", config);
         
-        // 初始化日志管理器
-        cache_log!(config.logging, debug, "初始化日志管理器");
-        let log_manager = Arc::new(LogManager::new(config.logging.clone()));
-        
-        cache_log!(config.logging, debug, "开始初始化 RatMemCache...");
+        rat_logger::debug!("[CACHE] 开始初始化 RatMemCache...");
         
         // 初始化压缩器（基于 L2 配置）
-        cache_log!(config.logging, debug, "初始化压缩器");
+        rat_logger::debug!("[CACHE] 初始化压缩器");
         let compressor = if let Some(ref l2_config) = config.l2 {
             Arc::new(Compressor::new_from_l2_config(l2_config))
         } else {
@@ -149,23 +142,22 @@ impl RatMemCache {
         };
         
         // 初始化 TTL 管理器
-        cache_log!(config.logging, debug, "初始化 TTL 管理器");
-        let ttl_manager = Arc::new(TtlManager::new(config.ttl.clone(), config.logging.clone()).await?);
+        rat_logger::debug!("[CACHE] 初始化 TTL 管理器");
+        let ttl_manager = Arc::new(TtlManager::new(config.ttl.clone()).await?);
         
                 
         // 初始化智能传输路由器（已移除）
                 
         // 初始化 L1 缓存
-        cache_log!(config.logging, debug, "初始化 L1 缓存");
+        rat_logger::debug!("[CACHE] 初始化 L1 缓存");
         let l1_cache = Arc::new(
             L1Cache::new(
                 config.l1.clone(),
-                config.logging.clone(),
                 compressor.as_ref().clone(),
                 Arc::clone(&ttl_manager),
             ).await?
         );
-        cache_log!(config.logging, debug, "L1 缓存初始化成功");
+        rat_logger::debug!("[CACHE] L1 缓存初始化成功");
         
         // 初始化 L2 缓存（如果启用）
         #[cfg(feature = "melange-storage")]
@@ -175,57 +167,56 @@ impl RatMemCache {
             })?;
 
             if l2_config.enable_l2_cache {
-                cache_log!(config.logging, debug, "检查是否启用 L2 缓存: {}", l2_config.enable_l2_cache);
-                cache_log!(config.logging, debug, "L2 缓存配置: {:?}", l2_config);
-                cache_log!(config.logging, debug, "开始初始化 L2 缓存");
-                cache_log!(config.logging, debug, "L2 缓存数据目录: {:?}", l2_config.data_dir);
+                rat_logger::debug!("[CACHE] 检查是否启用 L2 缓存: {}", l2_config.enable_l2_cache);
+                rat_logger::debug!("[CACHE] L2 缓存配置: {:?}", l2_config);
+                rat_logger::debug!("[CACHE] 开始初始化 L2 缓存");
+                rat_logger::debug!("[CACHE] L2 缓存数据目录: {:?}", l2_config.data_dir);
 
                 // 手动验证 L2 缓存目录是否可写
                 if let Some(dir) = &l2_config.data_dir {
-                    cache_log!(config.logging, debug, "手动验证 L2 缓存目录是否可写: {:?}", dir);
-                    cache_log!(config.logging, debug, "目录是否存在: {}", dir.exists());
+                    rat_logger::debug!("[CACHE] 手动验证 L2 缓存目录是否可写: {:?}", dir);
+                    rat_logger::debug!("[CACHE] 目录是否存在: {}", dir.exists());
 
                     if !dir.exists() {
-                        cache_log!(config.logging, debug, "尝试创建目录: {:?}", dir);
+                        rat_logger::debug!("[CACHE] 尝试创建目录: {:?}", dir);
                         match std::fs::create_dir_all(dir) {
-                            Ok(_) => cache_log!(config.logging, debug, "目录创建成功"),
-                            Err(e) => cache_log!(config.logging, debug, "创建目录失败: {}", e)
+                            Ok(_) => rat_logger::debug!("[CACHE] 目录创建成功"),
+                            Err(e) => rat_logger::debug!("[CACHE] 创建目录失败: {}", e)
                         }
                     }
 
                     // 测试目录是否可写
                     let test_file = dir.join(".cache_write_test");
-                    cache_log!(config.logging, debug, "尝试写入测试文件: {:?}", test_file);
+                    rat_logger::debug!("[CACHE] 尝试写入测试文件: {:?}", test_file);
                     match std::fs::write(&test_file, b"test") {
                         Ok(_) => {
-                            cache_log!(config.logging, debug, "测试文件写入成功");
+                            rat_logger::debug!("[CACHE] 测试文件写入成功");
                             match std::fs::remove_file(&test_file) {
-                                Ok(_) => cache_log!(config.logging, debug, "测试文件删除成功"),
-                                Err(e) => cache_log!(config.logging, debug, "测试文件删除失败: {}", e)
+                                Ok(_) => rat_logger::debug!("[CACHE] 测试文件删除成功"),
+                                Err(e) => rat_logger::debug!("[CACHE] 测试文件删除失败: {}", e)
                             }
                         },
-                        Err(e) => cache_log!(config.logging, debug, "测试文件写入失败: {}", e)
+                        Err(e) => rat_logger::debug!("[CACHE] 测试文件写入失败: {}", e)
                     }
                 } else {
-                    cache_log!(config.logging, debug, "L2 缓存数据目录未设置");
+                    rat_logger::debug!("[CACHE] L2 缓存数据目录未设置");
                 }
 
-                cache_log!(config.logging, debug, "调用 L2Cache::new");
+                rat_logger::debug!("[CACHE] 调用 L2Cache::new");
                 let l2_cache_result = L2Cache::new(
                     l2_config.clone(),
-                    config.logging.clone(),
                     compressor.as_ref().clone(),
                     Arc::clone(&ttl_manager),
                 ).await;
 
                 match &l2_cache_result {
-                    Ok(_) => cache_log!(config.logging, debug, "L2Cache::new 调用成功"),
-                    Err(e) => cache_log!(config.logging, debug, "L2Cache::new 调用失败: {}", e)
+                    Ok(_) => rat_logger::debug!("[CACHE] L2Cache::new 调用成功"),
+                    Err(e) => rat_logger::debug!("[CACHE] L2Cache::new 调用失败: {}", e)
                 }
 
                 Some(Arc::new(l2_cache_result?))
             } else {
-                cache_log!(config.logging, debug, "L2 缓存已禁用，不创建任何实例");
+                rat_logger::debug!("[CACHE] L2 缓存已禁用，不创建任何实例");
                 None
             }
         };
@@ -233,7 +224,7 @@ impl RatMemCache {
         #[cfg(not(feature = "melange-storage"))]
         let l2_cache: Option<()> = None;
         
-        cache_log!(config.logging, debug, "创建 RatMemCache 实例");
+        rat_logger::debug!("[CACHE] 创建 RatMemCache 实例");
         let cache = Self {
             config: Arc::new(config.clone()),
             l1_cache,
@@ -241,15 +232,14 @@ impl RatMemCache {
             l2_cache,
             // transfer_router,
             ttl_manager,
-            log_manager,
             compressor,
             is_running: Arc::new(RwLock::new(true)),
         };
 
         let elapsed = start_time.elapsed();
-        cache_log!(config.logging, debug, "RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
+        rat_logger::debug!("[CACHE] RatMemCache 初始化完成，耗时: {:.2}ms", elapsed.as_millis());
         
-        cache_log!(config.logging, debug, "返回 RatMemCache 实例");
+        rat_logger::debug!("[CACHE] 返回 RatMemCache 实例");
         Ok(cache)
     }
 
@@ -286,7 +276,7 @@ impl RatMemCache {
                 if !options.skip_l1 && !options.force_l2 {
                     let ttl = self.ttl_manager.get_ttl(key).await;
                     if let Err(e) = self.l1_cache.set(key.to_string(), value.clone(), ttl).await {
-                        cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
+                        rat_logger::warn!("[CACHE] L1 缓存设置失败: {} - {}", key, e);
                     }
                 }
 
@@ -295,7 +285,7 @@ impl RatMemCache {
         }
         
         // 缓存未命中
-        cache_log!(self.config.logging, debug, "缓存未命中: {}", key);
+        rat_logger::debug!("[CACHE] 缓存未命中: {}", key);
         
                 Ok(None)
     }
@@ -328,13 +318,13 @@ impl RatMemCache {
         
         if is_large_value {
             // 大值处理策略
-            cache_log!(self.config.logging, debug, "检测到大值: {} ({} bytes)", key, value.len());
+            rat_logger::debug!("[CACHE] 检测到大值: {} ({} bytes)", key, value.len());
 
             #[cfg(feature = "melange-storage")]
             {
                 if let Some(l2_cache) = &self.l2_cache {
                     // 有 L2 缓存，直接写入 L2
-                    cache_log!(self.config.logging, debug, "大值直接下沉到 L2: {}", key);
+                    rat_logger::debug!("[CACHE] 大值直接下沉到 L2: {}", key);
                     if let Some(ttl) = options.ttl_seconds {
                         l2_cache.set_with_ttl(&key, processed_value, ttl).await?;
                     } else {
@@ -342,8 +332,7 @@ impl RatMemCache {
                     }
                 } else {
                     // 无 L2 缓存，抛弃大值并记录警告
-                    cache_log!(self.config.logging, warn,
-                        "大值被抛弃（无 L2 缓存）: {} ({} bytes > {} bytes)",
+                    rat_logger::warn!("[CACHE] 大值被抛弃（无 L2 缓存）: {} ({} bytes > {} bytes)",
                         key, value.len(), self.config.performance.large_value_threshold);
                     return Ok(());
                 }
@@ -352,8 +341,7 @@ impl RatMemCache {
             #[cfg(not(feature = "melange-storage"))]
             {
                 // 无 L2 功能，抛弃大值并记录警告
-                cache_log!(self.config.logging, warn,
-                    "大值被抛弃（未启用 L2 功能）: {} ({} bytes > {} bytes)",
+                rat_logger::warn!("[CACHE] 大值被抛弃（未启用 L2 功能）: {} ({} bytes > {} bytes)",
                     key, value.len(), self.config.performance.large_value_threshold);
                 return Ok(());
             }
@@ -362,7 +350,7 @@ impl RatMemCache {
             // 设置到 L1（除非跳过或强制 L2）
             if !options.skip_l1 && !options.force_l2 {
                 if let Err(e) = self.l1_cache.set(key.clone(), processed_value.clone(), options.ttl_seconds).await {
-                    cache_log!(self.config.logging, warn, "L1 缓存设置失败: {} - {}", key, e);
+                    rat_logger::warn!("[CACHE] L1 缓存设置失败: {} - {}", key, e);
                 }
             }
 
@@ -388,7 +376,7 @@ impl RatMemCache {
             }
         }
         
-        cache_log!(self.config.logging, debug, "缓存设置完成: {} (大值: {}, L1: {}, L2: {})",
+        rat_logger::debug!("[CACHE] 缓存设置完成: {} (大值: {}, L1: {}, L2: {})",
             key, is_large_value, !options.skip_l1 && !options.force_l2 && !is_large_value, is_large_value);
         
                 Ok(())
@@ -414,7 +402,7 @@ impl RatMemCache {
         
         // TTL 管理器会自动清理
         
-        cache_log!(self.config.logging, debug, "缓存已清空");
+        rat_logger::debug!("[CACHE] 缓存已清空");
         
                 Ok(())
     }
@@ -553,7 +541,7 @@ impl RatMemCache {
 
     /// 关闭缓存
     pub async fn shutdown(&self) -> CacheResult<()> {
-        cache_log!(self.config.logging, info, "开始关闭 RatMemCache...");
+        rat_logger::info!("[CACHE] 开始关闭 RatMemCache...");
         
         // 设置停止标志
         {
@@ -566,7 +554,7 @@ impl RatMemCache {
         
         // TTL 管理器会自动清理
         
-        cache_log!(self.config.logging, info, "RatMemCache 已关闭");
+        rat_logger::info!("[CACHE] RatMemCache 已关闭");
         Ok(())
     }
 
@@ -591,7 +579,7 @@ impl RatMemCache {
         self.ttl_manager.remove_key(key).await;
         
         if deleted {
-            cache_log!(self.config.logging, debug, "缓存删除: {}", key);
+            rat_logger::debug!("[CACHE] 缓存删除: {}", key);
         }
         
         Ok(deleted)
@@ -637,7 +625,6 @@ impl Clone for RatMemCache {
             l2_cache: self.l2_cache.as_ref().map(|cache| Arc::clone(cache)),
             // transfer_router: Arc::clone(&self.transfer_router),
             ttl_manager: Arc::clone(&self.ttl_manager),
-            log_manager: Arc::clone(&self.log_manager),
             compressor: Arc::clone(&self.compressor),
             is_running: Arc::clone(&self.is_running),
         }

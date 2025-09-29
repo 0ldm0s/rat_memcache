@@ -5,10 +5,8 @@
 use crate::config::L1Config;
 use crate::compression::Compressor;
 use crate::error::{CacheError, CacheResult};
-use crate::config::LoggingConfig;
 use crate::ttl::TtlManager;
 use crate::types::{CacheValue, EvictionStrategy, CacheLayer, CacheOperation};
-use crate::cache_log;
 use bytes::Bytes;
 use dashmap::DashMap;
 use parking_lot::RwLock;
@@ -24,7 +22,6 @@ use tokio::sync::Mutex;
 #[derive(Debug)]
 pub struct L1Cache {
     config: Arc<L1Config>,
-    logging_config: Arc<LoggingConfig>,
     /// 主要存储：键值对映射
     storage: Arc<DashMap<String, CacheValue>>,
     /// 智能传输路由器（已移除）
@@ -65,13 +62,12 @@ impl L1Cache {
     /// 创建新的 L1 缓存
     pub async fn new(
         config: L1Config,
-        logging_config: LoggingConfig,
         compressor: Compressor,
         ttl_manager: Arc<TtlManager>,
     ) -> CacheResult<Self> {
+        let config_for_log = config.clone();
         let cache = Self {
             config: Arc::new(config),
-            logging_config: Arc::new(logging_config),
             storage: Arc::new(DashMap::new()),
             // router: Arc::new(router),
             compressor: Arc::new(compressor),
@@ -84,8 +80,8 @@ impl L1Cache {
             eviction_stats: Arc::new(RwLock::new(EvictionStats::default())),
         };
 
-        cache_log!(cache.logging_config, debug, "L1 缓存已初始化，最大内存: {} bytes，最大条目: {}", 
-            cache.config.max_memory, cache.config.max_entries);
+        rat_logger::debug!("[L1] 缓存已初始化，最大内存: {} bytes，最大条目: {}",
+            config_for_log.max_memory, config_for_log.max_entries);
         
         Ok(cache)
     }
@@ -107,11 +103,11 @@ impl L1Cache {
             // L1缓存直接返回原始数据，不解压缩
             let data = Bytes::from(cache_value.data.clone());
 
-            cache_log!(self.logging_config, debug, "L1 缓存命中: {}", key);
+            rat_logger::debug!("[L1] 缓存命中: {}", key);
             Ok(Some(data))
         } else {
 
-            cache_log!(self.logging_config, debug, "L1 缓存未命中: {}", key);
+            rat_logger::debug!("[L1] 缓存未命中: {}", key);
             Ok(None)
         }
     }
@@ -152,7 +148,7 @@ impl L1Cache {
             self.ttl_manager.add_key(key.clone(), ttl_seconds).await?;
         }
 
-        cache_log!(self.logging_config, debug, "L1 缓存设置: {} (未压缩)", key);
+        rat_logger::debug!("[L1] 缓存设置: {} (未压缩)", key);
         
         Ok(())
     }
@@ -165,7 +161,7 @@ impl L1Cache {
         
         
         if removed {
-            cache_log!(self.logging_config, debug, "L1 缓存删除: {}", key);
+            rat_logger::debug!("[L1] 缓存删除: {}", key);
         }
         
         Ok(removed)
@@ -186,7 +182,7 @@ impl L1Cache {
         self.entry_count.store(0, Ordering::Relaxed);
         
         
-        cache_log!(self.logging_config, debug, "L1 缓存已清空，删除了 {} 个条目", old_count);
+        rat_logger::debug!("[L1] 缓存已清空，删除了 {} 个条目", old_count);
         
         Ok(())
     }
@@ -288,7 +284,7 @@ impl L1Cache {
                     self.cleanup_access_stats(&key).await;
                     self.ttl_manager.remove_key(&key).await;
                     
-                    cache_log!(self.logging_config, debug, "驱逐键: {} ({}字节)", key, size);
+                    rat_logger::debug!("[L1] 驱逐键: {} ({}字节)", key, size);
                 } else {
                     break;
                 }
@@ -300,7 +296,7 @@ impl L1Cache {
         if evicted_count > 0 {
             self.update_eviction_stats(evicted_count, evicted_bytes).await;
             
-            cache_log!(self.logging_config, debug, "内存驱逐完成: {} 个条目，{} 字节", 
+            rat_logger::debug!("[L1] 内存驱逐完成: {} 个条目，{} 字节",
                 evicted_count, evicted_bytes);
         }
         
@@ -325,7 +321,7 @@ impl L1Cache {
                     self.cleanup_access_stats(&key).await;
                     self.ttl_manager.remove_key(&key).await;
                     
-                    cache_log!(self.logging_config, debug, "驱逐键: {} ({}字节)", key, size);
+                    rat_logger::debug!("[L1] 驱逐键: {} ({}字节)", key, size);
                 } else {
                     break;
                 }
@@ -337,7 +333,7 @@ impl L1Cache {
         if evicted_count > 0 {
             self.update_eviction_stats(evicted_count, evicted_bytes).await;
             
-            cache_log!(self.logging_config, debug, "条目驱逐完成: {} 个条目，{} 字节", 
+            rat_logger::debug!("[L1] 条目驱逐完成: {} 个条目，{} 字节",
                 evicted_count, evicted_bytes);
         }
         
@@ -534,7 +530,7 @@ mod tests {
         };
         
         let compressor = Compressor::new_disabled();
-        let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
+        let ttl_manager = Arc::new(TtlManager::new(ttl_config).await.unwrap());
 
         L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap()
     }
@@ -621,7 +617,7 @@ mod tests {
         };
         
         let compressor = Compressor::new_disabled();
-        let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
+        let ttl_manager = Arc::new(TtlManager::new(ttl_config).await.unwrap());
 
         let cache = L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap();
         

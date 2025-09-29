@@ -23,7 +23,7 @@ use tokio::signal;
 use tokio::net::{TcpListener as TokioTcpListener, TcpStream};
 
 use rat_memcache::{
-    config::CacheConfig,
+    config::{CacheConfig, LoggingConfig},
     error::{CacheError, CacheResult},
     logging::{LogManager, flush_logs_if_async},
     RatMemCache,
@@ -486,7 +486,20 @@ impl MemcachedServer {
         let cache_config = Self::load_cache_config(&config).await?;
 
         // 初始化日志系统
-        let log_manager = LogManager::new(cache_config.logging.clone());
+        let logging_config = cache_config.logging.clone().unwrap_or_else(|| LoggingConfig {
+            level: "info".to_string(),
+            enable_colors: true,
+            show_timestamp: true,
+            enable_performance_logs: true,
+            enable_audit_logs: false,
+            enable_cache_logs: true,
+            enable_logging: true,
+            enable_async: false,
+            batch_size: 2048,
+            batch_interval_ms: 25,
+            buffer_size: 16384,
+        });
+        let log_manager = LogManager::new(logging_config.clone());
         log_manager.initialize()?;
 
         info!("🚀 初始化 RatMemcached 服务器");
@@ -496,7 +509,7 @@ impl MemcachedServer {
         Self::print_configuration_details(&cache_config);
 
         // 如果是异步日志模式，强制刷新启动时的配置信息
-        flush_logs_if_async(&cache_config.logging);
+        flush_logs_if_async(&logging_config);
 
         // 创建缓存实例
         let cache = Arc::new(RatMemCache::new(cache_config).await?);

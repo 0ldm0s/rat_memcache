@@ -6,10 +6,8 @@ use crate::config::L2Config;
 use crate::melange_adapter::{MelangeAdapter, MelangeConfig, CompressionAlgorithm, BatchOperation};
 use crate::compression::Compressor;
 use crate::error::{CacheError, CacheResult};
-use crate::config::LoggingConfig;
 use crate::ttl::TtlManager;
 use crate::types::{CacheLayer, CacheOperation};
-use crate::cache_log;
 use bytes::Bytes;
 use bincode::{encode_to_vec, decode_from_slice};
 use serde::{Deserialize, Serialize};
@@ -23,7 +21,6 @@ use tokio::task;
 #[derive(Debug)]
 pub struct L2Cache {
     config: Arc<L2Config>,
-    logging_config: Arc<LoggingConfig>,
     /// MelangeDB 适配器实例
     db: Arc<MelangeAdapter>,
     /// 压缩器
@@ -91,72 +88,71 @@ impl L2Cache {
     /// 创建新的 L2 缓存 - MelangeDB 实现
     pub async fn new(
         config: L2Config,
-        logging_config: LoggingConfig,
         compressor: Compressor,
         ttl_manager: Arc<TtlManager>,
     ) -> CacheResult<Self> {
-        cache_log!(logging_config, debug, "L2Cache::new 开始初始化");
-        cache_log!(logging_config, debug, "L2 缓存配置: {:?}", config);
+        rat_logger::debug!("[L2] L2Cache::new 开始初始化");
+        rat_logger::debug!("[L2] L2 缓存配置: {:?}", config);
 
         // 检查是否启用 L2 缓存
         if !config.enable_l2_cache {
-            cache_log!(logging_config, debug, "L2 缓存已禁用");
+            rat_logger::debug!("[L2] L2 缓存已禁用");
             return Err(CacheError::config_error("L2 缓存已禁用"));
         }
 
-  
+
         // 获取数据目录
-        cache_log!(logging_config, debug, "获取数据目录");
+        rat_logger::debug!("[L2] 获取数据目录");
         let data_dir = config.data_dir.clone().unwrap_or_else(|| {
-            cache_log!(logging_config, debug, "使用临时目录作为数据目录");
+            rat_logger::debug!("[L2] 使用临时目录作为数据目录");
             let temp_dir = tempfile::tempdir().expect("无法创建临时目录");
             let path = temp_dir.path().to_path_buf();
-            cache_log!(logging_config, debug, "临时目录路径: {:?}", path);
+            rat_logger::debug!("[L2] 临时目录路径: {:?}", path);
             std::mem::forget(temp_dir); // 防止临时目录被删除
             path
         });
-        cache_log!(logging_config, debug, "最终数据目录: {:?}", data_dir);
+        rat_logger::debug!("[L2] 最终数据目录: {:?}", data_dir);
 
         // 创建数据目录
         if !data_dir.exists() {
-            cache_log!(logging_config, debug, "尝试创建数据目录...");
+            rat_logger::debug!("[L2] 尝试创建数据目录...");
             match std::fs::create_dir_all(&data_dir) {
-                Ok(_) => cache_log!(logging_config, debug, "数据目录创建成功"),
+                Ok(_) => rat_logger::debug!("[L2] 数据目录创建成功"),
                 Err(e) => {
-                    cache_log!(logging_config, debug, "创建数据目录失败: {}", e);
+                    rat_logger::debug!("[L2] 创建数据目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("创建数据目录失败: {}", e)));
                 }
             }
         }
 
         // 验证数据目录可写
-        cache_log!(logging_config, debug, "验证数据目录写权限");
+        rat_logger::debug!("[L2] 验证数据目录写权限");
         let test_file = data_dir.join(".write_test");
         match std::fs::write(&test_file, b"test") {
             Ok(_) => {
-                cache_log!(logging_config, debug, "数据目录写权限验证成功");
+                rat_logger::debug!("[L2] 数据目录写权限验证成功");
                 let _ = std::fs::remove_file(&test_file);
             },
             Err(e) => {
-                cache_log!(logging_config, debug, "数据目录写权限验证失败: {}", e);
+                rat_logger::debug!("[L2] 数据目录写权限验证失败: {}", e);
                 return Err(CacheError::io_error(&format!("数据目录不可写: {}", e)));
             }
         }
 
         // 处理启动时清空缓存目录的逻辑
         if config.clear_on_startup && data_dir.exists() {
-            cache_log!(logging_config, debug, "配置要求启动时清空缓存目录");
+            rat_logger::debug!("[L2] 配置要求启动时清空缓存目录");
             match std::fs::remove_dir_all(&data_dir) {
-                Ok(_) => cache_log!(logging_config, debug, "缓存目录清空成功"),
+                Ok(_) => rat_logger::debug!("[L2] 缓存目录清空成功"),
                 Err(e) => {
-                    cache_log!(logging_config, debug, "清空缓存目录失败: {}", e);
+                    rat_logger::debug!("[L2] 清空缓存目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("清空缓存目录失败: {}", e)));
                 }
             }
             match std::fs::create_dir_all(&data_dir) {
-                Ok(_) => cache_log!(logging_config, debug, "缓存目录重新创建成功"),
+                Ok(_) => rat_logger::debug!("[L2] 缓存目录重新创建成功"),
                 Err(e) => {
-                    cache_log!(logging_config, debug, "重新创建缓存目录失败: {}", e);
+                    rat_logger::debug!("[L2] 重新创建缓存目录失败: {}", e);
                     return Err(CacheError::io_error(&format!("重新创建缓存目录失败: {}", e)));
                 }
             }
@@ -184,12 +180,11 @@ impl L2Cache {
             );
 
         // 打开 MelangeDB
-        cache_log!(logging_config, debug, "尝试打开 MelangeDB 数据库，路径: {:?}", data_dir);
+        rat_logger::debug!("[L2] 尝试打开 MelangeDB 数据库，路径: {:?}", data_dir);
         let db = MelangeAdapter::new(&data_dir, melange_config)?;
 
         let cache = Self {
             config: Arc::new(config),
-            logging_config: Arc::new(logging_config),
             db: Arc::new(db),
             compressor: Arc::new(compressor),
             ttl_manager,
@@ -200,7 +195,7 @@ impl L2Cache {
         // 初始化磁盘使用量统计
         cache.update_disk_usage_estimate().await;
 
-        cache_log!(cache.logging_config, debug, "L2 缓存（MelangeDB）已初始化，数据目录: {:?}", &data_dir);
+        rat_logger::debug!("[L2] L2 缓存（MelangeDB）已初始化，数据目录: {:?}", &data_dir);
 
         Ok(cache)
     }
@@ -256,14 +251,14 @@ impl L2Cache {
 
             self.record_hit().await;
 
-            cache_log!(self.logging_config, debug, "L2 缓存命中: {}", key);
+            rat_logger::debug!("[L2] L2 缓存命中: {}", key);
 
             self.record_read_latency(start_time.elapsed()).await;
             Ok(Some(data))
         } else {
             self.record_miss().await;
 
-            cache_log!(self.logging_config, debug, "L2 缓存未命中: {}", key);
+            rat_logger::debug!("[L2] L2 缓存未命中: {}", key);
 
             self.record_read_latency(start_time.elapsed()).await;
             Ok(None)
@@ -336,7 +331,7 @@ impl L2Cache {
             // 压缩统计已移除
         }
 
-        cache_log!(self.logging_config, debug, "L2 缓存设置: {} ({}压缩)",
+        rat_logger::debug!("[L2] L2 缓存设置: {} ({}压缩)",
             key, if compression_result.is_compressed { "已" } else { "未" });
 
         self.record_write_latency(start_time.elapsed()).await;
@@ -352,7 +347,7 @@ impl L2Cache {
         if deleted {
             self.record_delete().await;
 
-            cache_log!(self.logging_config, debug, "L2 缓存删除: {}", key);
+            rat_logger::debug!("[L2] L2 缓存删除: {}", key);
         }
 
         self.record_write_latency(start_time.elapsed()).await;
@@ -379,7 +374,7 @@ impl L2Cache {
         drop(stats);
 
 
-        cache_log!(self.logging_config, debug, "L2 缓存已清空");
+        rat_logger::debug!("[L2] L2 缓存已清空");
 
         Ok(())
     }
@@ -396,7 +391,7 @@ impl L2Cache {
         // 重新计算磁盘使用量
         self.update_disk_usage_estimate().await;
 
-        cache_log!(self.logging_config, debug, "L2 缓存压缩完成，耗时: {:.2}ms",
+        rat_logger::debug!("[L2] L2 缓存压缩完成，耗时: {:.2}ms",
             start_time.elapsed().as_millis());
 
         Ok(())
@@ -653,7 +648,7 @@ impl L2CacheStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{L2Config, LoggingConfig, TtlConfig};
+    use crate::config::{L2Config, TtlConfig};
     use crate::compression::Compressor;
     use crate::ttl::TtlManager;
         use tempfile::TempDir;
@@ -689,19 +684,6 @@ mod tests {
             l2_write_ttl_threshold: 300,
         };
 
-        let logging_config = LoggingConfig {
-            level: "debug".to_string(),
-            enable_colors: false,
-            show_timestamp: false,
-            enable_performance_logs: true,
-            enable_audit_logs: false,
-            enable_cache_logs: true,
-            enable_logging: true,
-            enable_async: false,
-            batch_size: 2048,
-            batch_interval_ms: 25,
-            buffer_size: 16384,
-        };
 
         let ttl_config = TtlConfig {
             expire_seconds: Some(60),
@@ -712,9 +694,9 @@ mod tests {
         };
 
         let compressor = Compressor::new_from_l2_config(&l2_config);
-        let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
+        let ttl_manager = Arc::new(TtlManager::new(ttl_config).await.unwrap());
 
-        let cache = L2Cache::new(l2_config, logging_config, compressor, ttl_manager).await.unwrap();
+        let cache = L2Cache::new(l2_config, compressor, ttl_manager).await.unwrap();
 
         (cache, temp_dir)
     }
@@ -880,9 +862,9 @@ mod tests {
             };
 
             let compressor = Compressor::new_from_l2_config(&l2_config);
-            let ttl_manager = Arc::new(TtlManager::new(ttl_config, logging_config.clone()).await.unwrap());
+            let ttl_manager = Arc::new(TtlManager::new(ttl_config).await.unwrap());
 
-            let cache = L2Cache::new(l2_config, logging_config, compressor, ttl_manager).await.unwrap();
+            let cache = L2Cache::new(l2_config, compressor, ttl_manager).await.unwrap();
 
             let key = "compression_test";
             let value = Bytes::from("this is a test value for compression");

@@ -5,8 +5,7 @@
 use crate::config::TtlConfig;
 use crate::error::{CacheError, CacheResult};
 use crate::types::current_timestamp;
-use crate::config::LoggingConfig;
-use crate::{ttl_log, perf_log};
+use crate::ttl_log;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -18,7 +17,6 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 #[derive(Debug)]
 pub struct TtlManager {
     config: Arc<TtlConfig>,
-    logging_config: Arc<LoggingConfig>,
     /// 按过期时间排序的键索引 (expire_time -> keys)
     expiry_index: Arc<RwLock<BTreeMap<u64, HashSet<String>>>>,
     /// 键到过期时间的映射 (key -> expire_time)
@@ -63,12 +61,11 @@ pub struct TtlStats {
 
 impl TtlManager {
     /// 创建新的 TTL 管理器
-    pub async fn new(config: TtlConfig, logging_config: LoggingConfig) -> CacheResult<Self> {
+    pub async fn new(config: TtlConfig) -> CacheResult<Self> {
         let (cleanup_sender, cleanup_receiver) = unbounded_channel();
-        
+
         let manager = Self {
             config: Arc::new(config),
-            logging_config: Arc::new(logging_config),
             expiry_index: Arc::new(RwLock::new(BTreeMap::new())),
             key_expiry: Arc::new(RwLock::new(std::collections::HashMap::new())),
             cleanup_sender,
@@ -80,7 +77,7 @@ impl TtlManager {
             manager.start_cleanup_task(cleanup_receiver).await;
         }
 
-        ttl_log!(&manager.logging_config, info, "TTL 管理器已启动");
+        ttl_log!( info, "TTL 管理器已启动");
         Ok(manager)
     }
 
@@ -113,10 +110,10 @@ impl TtlManager {
             key: key.clone(),
             expire_time,
         }) {
-            ttl_log!(&self.logging_config, warn, "发送清理命令失败: {}", e);
+            ttl_log!( warn, "发送清理命令失败: {}", e);
         }
 
-        ttl_log!(&self.logging_config, debug, "添加键 {} 的过期时间: {}", key, expire_time);
+        ttl_log!( debug, "添加键 {} 的过期时间: {}", key, expire_time);
         Ok(expire_time)
     }
 
@@ -127,10 +124,10 @@ impl TtlManager {
         if let Err(e) = self.cleanup_sender.send(CleanupCommand::RemoveKey {
             key: key.to_string(),
         }) {
-            ttl_log!(&self.logging_config, warn, "发送移除命令失败: {}", e);
+            ttl_log!( warn, "发送移除命令失败: {}", e);
         }
 
-        ttl_log!(&self.logging_config, debug, "移除键 {} 的过期时间", key);
+        ttl_log!( debug, "移除键 {} 的过期时间", key);
     }
 
     /// 更新键的过期时间
@@ -159,7 +156,7 @@ impl TtlManager {
                 stats.total_expired += 1;
                 drop(stats);
                 
-                ttl_log!(&self.logging_config, debug, "键 {} 已过期（惰性检查）", key);
+                ttl_log!( debug, "键 {} 已过期（惰性检查）", key);
                 return true;
             }
         }
@@ -212,7 +209,7 @@ impl TtlManager {
     /// 强制清理过期键
     pub async fn force_cleanup(&self) {
         if let Err(e) = self.cleanup_sender.send(CleanupCommand::ForceCleanup) {
-            ttl_log!(&self.logging_config, warn, "发送强制清理命令失败: {}", e);
+            ttl_log!( warn, "发送强制清理命令失败: {}", e);
         }
     }
 
@@ -232,15 +229,15 @@ impl TtlManager {
     pub async fn reset_stats(&self) {
         let mut stats = self.stats.lock().await;
         *stats = TtlStats::default();
-        ttl_log!(&self.logging_config, info, "TTL 统计信息已重置");
+        ttl_log!( info, "TTL 统计信息已重置");
     }
 
     /// 停止 TTL 管理器
     pub async fn stop(&self) {
         if let Err(e) = self.cleanup_sender.send(CleanupCommand::Stop) {
-            ttl_log!(&self.logging_config, warn, "发送停止命令失败: {}", e);
+            ttl_log!( warn, "发送停止命令失败: {}", e);
         }
-        ttl_log!(&self.logging_config, info, "TTL 管理器已停止");
+        ttl_log!( info, "TTL 管理器已停止");
     }
 
     /// 更新键的过期时间索引
@@ -279,7 +276,6 @@ impl TtlManager {
     /// 启动清理任务
     async fn start_cleanup_task(&self, mut cleanup_receiver: UnboundedReceiver<CleanupCommand>) {
         let config = Arc::clone(&self.config);
-        let logging_config = Arc::clone(&self.logging_config);
         let expiry_index = Arc::clone(&self.expiry_index);
         let key_expiry = Arc::clone(&self.key_expiry);
         let stats = Arc::clone(&self.stats);
@@ -287,7 +283,7 @@ impl TtlManager {
         tokio::spawn(async move {
             let mut cleanup_interval = interval(Duration::from_secs(config.cleanup_interval));
             
-            ttl_log!(logging_config, info, "TTL 清理任务已启动，间隔: {}秒", config.cleanup_interval);
+            ttl_log!( info, "TTL 清理任务已启动，间隔: {}秒", config.cleanup_interval);
             
             loop {
                 tokio::select! {
@@ -295,7 +291,6 @@ impl TtlManager {
                     _ = cleanup_interval.tick() => {
                         Self::perform_cleanup(
                             &config,
-                            &logging_config,
                             &expiry_index,
                             &key_expiry,
                             &stats,
@@ -308,21 +303,20 @@ impl TtlManager {
                             Some(CleanupCommand::ForceCleanup) => {
                                 Self::perform_cleanup(
                                     &config,
-                                    &logging_config,
                                     &expiry_index,
                                     &key_expiry,
                                     &stats,
                                 ).await;
                             }
                             Some(CleanupCommand::Stop) => {
-                                ttl_log!(logging_config, info, "TTL 清理任务已停止");
+                                ttl_log!( info, "TTL 清理任务已停止");
                                 break;
                             }
                             Some(_) => {
                                 // 其他命令暂时忽略，因为索引更新在主线程中处理
                             }
                             None => {
-                                ttl_log!(logging_config, warn, "清理命令通道已关闭");
+                                ttl_log!( warn, "清理命令通道已关闭");
                                 break;
                             }
                         }
@@ -335,7 +329,6 @@ impl TtlManager {
     /// 执行清理操作
     async fn perform_cleanup(
         config: &TtlConfig,
-        logging_config: &LoggingConfig,
         expiry_index: &Arc<RwLock<BTreeMap<u64, HashSet<String>>>>,
         key_expiry: &Arc<RwLock<std::collections::HashMap<String, u64>>>,
         stats: &Arc<Mutex<TtlStats>>,
@@ -343,7 +336,7 @@ impl TtlManager {
         let start_time = Instant::now();
         let current_time = current_timestamp();
         
-        ttl_log!(logging_config, debug, "开始 TTL 清理任务");
+        ttl_log!( debug, "开始 TTL 清理任务");
         
         let mut expired_keys = Vec::new();
         
@@ -405,19 +398,18 @@ impl TtlManager {
         drop(stats_guard);
         
         if !expired_keys.is_empty() {
-            ttl_log!(logging_config, info, 
+            ttl_log!( info, 
                 "TTL 清理完成: 清理了 {} 个过期键，耗时 {:.2}ms",
                 expired_keys.len(), cleanup_duration.as_millis()
             );
         } else {
-            ttl_log!(logging_config, debug, 
+            ttl_log!( debug, 
                 "TTL 清理完成: 无过期键，耗时 {:.2}ms",
                 cleanup_duration.as_millis()
             );
         }
         
-        perf_log!(logging_config, debug, 
-            "TTL cleanup performance: {} keys cleaned in {:.2}ms",
+        rat_logger::debug!("[PERF] TTL cleanup performance: {} keys cleaned in {:.2}ms",
             expired_keys.len(), cleanup_duration.as_millis()
         );
     }
@@ -473,46 +465,30 @@ pub mod utils {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{TtlConfig, LoggingConfig};
+    use crate::config::TtlConfig;
     use tokio::time::{sleep, Duration};
 
-    fn create_test_config() -> (TtlConfig, LoggingConfig) {
-        let ttl_config = TtlConfig {
+    fn create_test_config() -> TtlConfig {
+        TtlConfig {
             expire_seconds: None, // 测试中使用传入的TTL参数
             cleanup_interval: 1,
             max_cleanup_entries: 100,
             lazy_expiration: true,
             active_expiration: true,
-        };
-
-        let logging_config = LoggingConfig {
-            level: "debug".to_string(),
-            enable_colors: false,
-            show_timestamp: false,
-            enable_performance_logs: true,
-            enable_audit_logs: false,
-            enable_cache_logs: true,
-            enable_logging: true,
-            enable_async: false,
-            batch_size: 2048,
-            batch_interval_ms: 25,
-            buffer_size: 16384,
-        };
-
-        (ttl_config, logging_config)
+        }
     }
 
     #[tokio::test]
     async fn test_ttl_manager_creation() {
-        let (ttl_config, logging_config) = create_test_config();
-        let manager = TtlManager::new(ttl_config, logging_config).await;
+        let ttl_config = create_test_config();
+        let manager = TtlManager::new(ttl_config).await;
         assert!(manager.is_ok());
     }
 
     #[tokio::test]
     async fn test_add_and_get_ttl() {
-        let (ttl_config, logging_config) = create_test_config();
-        let manager = TtlManager::new(ttl_config, logging_config).await.unwrap();
+        let ttl_config = create_test_config();
+        let manager = TtlManager::new(ttl_config).await.unwrap();
         
         let expire_time = manager.add_key("test_key".to_string(), Some(30)).await.unwrap();
         assert!(expire_time > current_timestamp());
@@ -524,10 +500,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_key_expiration() {
-        let (mut ttl_config, logging_config) = create_test_config();
+        let mut ttl_config = create_test_config();
         ttl_config.cleanup_interval = 1; // 1秒清理间隔
 
-        let manager = TtlManager::new(ttl_config, logging_config).await.unwrap();
+        let manager = TtlManager::new(ttl_config).await.unwrap();
 
         // 添加一个很短的 TTL
         manager.add_key("short_ttl_key".to_string(), Some(1)).await.unwrap();
@@ -548,8 +524,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_remove_key() {
-        let (ttl_config, logging_config) = create_test_config();
-        let manager = TtlManager::new(ttl_config, logging_config).await.unwrap();
+        let ttl_config = create_test_config();
+        let manager = TtlManager::new(ttl_config).await.unwrap();
         
         manager.add_key("test_key".to_string(), Some(60)).await.unwrap();
         assert!(manager.get_ttl("test_key").await.is_some());
@@ -560,8 +536,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_key() {
-        let (ttl_config, logging_config) = create_test_config();
-        let manager = TtlManager::new(ttl_config, logging_config).await.unwrap();
+        let ttl_config = create_test_config();
+        let manager = TtlManager::new(ttl_config).await.unwrap();
         
         manager.add_key("test_key".to_string(), Some(60)).await.unwrap();
         let old_ttl = manager.get_ttl("test_key").await.unwrap();
