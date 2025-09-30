@@ -3,3 +3,27 @@
 /dist*
 /rat_memcache_data
 .claude/
+
+# 日志文件
+*.log
+*.log.*
+
+# 缓存文件
+*.cache
+*.ldb
+*.sst
+*.wal
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.lock
+*.swp
+*.swo
+
+# 测试文件
+/test_*/
+**/test_*
+/test_output/
+/coverage/
