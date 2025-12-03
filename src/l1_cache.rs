@@ -532,7 +532,7 @@ mod tests {
         let compressor = Compressor::new_disabled();
         let ttl_manager = Arc::new(TtlManager::new(ttl_config).await.unwrap());
 
-        L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap()
+        L1Cache::new(l1_config, compressor, ttl_manager).await.unwrap()
     }
 
     #[tokio::test]
@@ -619,7 +619,7 @@ mod tests {
         let compressor = Compressor::new_disabled();
         let ttl_manager = Arc::new(TtlManager::new(ttl_config).await.unwrap());
 
-        let cache = L1Cache::new(l1_config, logging_config, compressor, ttl_manager).await.unwrap();
+        let cache = L1Cache::new(l1_config, compressor, ttl_manager).await.unwrap();
         
         // 插入超过限制的条目
         for i in 0..10 {

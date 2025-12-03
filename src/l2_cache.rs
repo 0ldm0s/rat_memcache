@@ -2,7 +2,7 @@
 //!
 //! 基于 MelangeDB 实现持久化存储层，提供高性能的键值存储
 
-use crate::config::L2Config;
+use crate::config::{L2Config, LoggingConfig};
 use crate::melange_adapter::{MelangeAdapter, MelangeConfig, CompressionAlgorithm, BatchOperation};
 use crate::compression::Compressor;
 use crate::error::{CacheError, CacheResult};

@@ -67,8 +67,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 这些宏调用不应该导致程序崩溃
     cache_debug!("这是调试日志测试");
-    cache_log!(&log_config, info, "这是缓存信息日志测试");
-    cache_log!(&log_config, warn, "这是缓存警告日志测试");
+    cache_log!(Some(&log_config), info, "这是缓存信息日志测试");
+    cache_log!(Some(&log_config), warn, "这是缓存警告日志测试");
 
     println!("✓ 安全日志宏调用成功，程序未崩溃\n");
 
