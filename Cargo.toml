@@ -1,6 +1,6 @@
 [package]
 name = "rat_memcache"
-version = "0.2.3"
+version = "0.2.4"
 edition = "2024"
 authors = ["0ldm0s <oldmos@gmail.com>"]
 description = "高性能 Memcached 协议兼容服务器，支持双层缓存和持久化存储"
@@ -26,7 +26,7 @@ required-features = ["server"]
 rat_logger = "0.2.8"
 
 # 持久化存储（可选）
-melange_db = { version = "0.1.5", optional = true }
+melange_db = { version = "0.2.5", optional = true }
 
 # 压缩算法
 lz4 = "1.24"
