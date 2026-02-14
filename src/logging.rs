@@ -70,6 +70,8 @@ impl LogManager {
         use rat_logger::handler::term::TermConfig;
 
         // 创建RAT缓存主题格式配置
+        // DEBUG/TRACE/ERROR: 显示位置信息 {target}:{line}
+        // INFO/WARN: 不显示位置信息，更简洁
         let format_config = rat_logger::FormatConfig {
             timestamp_format: "%H:%M:%S%.3f".to_string(),
             level_style: rat_logger::LevelStyle {
@@ -80,6 +82,13 @@ impl LogManager {
                 trace: "TRACE".to_string(),
             },
             format_template: "{timestamp} [{level}] {target}:{line} - {message}".to_string(),
+            level_templates: Some(rat_logger::LevelTemplates {
+                error: None,              // 继承通用模板（显示位置）
+                warn: Some("{timestamp} [{level}] {message}".to_string()),
+                info: Some("{timestamp} [{level}] {message}".to_string()),
+                debug: None,              // 继承通用模板（显示位置）
+                trace: None,              // 继承通用模板（显示位置）
+            }),
         };
 
         // 创建颜色配置（如果启用颜色）
