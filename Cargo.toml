@@ -23,7 +23,7 @@ required-features = ["server"]
 [dependencies]
 
 # 日志系统
-rat_logger = "0.3.3"
+rat_logger = "0.3"
 
 # 持久化存储（可选）
 melange_db = { version = "0.2.7", optional = true }
