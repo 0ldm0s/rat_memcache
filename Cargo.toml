@@ -26,7 +26,7 @@ required-features = ["server"]
 rat_logger = "0.3"
 
 # 持久化存储（可选）
-melange_db = { version = "0.2.7", optional = true }
+melange_db = { version = "0.2.8", optional = true }
 
 # 压缩算法
 lz4 = "1.24"
